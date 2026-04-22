@@ -113,6 +113,72 @@ check_dots_na_action <- function(..., call = rlang::caller_env()) {
   invisible(NULL)
 }
 
+#' Assert that a column holds only `{0, 1, NA}` values
+#'
+#' Both the outcome and the censoring column are interpreted as
+#' indicators: 0 / NA = no event / uncensored, 1 = event / censored.
+#' Other values break two things:
+#'
+#' - `build_risk_set()` computes `cumsum(outcome)` and `cumsum(censoring)`
+#'   lagged within id; non-binary values cause the cumulative sums to
+#'   walk integer space, producing a risk-set filter that bears no
+#'   relationship to "has the id experienced the event yet?".
+#' - `is_uncensored()` treats any value that is not `NA` and not `0` as
+#'   "censored". A stray `2` in a `status` column from `survival::Surv`
+#'   silently marks that row censored.
+#'
+#' We reject non-binary indicator columns at the boundary with a classed
+#' error pointing to `0/1` recoding.
+#'
+#' @param data Person-period `data.table`.
+#' @param col Column name (character scalar).
+#' @param role String describing the column role, inserted into the
+#'   error message (e.g. `"outcome"`, `"censoring"`).
+#' @param allow_na Logical; when `TRUE`, NA is a permitted value
+#'   (censoring allows NA to mean "uncensored"); when `FALSE`, NA is
+#'   rejected (outcome cannot be NA — caught separately by
+#'   `check_no_na_in_predictors()`).
+#' @param call Caller frame.
+#'
+#' @return Invisibly `NULL`.
+#' @noRd
+check_indicator_col <- function(data, col, role, allow_na = FALSE,
+                                call = rlang::caller_env()) {
+  if (!col %in% names(data)) {
+    return(invisible(NULL))
+  }
+  v <- data[[col]]
+  if (is.logical(v)) {
+    v <- as.integer(v)
+  }
+  ok <- v %in% c(0L, 1L)
+  if (allow_na) {
+    ok <- ok | is.na(v)
+  }
+  if (!all(ok)) {
+    bad_vals <- utils::head(unique(v[!ok]), 5L)
+    rlang::abort(
+      c(
+        paste0(
+          "`",
+          col,
+          "` (", role, ") must contain only 0 / 1",
+          if (allow_na) " / NA" else "",
+          " values."
+        ),
+        i = paste0(
+          "Got value(s): ",
+          paste(shQuote(bad_vals), collapse = ", "),
+          ". Recode to 0 / 1 before calling `surv_fit()`."
+        )
+      ),
+      class = "survatr_bad_indicator",
+      call = call
+    )
+  }
+  invisible(NULL)
+}
+
 #' Reject NA values in predictor columns
 #'
 #' Track A's contrast path predicts the counterfactual hazard on **every**

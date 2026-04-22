@@ -167,6 +167,57 @@ test_that("surv_fit rejects NA in predictor columns (B2)", {
   )))
 })
 
+## Regression test for R2 (2026-04-22 critical review, round 1):
+## Outcome and censoring columns must be 0/1 indicators. Non-binary
+## values (e.g. a stray 2 from `survival::Surv`'s `status`, or a -1 /
+## 99 code in user data) previously slipped through -- `build_risk_set`
+## cumsum-ed over them and `is_uncensored` treated non-zero-non-NA as
+## "censored", producing a risk set unrelated to the user's intent.
+## Fixed by `check_indicator_col()` at surv_fit's boundary.
+test_that("surv_fit rejects non-binary outcome / censoring (R2)", {
+  dt <- sim_constant_hazard(n = 100L, K = 3L, h = 0.1, seed = 471L)
+  dt_bad_y <- data.table::copy(dt)
+  dt_bad_y[5L, Y := 2L]
+  expect_error(
+    surv_fit(dt_bad_y, "Y", "A", ~1, "id", "t", time_formula = ~1),
+    class = "survatr_bad_indicator"
+  )
+
+  dt_bad_c <- data.table::copy(dt)
+  dt_bad_c[, cens := 0L]
+  dt_bad_c[3L, cens := -1L]
+  expect_error(
+    surv_fit(
+      dt_bad_c,
+      "Y",
+      "A",
+      ~1,
+      "id",
+      "t",
+      censoring = "cens",
+      time_formula = ~1
+    ),
+    class = "survatr_bad_indicator"
+  )
+
+  ## NA in censoring is still accepted (retains "uncensored" semantics).
+  dt_ok_cens <- data.table::copy(dt)
+  dt_ok_cens[, cens := 0L]
+  dt_ok_cens[3L, cens := NA]
+  expect_silent(suppressWarnings(
+    surv_fit(
+      dt_ok_cens,
+      "Y",
+      "A",
+      ~1,
+      "id",
+      "t",
+      censoring = "cens",
+      time_formula = ~1
+    )
+  ))
+})
+
 test_that("surv_fit rejects user-data collisions with reserved columns", {
   dt <- fixture_small_pp()
   dt[, .survatr_prev_event := 0L]

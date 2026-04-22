@@ -158,6 +158,15 @@ surv_fit <- function(
   ))
   check_no_na_in_predictors(data, predictor_cols)
 
+  ## Outcome and censoring columns must be 0/1 indicators. `build_risk_set`
+  ## and `is_uncensored()` interpret any non-binary value as if it were
+  ## censored / event-positive, which produces a risk set that disagrees
+  ## with the user's intent without a warning.
+  check_indicator_col(data, outcome, role = "outcome", allow_na = FALSE)
+  if (!is.null(censoring)) {
+    check_indicator_col(data, censoring, role = "censoring", allow_na = TRUE)
+  }
+
   check_weights(weights, nrow(data))
 
   fit_rows <- build_risk_set(
