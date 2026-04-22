@@ -43,21 +43,35 @@ build_contrasts <- function(estimates, type, reference, interventions) {
     return(empty_contrasts)
   }
 
+  ## Per-type estimand column. Select only the needed columns from each
+  ## side of the merge so we do not suffix-duplicate every metadata
+  ## column (`n`, placeholder `se` / `ci_*`, etc.). Chunks 5+ may add
+  ## per-intervention columns we don't want accidentally pulled into
+  ## the `.ref` / `.a1` cartesian product.
+  estimand_col <- switch(
+    type,
+    risk_difference = "risk_hat",
+    risk_ratio = "risk_hat",
+    rmst_difference = "rmst_hat"
+  )
+  ref_slim <- ref_rows[, c("time", estimand_col), with = FALSE]
+  data.table::setnames(ref_slim, estimand_col, "ref_val")
+
   pieces <- lapply(other_names, function(a1_name) {
-    a1_rows <- estimates[get("intervention") == a1_name]
+    a1_slim <- estimates[
+      get("intervention") == a1_name,
+      c("time", estimand_col),
+      with = FALSE
+    ]
+    data.table::setnames(a1_slim, estimand_col, "a1_val")
     ## Join on time. Both tables have unique `time` entries within an
-    ## intervention (setkeyv enforced upstream), so a merge is safe.
-    merged <- merge(
-      ref_rows,
-      a1_rows,
-      by = "time",
-      suffixes = c(".ref", ".a1")
-    )
+    ## intervention (setkeyv enforced upstream), so merge is safe.
+    merged <- merge(ref_slim, a1_slim, by = "time")
     est <- switch(
       type,
-      risk_difference = merged[["risk_hat.a1"]] - merged[["risk_hat.ref"]],
-      risk_ratio = merged[["risk_hat.a1"]] / merged[["risk_hat.ref"]],
-      rmst_difference = merged[["rmst_hat.a1"]] - merged[["rmst_hat.ref"]]
+      risk_difference = merged$a1_val - merged$ref_val,
+      risk_ratio = merged$a1_val / merged$ref_val,
+      rmst_difference = merged$a1_val - merged$ref_val
     )
     data.table::data.table(
       contrast = paste0(a1_name, " vs ", reference),

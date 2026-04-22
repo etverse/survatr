@@ -41,6 +41,29 @@ test_that("check_dots_na_action rejects na.exclude (function and string)", {
   )
 })
 
+## Regression test for S1 (2026-04-22 critical review, round 1):
+## `.cf_hazard` / `.cf_surv` are now also reserved -- used as temporary
+## columns on counterfactual PP copies in `compute_survival_curve()` and
+## `compute_survival_if_matrix()`. A user data column with either name
+## would have been silently overwritten in the internal copy; the
+## reserved-col guard at the boundary now catches that upfront.
+test_that("check_reserved_cols rejects .cf_hazard / .cf_surv (S1)", {
+  ok <- data.table::data.table(id = 1L, t = 1L, y = 0L)
+  bad_cf_hazard <- data.table::copy(ok)
+  bad_cf_hazard[, .cf_hazard := 0]
+  expect_error(
+    check_reserved_cols(bad_cf_hazard),
+    class = "survatr_reserved_col"
+  )
+
+  bad_cf_surv <- data.table::copy(ok)
+  bad_cf_surv[, .cf_surv := 0]
+  expect_error(
+    check_reserved_cols(bad_cf_surv),
+    class = "survatr_reserved_col"
+  )
+})
+
 test_that("check_reserved_cols rejects .survatr_prev_event / .survatr_prev_cens", {
   ok <- data.table::data.table(id = 1L, t = 1L, y = 0L)
   expect_silent(check_reserved_cols(ok))

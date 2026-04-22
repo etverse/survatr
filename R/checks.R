@@ -1,6 +1,20 @@
 ## Column names survatr reserves for internal bookkeeping. Guarded upfront so
 ## user-data collisions produce an informative error rather than silent overwrite.
-SURVATR_RESERVED_COLS <- c(".survatr_prev_event", ".survatr_prev_cens")
+## `.survatr_prev_event` / `.survatr_prev_cens`: lagged within-id cumsums
+## written by `build_risk_set()` and stripped from `fit$pp_data` before
+## return.
+## `.cf_hazard` / `.cf_surv`: temporary columns written by
+## `compute_survival_curve()` and `compute_survival_if_matrix()` onto a
+## copy of `fit$pp_data` to carry per-row counterfactual hazards and the
+## within-id cumulative product. They live only on the internal copy and
+## never reach user code, but we reserve the names so a user input with
+## those columns is caught upfront rather than shadowed inside a copy.
+SURVATR_RESERVED_COLS <- c(
+  ".survatr_prev_event",
+  ".survatr_prev_cens",
+  ".cf_hazard",
+  ".cf_surv"
+)
 
 #' Validate external weights
 #'
