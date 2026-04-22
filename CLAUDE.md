@@ -262,7 +262,7 @@ Single source of truth for per-chunk status is the table below. Keep
 |---|---|---|---|---|
 | 1 | ✅ `6e911d3` | [CHUNK_1_SKELETON.md](CHUNK_1_SKELETON.md) | Package skeleton + Track A fit path: `surv_fit()`, risk-set builder, copied `check_*` / `is_uncensored()` helpers, `survatr_fit` S3, full classed-error surface. | — |
 | 2 | ✅ `2525707` | [CHUNK_2_CONTRAST_A.md](CHUNK_2_CONTRAST_A.md) | Track A contrast path: per-individual hazards → survival curve → risk / RMST contrasts. **No variance yet.** Time-indexed `data.table` result shape. | 1 |
-| 3 | ✅ (pending commit) | [CHUNK_3_SANDWICH_A.md](CHUNK_3_SANDWICH_A.md) | Track A sandwich variance: delta-method cross-time IF aggregation on `causatr:::prepare_model_if()` / `apply_model_correction()`. | 2 |
+| 3 | ✅ `a3f79cb` | [CHUNK_3_SANDWICH_A.md](CHUNK_3_SANDWICH_A.md) | Track A sandwich variance: delta-method cross-time IF aggregation on `causatr:::prepare_model_if()` / `apply_model_correction()`. | 2 |
 | 4 | ⬜ | — | Track A bootstrap + S3 methods (`print` / `plot` / `tidy` for survival curves). | 2 |
 | 5 | ⬜ | — | Track A under IPW: baseline density-ratio weights from causatr, broadcast onto PP rows, weighted hazard MSM. | 2, causatr IPW |
 | 6 | ⬜ | — | Track B (ICE hazards): per-step hazard target + survival-tail pseudo-outcome, reuse causatr's `ice_iterate()` + `variance_if_ice()` via internal imports. | 3, causatr ICE |

@@ -433,7 +433,7 @@ Status legend: ✅ done (commit pinned) · 🚧 in progress · ⬜ not started.
 |---|---|---|---|---|
 | 1 | ✅ `6e911d3` | [CHUNK_1_SKELETON.md](CHUNK_1_SKELETON.md) | Package skeleton: DESCRIPTION, NAMESPACE, lint, CI. Copy + adapt `causat_survival()` fit path. Copy `is_uncensored()`, `check_weights()`, `check_dots_na_action()`, reserved-col guard. | — |
 | 2 | ✅ `2525707` | [CHUNK_2_CONTRAST_A.md](CHUNK_2_CONTRAST_A.md) | Track A contrast path: per-individual hazards → survival curve → risk/RMST contrasts, **no variance yet**. Time-indexed `data.table` result shape. | 1 |
-| 3 | ✅ (pending commit) | [CHUNK_3_SANDWICH_A.md](CHUNK_3_SANDWICH_A.md) | Track A sandwich variance: delta-method cross-time IF aggregation. Depends on `causatr::prepare_model_if()` / `apply_model_correction()` — import or re-export as `@keywords internal`. | 2 |
+| 3 | ✅ `a3f79cb` | [CHUNK_3_SANDWICH_A.md](CHUNK_3_SANDWICH_A.md) | Track A sandwich variance: delta-method cross-time IF aggregation. Depends on `causatr::prepare_model_if()` / `apply_model_correction()` — import or re-export as `@keywords internal`. | 2 |
 | 4 | ⬜ | — | Track A bootstrap + S3 methods (`print` / `plot` / `tidy` for survival curves). | 2 |
 | 5 | ⬜ | — | Track A under IPW: baseline density-ratio weights from `causatr::fit_ipw()`-style treatment model, **broadcast** onto person-period rows, weighted hazard MSM. | 2, causatr IPW |
 | 6 | ⬜ | — | Track B (ICE-hazards): per-step hazard target + survival-tail pseudo-outcome, **reuse** causatr's `ice_iterate()` and `variance_if_ice()` via internal imports. | 3, causatr ICE |
