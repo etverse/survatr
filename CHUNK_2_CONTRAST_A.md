@@ -1,6 +1,7 @@
 # Chunk 2 -- Track A contrast path (no variance)
 
-> **Status: ✅ done** — landed in the follow-on commit to `6e911d3`.
+> **Status: ✅ done** — landed in `2525707`
+> (`feat(chunk-2): Track A contrast -- survival curves + risk / RMST contrasts`).
 > 147 tests passing (1 skip on the `lmtp::lmtp_tmle` smoke oracle).
 > `devtools::check()`: 0 errors / 0 warnings / 2 NOTEs (env + reserved imports).
 
