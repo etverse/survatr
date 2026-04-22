@@ -1,6 +1,7 @@
 ^survatr\.Rproj$
 ^\.lintr$
 ^tests/testthat/Rplots\.pdf$
+^Rplots\.pdf$
 ^\.Rproj\.user$
 ^LICENSE\.md$
 ^README\.Rmd$
