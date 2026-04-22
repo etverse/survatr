@@ -12,9 +12,9 @@ altdoc/pkgdown.yml
 .augment
 .bob
 .claude/*
-!.claude/skills/
 !.claude/commands/
 !.claude/hard-rules.md
+!.claude/settings.json
 .codebuddy
 .commandcode
 .continue
