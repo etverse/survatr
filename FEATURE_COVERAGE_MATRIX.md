@@ -60,7 +60,7 @@ reflects **current** state, not planned scope. Planned scope lives in
 | Non-`causatr_intervention` list elements | 🔴 | `test-contrast-rejections.R` | `survatr_bad_interventions`; error message points to `causatr::static()` et al. |
 | `times` not numeric / empty / NA / outside `fit$time_grid` | 🔴 | `test-contrast-rejections.R` | `survatr_bad_times` (structural) / `survatr_time_extrapolation` (values outside grid). |
 | Bad `reference` (not a name in `interventions`) | 🔴 | `test-contrast-rejections.R` | `survatr_bad_reference`. |
-| `ci_method = "bootstrap"` | 🔴 | `test-contrast-rejections.R` | `survatr_ci_not_available`; bootstrap ships in chunk 4. |
+| `ci_method = "bootstrap"` | 🟢 | `test-bootstrap-survival.R` | Percentile and Wald CIs over B replicates; per-id resampling preserves within-id dependence. See the "Bootstrap variance" section below. |
 | Unknown `ci_method` / `type` / `conf_level` | 🔴 | `test-contrast-rejections.R` | `survatr_bad_ci_method` / `match.arg` / `survatr_bad_conf_level`. |
 | `se` / `ci_lower` / `ci_upper` columns when `ci_method = "none"` | 🟡 | `test-contrast.R` | All `NA_real_` by design (opt-in CI path). |
 
@@ -75,7 +75,31 @@ reflects **current** state, not planned scope. Planned scope lives in
 | Sandwich CI for `rmst` (trapezoidal quadratic form) | 🟢 | `test-sandwich-rmst.R` | SE is non-negative, monotone non-decreasing in `t` (by construction of the cumulative trapezoidal integral of a positive IF), CI bounds finite. |
 | Sandwich CI for `rmst_difference` | 🟢 | `test-sandwich-rmst.R` | CI at `t = 10` covers 0 on a no-effect DGP (n = 3000). |
 | `conf_level` in (0, 1) | 🟢 | `test-contrast-rejections.R` | Rejects values outside the open interval with `survatr_bad_conf_level`. |
-| `model_fn` ≠ `stats::glm` (e.g. `mgcv::gam`) | 🔴 | — | Deferred: sandwich code uses `causatr:::prepare_model_if()` which abort-early on `mgcv::gam` without `$Vp`. Chunk 4 bootstrap is the user path for non-GLM fitters. |
+| `model_fn` ≠ `stats::glm` (e.g. `mgcv::gam`) | 🔴 | — | Sandwich code uses `causatr:::prepare_model_if()` which abort-early on `mgcv::gam` without `$Vp`. Bootstrap (below) is the user path for non-GLM fitters. |
+
+### Bootstrap variance (`ci_method = "bootstrap"`, resample individuals)
+
+| Surface | Status | Test file | Oracle |
+|---|---|---|---|
+| Per-id resampling + per-replicate refit | 🟢 | `test-bootstrap-survival.R` | Smoke: CIs populated, point estimate in `[ci_lower, ci_upper]`. Cluster = id; each replicate draws n_ids ids with replacement, concatenates their PP blocks (renumbered), refits via `surv_fit()`, contrasts via `contrast(ci_method = "none")`. |
+| Percentile CI | 🟢 | `test-bootstrap-survival.R` | Single-seed coverage of `(1-h)^t` at n = 2000, B = 300. Default `boot_ci = "percentile"` (transform-invariant; safer for ratios / RMST). |
+| Wald CI | 🟢 | `test-bootstrap-survival.R` | Sample-SD × `z` bands around the observed point estimate. |
+| Reproducibility with `seed` | 🟢 | `test-bootstrap-survival.R` | Two calls at the same `seed` return identical SEs and CI endpoints. |
+| Bootstrap SE ≈ sandwich SE (cross-check) | 🟢 | `test-bootstrap-survival.R` | Skipped on CRAN. B = 500 at n = 1500: per-time SE agrees within 30%. |
+| `risk_ratio` via percentile CI | 🟢 | `test-bootstrap-survival.R` | Strictly positive; covers 1 on a no-effect DGP. |
+| `risk_difference` with populated contrast CIs | 🟢 | `test-bootstrap-survival.R` | `contrasts$se` / `ci_*` non-NA, point ∈ CI. |
+| Failure guard (>10% replicate failures) | 🔴 | — | `survatr_boot_failed`; point the user at sandwich or at a smaller / simpler DGP. |
+| Parallel backend (`parallel` + `ncpus`) | 🟢 | `test-bootstrap-rejections.R` | Validated upfront; accepts `"no"`, `"multicore"`, `"snow"`; `ncpus` positive integer. |
+| Bad `n_boot` / `boot_ci` / `parallel` | 🔴 | `test-bootstrap-rejections.R` | `survatr_bad_n_boot`, `survatr_bad_boot_ci`, `survatr_bad_parallel`. |
+
+### S3 methods on `survatr_result`
+
+| Surface | Status | Test file | Notes |
+|---|---|---|---|
+| `print()` | 🟢 | `test-surv_fit.R`, `test-contrast.R` | Snapshot-pinned. Shows type, reference, ci_method, time grid, head of contrasts (or estimates for curve-only). |
+| `tidy()` | 🟢 | `test-tidy-survatr_result.R` | Long `data.frame` with `intervention`, `contrast`, `time`, `estimand`, `estimate`, `se`, `ci_lower`, `ci_upper`. `which` in `{"all", "estimates", "contrasts"}`; `conf.int = FALSE` drops CI columns. S3 method on the `generics::tidy` generic (re-exported). |
+| `plot()` | 🟢 | `test-plot-survatr_result.R` | Base-R graphics: curves for `survival` / `risk` / `rmst`, contrasts with reference line at 0 / 1 for the three pairwise types. CI ribbons via `adjustcolor` when populated. Smoke-only (no `vdiffr`). |
+| `forrest()` | 🟢 | `test-forrest-survatr_result.R` | Forest plot at a user-chosen `t_ref`. Aborts on curve-only types (`survatr_forrest_wrong_type`) and on `t_ref` outside `time_grid` (`survatr_bad_t_ref`). |
 ### Bootstrap + S3 polish — ships in chunk 4.
 ### IPW weighted MSM — ships in chunk 5.
 

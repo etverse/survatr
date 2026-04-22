@@ -15,10 +15,11 @@ Description: Causal survival analysis via pooled-logistic hazard
 License: MIT + file LICENSE
 Depends: 
     R (>= 4.1.0)
-Imports: 
+Imports:
     boot,
     causatr,
     data.table (>= 1.14.0),
+    generics,
     numDeriv,
     rlang (>= 1.0.0),
     sandwich,

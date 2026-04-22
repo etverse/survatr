@@ -1,5 +1,67 @@
 # survatr (development version)
 
+## 2026-04-22 — Track A bootstrap + S3 polish
+
+Ship `ci_method = "bootstrap"` in `contrast.survatr_fit()` and the S3
+method surface that turns a `survatr_result` into a plot, a tidy long
+table, or a forest plot.
+
+**Bootstrap.** Resamples **individuals** (all of each id's PP rows
+together), refits the hazard model via `surv_fit()` per replicate,
+recomputes the per-intervention curves and the requested contrasts,
+and derives pointwise CIs from the replicate distribution. Per-id
+resampling is load-bearing: row-level resampling would break the
+within-id cumulative-product dependence and bias variance for longer
+horizons. Two CI flavors:
+
+- **Percentile** (default): `quantile(replicates, (1-conf)/2,
+  (1+conf)/2)`. Transform-invariant, so the same code handles
+  `risk_ratio` without a log-scale detour.
+- **Wald**: `point +/- z * sd(replicates)`. Matches the sandwich
+  shape.
+
+New arguments on `contrast()`: `n_boot` (default `500L`), `boot_ci`
+(`"percentile"` | `"wald"`), `parallel` (forwarded to `boot::boot()`),
+`ncpus`, `seed` (when non-null, `set.seed(seed)` before the replicate
+loop so the whole sequence is reproducible). When a replicate fails
+to refit / contrast it is recorded as `NA`; if > 10% of replicates
+fail, the call aborts with `survatr_boot_failed`.
+
+New rejection surface: `survatr_bad_n_boot`, `survatr_bad_boot_ci`,
+`survatr_bad_parallel`.
+
+`ci_method` now accepts all three values (`"none"`, `"sandwich"`,
+`"bootstrap"`); the chunk-3 `survatr_ci_not_available` placeholder
+signal is retired.
+
+**S3 polish.**
+
+- `tidy.survatr_result()` -- long `data.frame` with columns
+  `intervention | contrast | time | estimand | estimate | se |
+  ci_lower | ci_upper`. `which = c("all", "estimates", "contrasts")`,
+  `conf.int = TRUE`. The `tidy` generic is re-exported from
+  `generics` (now an `Imports:` dependency).
+- `plot.survatr_result()` -- base-R graphics with optional CI
+  ribbons. Auto-dispatches curves for `survival` / `risk` / `rmst`
+  and contrasts (with reference line at 0 or 1) for the three
+  pairwise types.
+- `forrest.survatr_result()` -- forest plot at a user-chosen
+  `t_ref`. One row per pairwise contrast. Rejects curve-only types
+  with `survatr_forrest_wrong_type` and out-of-grid `t_ref` with
+  `survatr_bad_t_ref`.
+
+Bug fix on the way: `build_contrasts()` previously returned a
+zero-column data.table when the user passed a contrast-shaped `type`
+with only a single intervention (everyone vs everyone -> empty). It
+now returns the schema-complete empty-stub used by curve-only types,
+so downstream code sees a stable shape.
+
+Testing: 30+ new tests across `test-bootstrap-survival.R`,
+`test-bootstrap-rejections.R`, `test-tidy-survatr_result.R`,
+`test-plot-survatr_result.R`, `test-forrest-survatr_result.R`. The
+bootstrap-vs-sandwich cross-check (skipped on CRAN) pins B = 500 at
+n = 1500 to within 30% of the sandwich SE.
+
 ## 2026-04-22 — Track A sandwich variance
 
 Ship `ci_method = "sandwich"` in `contrast.survatr_fit()` — delta-method

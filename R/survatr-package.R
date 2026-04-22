@@ -3,6 +3,7 @@
 #' @importFrom rlang abort warn inform
 #' @importFrom numDeriv jacobian
 #' @importFrom sandwich bread estfun
+#' @importFrom boot boot
 "_PACKAGE"
 
 ## usethis namespace: start

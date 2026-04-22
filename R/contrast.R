@@ -47,13 +47,26 @@ contrast <- function(fit, ...) {
 #'   difference / ratio contrasts. Defaults to the first name in
 #'   `interventions`. Ignored by `type = "survival"`, `"risk"`, and
 #'   `"rmst"` (no pairwise contrast).
-#' @param ci_method One of `"none"` (point estimates only; default),
-#'   `"sandwich"` (delta-method cross-time IF aggregation via
-#'   `causatr:::prepare_model_if()`; pointwise Wald bands). `"bootstrap"`
-#'   is reserved for a later chunk and is currently rejected with
-#'   `survatr_ci_not_available`.
-#' @param conf_level Confidence level for the Wald CIs when
-#'   `ci_method != "none"`. Numeric scalar in `(0, 1)`, default `0.95`.
+#' @param ci_method One of `"none"` (point estimates only), `"sandwich"`
+#'   (delta-method cross-time IF aggregation via
+#'   `causatr:::prepare_model_if()`), or `"bootstrap"` (resample
+#'   individuals, refit the hazard model per replicate, percentile or
+#'   Wald CIs). Default `"none"`.
+#' @param conf_level Confidence level for the CIs when `ci_method != "none"`.
+#'   Numeric scalar in `(0, 1)`, default `0.95`.
+#' @param n_boot Integer; number of bootstrap replicates. Ignored when
+#'   `ci_method != "bootstrap"`. Default `500L`.
+#' @param boot_ci One of `"percentile"` (sample-quantile CI) or `"wald"`
+#'   (point estimate +/- `z * sd(replicates)`). Default `"percentile"`.
+#'   Percentile is transform-invariant and is the safer default for
+#'   ratios / RMST.
+#' @param parallel One of `"no"`, `"multicore"`, `"snow"`; forwarded to
+#'   `boot::boot()`. Default `"no"`.
+#' @param ncpus Integer; number of CPUs for parallel bootstrap. Default
+#'   `1L`.
+#' @param seed Integer scalar or `NULL`. When non-null, `set.seed(seed)`
+#'   is called before the bootstrap loop so the replicate sequence is
+#'   reproducible. Default `NULL`.
 #' @param ... Unused; reserved for future chunks.
 #'
 #' @return A `survatr_result` list with `estimates`, `contrasts`,
@@ -74,15 +87,42 @@ contrast.survatr_fit <- function(
   reference = NULL,
   ci_method = "none",
   conf_level = 0.95,
+  n_boot = 500L,
+  boot_ci = "percentile",
+  parallel = "no",
+  ncpus = 1L,
+  seed = NULL,
   ...
 ) {
   type <- match.arg(type)
 
   validate_interventions(interventions)
+  ## Pairwise contrast types need at least two interventions (a non-
+  ## reference vs a reference). Reject the single-intervention case
+  ## upfront with a clear signal rather than silently returning an empty
+  ## contrasts table or erroring deep in the replicate pipeline.
+  if (
+    type %in% c("risk_difference", "risk_ratio", "rmst_difference") &&
+      length(interventions) < 2L
+  ) {
+    rlang::abort(
+      paste0(
+        "`type = \"",
+        type,
+        "\"` requires at least two interventions (one reference + one ",
+        "comparator). Pass a second intervention, or use a curve-only ",
+        "type like \"survival\", \"risk\", or \"rmst\"."
+      ),
+      class = "survatr_bad_interventions"
+    )
+  }
   times <- validate_times(times, fit$time_grid)
   reference <- validate_reference(reference, interventions, type)
   validate_ci_method(ci_method)
   validate_conf_level(conf_level)
+  validate_n_boot(n_boot)
+  validate_boot_ci(boot_ci)
+  validate_parallel(parallel, ncpus)
 
   ## Per-intervention survival curves. Build the counterfactual PP data,
   ## predict hazards on every row (at-risk rows are irrelevant for the
@@ -147,6 +187,32 @@ contrast.survatr_fit <- function(
       times = times,
       conf_level = conf_level,
       n_ids = length(shared$unique_ids)
+    )
+    estimates <- filled$estimates
+    contrasts <- filled$contrasts
+  } else if (identical(ci_method, "bootstrap")) {
+    ## Empirical bootstrap: resample individuals, refit the hazard model
+    ## per replicate, recompute curves / contrasts, percentile or Wald
+    ## bands across replicates. Per-id resampling preserves the
+    ## within-id cumulative-product dependence structure.
+    boot_out <- bootstrap_survival(
+      fit = fit,
+      interventions = interventions,
+      times = times,
+      type = type,
+      reference = reference,
+      n_boot = n_boot,
+      parallel = parallel,
+      ncpus = ncpus,
+      seed = seed
+    )
+    filled <- fill_bootstrap_ses(
+      estimates = estimates,
+      contrasts = contrasts,
+      boot = boot_out,
+      type = type,
+      conf_level = conf_level,
+      boot_ci = boot_ci
     )
     estimates <- filled$estimates
     contrasts <- filled$contrasts
@@ -302,11 +368,10 @@ validate_reference <- function(
   reference
 }
 
-#' Reject unsupported ci_method values
+#' Validate the `ci_method` argument
 #'
-#' Accepts `"none"` (no CIs) and `"sandwich"` (delta-method cross-time IF).
-#' `"bootstrap"` ships in a later chunk and is currently rejected with a
-#' pointer so users get a clear signal rather than a silent no-CI fallback.
+#' Accepts `"none"`, `"sandwich"`, and `"bootstrap"`. Anything else is
+#' `survatr_bad_ci_method`.
 #'
 #' @param ci_method Scalar character.
 #' @param call Caller frame.
@@ -314,29 +379,97 @@ validate_reference <- function(
 #' @return Invisibly `NULL`.
 #' @noRd
 validate_ci_method <- function(ci_method, call = rlang::caller_env()) {
-  if (ci_method %in% c("none", "sandwich")) {
+  if (ci_method %in% c("none", "sandwich", "bootstrap")) {
     return(invisible(NULL))
-  }
-  if (identical(ci_method, "bootstrap")) {
-    rlang::abort(
-      paste0(
-        "`ci_method = \"bootstrap\"` is not yet wired. Use ",
-        "`ci_method = \"sandwich\"` for analytical cross-time variance, ",
-        "or `\"none\"` for point estimates only."
-      ),
-      class = "survatr_ci_not_available",
-      call = call
-    )
   }
   rlang::abort(
     paste0(
-      "`ci_method` must be one of \"none\", \"sandwich\". Got \"",
+      "`ci_method` must be one of \"none\", \"sandwich\", \"bootstrap\". Got \"",
       ci_method,
       "\"."
     ),
     class = "survatr_bad_ci_method",
     call = call
   )
+}
+
+#' Validate the `n_boot` argument
+#'
+#' Must be a positive integer (coerced from numeric scalars when the
+#' user passes e.g. `500`).
+#'
+#' @noRd
+validate_n_boot <- function(n_boot, call = rlang::caller_env()) {
+  if (
+    !is.numeric(n_boot) ||
+      length(n_boot) != 1L ||
+      is.na(n_boot) ||
+      n_boot < 1 ||
+      abs(n_boot - round(n_boot)) > 1e-8
+  ) {
+    rlang::abort(
+      paste0(
+        "`n_boot` must be a positive integer. Got ",
+        deparse(n_boot),
+        "."
+      ),
+      class = "survatr_bad_n_boot",
+      call = call
+    )
+  }
+  invisible(NULL)
+}
+
+#' Validate the `boot_ci` argument
+#'
+#' @noRd
+validate_boot_ci <- function(boot_ci, call = rlang::caller_env()) {
+  if (!boot_ci %in% c("percentile", "wald")) {
+    rlang::abort(
+      paste0(
+        "`boot_ci` must be one of \"percentile\", \"wald\". Got \"",
+        boot_ci,
+        "\"."
+      ),
+      class = "survatr_bad_boot_ci",
+      call = call
+    )
+  }
+  invisible(NULL)
+}
+
+#' Validate `parallel` / `ncpus`
+#'
+#' Forwards to `boot::boot()`. Must be one of `"no"`, `"multicore"`,
+#' `"snow"`; ncpus must be a positive integer.
+#'
+#' @noRd
+validate_parallel <- function(parallel, ncpus, call = rlang::caller_env()) {
+  if (!parallel %in% c("no", "multicore", "snow")) {
+    rlang::abort(
+      paste0(
+        "`parallel` must be one of \"no\", \"multicore\", \"snow\". Got \"",
+        parallel,
+        "\"."
+      ),
+      class = "survatr_bad_parallel",
+      call = call
+    )
+  }
+  if (
+    !is.numeric(ncpus) ||
+      length(ncpus) != 1L ||
+      is.na(ncpus) ||
+      ncpus < 1 ||
+      abs(ncpus - round(ncpus)) > 1e-8
+  ) {
+    rlang::abort(
+      paste0("`ncpus` must be a positive integer. Got ", deparse(ncpus), "."),
+      class = "survatr_bad_parallel",
+      call = call
+    )
+  }
+  invisible(NULL)
 }
 
 #' Validate the `conf_level` argument

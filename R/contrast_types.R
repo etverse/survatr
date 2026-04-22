@@ -34,6 +34,14 @@ build_contrasts <- function(estimates, type, reference, interventions) {
 
   ref_rows <- estimates[get("intervention") == reference]
   other_names <- setdiff(names(interventions), reference)
+  ## Single-intervention contrast type (user asked for risk_difference /
+  ## risk_ratio / rmst_difference but passed only the reference
+  ## intervention): return the empty stub so downstream code sees a
+  ## schema-complete 0-row data.table instead of a no-column artefact
+  ## from `rbindlist(list())`.
+  if (length(other_names) == 0L) {
+    return(empty_contrasts)
+  }
 
   pieces <- lapply(other_names, function(a1_name) {
     a1_rows <- estimates[get("intervention") == a1_name]

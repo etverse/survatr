@@ -8,14 +8,15 @@ make_fit <- function() {
 test_that("contrast rejects empty or unnamed interventions", {
   fit <- make_fit()
   expect_error(
-    contrast(fit, interventions = list(), times = 1:5),
+    contrast(fit, interventions = list(), times = 1:5, type = "survival"),
     class = "survatr_bad_interventions"
   )
   expect_error(
     contrast(
       fit,
       interventions = list(causatr::static(0)),
-      times = 1:5
+      times = 1:5,
+      type = "survival"
     ),
     class = "survatr_bad_interventions"
   )
@@ -23,7 +24,8 @@ test_that("contrast rejects empty or unnamed interventions", {
     contrast(
       fit,
       interventions = list(a = causatr::static(0), a = causatr::static(1)),
-      times = 1:5
+      times = 1:5,
+      type = "survival"
     ),
     class = "survatr_bad_interventions"
   )
@@ -35,7 +37,8 @@ test_that("contrast rejects non-intervention list elements", {
     contrast(
       fit,
       interventions = list(a0 = 0, a1 = 1),
-      times = 1:5
+      times = 1:5,
+      type = "survival"
     ),
     class = "survatr_bad_interventions"
   )
@@ -47,7 +50,8 @@ test_that("contrast rejects bad `times`", {
     contrast(
       fit,
       interventions = list(a0 = causatr::static(0)),
-      times = numeric(0)
+      times = numeric(0),
+      type = "survival"
     ),
     class = "survatr_bad_times"
   )
@@ -55,7 +59,8 @@ test_that("contrast rejects bad `times`", {
     contrast(
       fit,
       interventions = list(a0 = causatr::static(0)),
-      times = c(1, NA)
+      times = c(1, NA),
+      type = "survival"
     ),
     class = "survatr_bad_times"
   )
@@ -63,7 +68,8 @@ test_that("contrast rejects bad `times`", {
     contrast(
       fit,
       interventions = list(a0 = causatr::static(0)),
-      times = "1"
+      times = "1",
+      type = "survival"
     ),
     class = "survatr_bad_times"
   )
@@ -75,7 +81,8 @@ test_that("contrast rejects extrapolation beyond observed time grid", {
     contrast(
       fit,
       interventions = list(a0 = causatr::static(0)),
-      times = c(1, 2, 99)
+      times = c(1, 2, 99),
+      type = "survival"
     ),
     class = "survatr_time_extrapolation"
   )
@@ -110,19 +117,6 @@ test_that("contrast rejects a `reference` that is not in interventions", {
   )
 })
 
-test_that("contrast rejects ci_method = 'bootstrap' with a pointer to sandwich", {
-  fit <- make_fit()
-  expect_error(
-    contrast(
-      fit,
-      interventions = list(a1 = causatr::static(1), a0 = causatr::static(0)),
-      times = 1:5,
-      ci_method = "bootstrap"
-    ),
-    class = "survatr_ci_not_available"
-  )
-})
-
 test_that("contrast rejects bad conf_level", {
   fit <- make_fit()
   expect_error(
@@ -130,6 +124,7 @@ test_that("contrast rejects bad conf_level", {
       fit,
       interventions = list(a0 = causatr::static(0)),
       times = 1:5,
+      type = "survival",
       ci_method = "sandwich",
       conf_level = 1.5
     ),
@@ -140,6 +135,7 @@ test_that("contrast rejects bad conf_level", {
       fit,
       interventions = list(a0 = causatr::static(0)),
       times = 1:5,
+      type = "survival",
       ci_method = "sandwich",
       conf_level = 0
     ),
@@ -154,6 +150,7 @@ test_that("contrast rejects unknown ci_method", {
       fit,
       interventions = list(a0 = causatr::static(0)),
       times = 1:5,
+      type = "survival",
       ci_method = "bogus"
     ),
     class = "survatr_bad_ci_method"

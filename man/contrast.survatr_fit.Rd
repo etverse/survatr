@@ -13,6 +13,11 @@
   reference = NULL,
   ci_method = "none",
   conf_level = 0.95,
+  n_boot = 500L,
+  boot_ci = "percentile",
+  parallel = "no",
+  ncpus = 1L,
+  seed = NULL,
   ...
 )
 }
@@ -37,14 +42,32 @@ difference / ratio contrasts. Defaults to the first name in
 \code{interventions}. Ignored by \code{type = "survival"}, \code{"risk"}, and
 \code{"rmst"} (no pairwise contrast).}
 
-\item{ci_method}{One of \code{"none"} (point estimates only; default),
-\code{"sandwich"} (delta-method cross-time IF aggregation via
-\code{causatr:::prepare_model_if()}; pointwise Wald bands). \code{"bootstrap"}
-is reserved for a later chunk and is currently rejected with
-\code{survatr_ci_not_available}.}
+\item{ci_method}{One of \code{"none"} (point estimates only), \code{"sandwich"}
+(delta-method cross-time IF aggregation via
+\code{causatr:::prepare_model_if()}), or \code{"bootstrap"} (resample
+individuals, refit the hazard model per replicate, percentile or
+Wald CIs). Default \code{"none"}.}
 
-\item{conf_level}{Confidence level for the Wald CIs when
-\code{ci_method != "none"}. Numeric scalar in \verb{(0, 1)}, default \code{0.95}.}
+\item{conf_level}{Confidence level for the CIs when \code{ci_method != "none"}.
+Numeric scalar in \verb{(0, 1)}, default \code{0.95}.}
+
+\item{n_boot}{Integer; number of bootstrap replicates. Ignored when
+\code{ci_method != "bootstrap"}. Default \code{500L}.}
+
+\item{boot_ci}{One of \code{"percentile"} (sample-quantile CI) or \code{"wald"}
+(point estimate +/- \code{z * sd(replicates)}). Default \code{"percentile"}.
+Percentile is transform-invariant and is the safer default for
+ratios / RMST.}
+
+\item{parallel}{One of \code{"no"}, \code{"multicore"}, \code{"snow"}; forwarded to
+\code{boot::boot()}. Default \code{"no"}.}
+
+\item{ncpus}{Integer; number of CPUs for parallel bootstrap. Default
+\code{1L}.}
+
+\item{seed}{Integer scalar or \code{NULL}. When non-null, \code{set.seed(seed)}
+is called before the bootstrap loop so the replicate sequence is
+reproducible. Default \code{NULL}.}
 
 \item{...}{Unused; reserved for future chunks.}
 }
