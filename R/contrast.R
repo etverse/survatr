@@ -292,9 +292,19 @@ validate_interventions <- function(interventions, call = rlang::caller_env()) {
 #' @return The sorted, de-duplicated `times` vector.
 #' @noRd
 validate_times <- function(times, fit_grid, call = rlang::caller_env()) {
-  if (!is.numeric(times) || length(times) == 0L || anyNA(times)) {
+  ## Allow numeric / integer time grids (the common case) as well as
+  ## Date / POSIXct / difftime, which users get when the hazard model
+  ## uses a real-world timestamp column. `setdiff()` works across these
+  ## types, so delegation to `fit_grid` for set membership is safe once
+  ## the structural checks (non-empty, no NA) pass.
+  is_time_like <- is.numeric(times) ||
+    inherits(times, c("Date", "POSIXct", "POSIXlt", "difftime"))
+  if (!is_time_like || length(times) == 0L || anyNA(times)) {
     rlang::abort(
-      "`times` must be a non-empty numeric vector with no NA values.",
+      paste0(
+        "`times` must be a non-empty vector of numeric / Date / POSIXct / ",
+        "difftime values with no NA entries."
+      ),
       class = "survatr_bad_times",
       call = call
     )

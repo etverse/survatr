@@ -44,6 +44,24 @@ test_that("contrast rejects non-intervention list elements", {
   )
 })
 
+## Regression test for R3 (2026-04-22 critical review, round 1):
+## `validate_times` previously used `is.numeric(times)`, which returns
+## FALSE for Date / POSIXct / difftime. Users whose hazard model uses a
+## real-world timestamp column could not evaluate contrasts. Relaxed
+## to accept numeric and the three common time-like classes, delegating
+## set-membership to `setdiff()` which works across them.
+test_that("contrast accepts Date / POSIXct times when fit uses them (R3)", {
+  dt <- sim_constant_hazard(n = 100L, K = 3L, h = 0.1, seed = 481L)
+  dt[, t := as.Date("2020-01-01") + (t - 1L) * 30L]
+  fit <- surv_fit(dt, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
+  expect_silent(contrast(
+    fit,
+    list(a0 = causatr::static(0)),
+    times = fit$time_grid,
+    type = "survival"
+  ))
+})
+
 test_that("contrast rejects bad `times`", {
   fit <- make_fit()
   expect_error(
