@@ -39,3 +39,43 @@ print.survatr_fit <- function(x, ...) {
   ))
   invisible(x)
 }
+
+#' Print a `survatr_result`
+#'
+#' Minimal banner + head of the result's `contrasts` (or `estimates` for
+#' curve-only `type`s). A polished print + `plot` / `tidy` / `forrest`
+#' surface ships with the S3 polish in a later chunk.
+#'
+#' @param x A `survatr_result`.
+#' @param n Maximum number of rows from the contrasts / estimates table to
+#'   show (default 10).
+#' @param ... Unused.
+#'
+#' @return The result object, invisibly.
+#' @export
+print.survatr_result <- function(x, n = 10L, ...) {
+  tg <- x$time_grid
+  cat("<survatr_result>\n")
+  cat(sprintf("  Type:        %s\n", x$type))
+  cat(sprintf(
+    "  Reference:   %s\n",
+    if (is.null(x$reference)) "(none)" else x$reference
+  ))
+  cat(sprintf("  CI method:   %s\n", x$ci_method))
+  cat(sprintf(
+    "  Time grid:   [%s, %s] (%d unique times)\n",
+    format(tg[1L]),
+    format(tg[length(tg)]),
+    length(tg)
+  ))
+  cat(sprintf("  Estimates:   %d rows\n", nrow(x$estimates)))
+  cat(sprintf("  Contrasts:   %d rows\n", nrow(x$contrasts)))
+
+  show <- if (nrow(x$contrasts) > 0L) x$contrasts else x$estimates
+  n <- min(n, nrow(show))
+  if (n > 0L) {
+    cat("\n")
+    print(show[seq_len(n)])
+  }
+  invisible(x)
+}

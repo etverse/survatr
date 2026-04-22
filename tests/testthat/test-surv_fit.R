@@ -53,8 +53,14 @@ test_that("surv_fit does not mutate the caller's data", {
   snap_names <- names(dt)
   snap_nrow <- nrow(dt)
   suppressWarnings(surv_fit(
-    dt, "Y", "A", ~L, "id", "t",
-    censoring = "cens", time_formula = ~t
+    dt,
+    "Y",
+    "A",
+    ~L,
+    "id",
+    "t",
+    censoring = "cens",
+    time_formula = ~t
   ))
   expect_identical(names(dt), snap_names)
   expect_equal(nrow(dt), snap_nrow)

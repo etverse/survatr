@@ -426,18 +426,21 @@ NHEFS.
 
 ## 10. Implementation chunks (proposed)
 
-| Chunk | Scope | Depends on |
-|---|---|---|
-| 1 | Package skeleton: DESCRIPTION, NAMESPACE, lint, CI. Copy + adapt `causat_survival()` fit path. Copy `is_uncensored()`, `check_weights()`, `check_dots_na_action()`, reserved-col guard. | — |
-| 2 | Track A contrast path: per-individual hazards → survival curve → risk/RMST contrasts, **no variance yet**. Time-indexed `data.table` result shape. | chunk 1 |
-| 3 | Track A sandwich variance: delta-method cross-time IF aggregation. Depends on `causatr::prepare_model_if()` / `apply_model_correction()` — import or re-export as `@keywords internal`. | chunk 2 |
-| 4 | Track A bootstrap + S3 methods (`print` / `plot` / `tidy` for survival curves). | chunk 2 |
-| 5 | Track A under IPW: baseline density-ratio weights from `causatr::fit_ipw()`-style treatment model, **broadcast** onto person-period rows, weighted hazard MSM. | chunk 2, causatr IPW |
-| 6 | Track B (ICE-hazards): per-step hazard target + survival-tail pseudo-outcome, **reuse** causatr's `ice_iterate()` and `variance_if_ice()` via internal imports. | chunk 3, causatr ICE |
-| 7 | Competing risks: parallel cause-specific hazards + CIF contrast + sandwich via stacked EE across cause-specific models. | chunks 2, 3 |
-| 8 | Matching rejection path + classed error. | — |
-| 9 | NHEFS Ch. 17 replication test + `survival` vignette. | chunks 2–7 |
-| 10 | Survival-aware `diagnose()` (per-period hazard positivity, cross-time balance, competing-risks decomposition). | chunks 2, 7 |
+Status legend: ✅ done (commit pinned) · 🚧 in progress · ⬜ not started.
+[CLAUDE.md](CLAUDE.md) mirrors this table — update both when a chunk flips.
+
+| # | Status | Chunk doc | Scope | Depends |
+|---|---|---|---|---|
+| 1 | ✅ `6e911d3` | [CHUNK_1_SKELETON.md](CHUNK_1_SKELETON.md) | Package skeleton: DESCRIPTION, NAMESPACE, lint, CI. Copy + adapt `causat_survival()` fit path. Copy `is_uncensored()`, `check_weights()`, `check_dots_na_action()`, reserved-col guard. | — |
+| 2 | ✅ (pending commit) | [CHUNK_2_CONTRAST_A.md](CHUNK_2_CONTRAST_A.md) | Track A contrast path: per-individual hazards → survival curve → risk/RMST contrasts, **no variance yet**. Time-indexed `data.table` result shape. | 1 |
+| 3 | ⬜ | — | Track A sandwich variance: delta-method cross-time IF aggregation. Depends on `causatr::prepare_model_if()` / `apply_model_correction()` — import or re-export as `@keywords internal`. | 2 |
+| 4 | ⬜ | — | Track A bootstrap + S3 methods (`print` / `plot` / `tidy` for survival curves). | 2 |
+| 5 | ⬜ | — | Track A under IPW: baseline density-ratio weights from `causatr::fit_ipw()`-style treatment model, **broadcast** onto person-period rows, weighted hazard MSM. | 2, causatr IPW |
+| 6 | ⬜ | — | Track B (ICE-hazards): per-step hazard target + survival-tail pseudo-outcome, **reuse** causatr's `ice_iterate()` and `variance_if_ice()` via internal imports. | 3, causatr ICE |
+| 7 | ⬜ | — | Competing risks: parallel cause-specific hazards + CIF contrast + sandwich via stacked EE across cause-specific models. | 2, 3 |
+| 8 | ⬜ | — | Matching rejection path + classed error. | — |
+| 9 | ⬜ | — | NHEFS Ch. 17 replication test + `survival` vignette. | 2–7 |
+| 10 | ⬜ | — | Survival-aware `diagnose()` (per-period hazard positivity, cross-time balance, competing-risks decomposition). | 2, 7 |
 
 ## 11. Package naming / placement
 

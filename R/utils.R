@@ -77,6 +77,49 @@ new_survatr_fit <- function(
   )
 }
 
+#' S3 constructor for `survatr_result`
+#'
+#' Internal constructor for the curve-shaped result returned by
+#' `contrast.survatr_fit()`. Holds the per-intervention `estimates` and
+#' pairwise `contrasts` data.tables, the user time grid, and metadata
+#' used by the `print` / `plot` / `tidy` methods.
+#'
+#' @param estimates `data.table` with columns `intervention | time |
+#'   s_hat | risk_hat | ...` (or `rmst_hat` for RMST-shaped results).
+#' @param contrasts `data.table` with columns `contrast | time | estimate
+#'   | se | ci_lower | ci_upper`. Empty stub for curve-only `type`s.
+#' @param time_grid Numeric vector (the `times` input, sorted unique).
+#' @param type Contrast type.
+#' @param reference Reference intervention name, or `NULL`.
+#' @param ci_method `"none"` through chunk 2; `"sandwich"` / `"bootstrap"`
+#'   from chunk 3 / 4.
+#' @param call The original `match.call()` of `contrast.survatr_fit()`.
+#'
+#' @return A list of class `survatr_result`.
+#' @noRd
+new_survatr_result <- function(
+  estimates,
+  contrasts,
+  time_grid,
+  type,
+  reference,
+  ci_method,
+  call
+) {
+  structure(
+    list(
+      estimates = estimates,
+      contrasts = contrasts,
+      time_grid = time_grid,
+      type = type,
+      reference = reference,
+      ci_method = ci_method,
+      call = call
+    ),
+    class = "survatr_result"
+  )
+}
+
 #' Treat censoring indicator as "at-risk"
 #'
 #' Convention: `NA` or `0` in the censoring column means the row is at risk

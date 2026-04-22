@@ -1,5 +1,9 @@
 # Chunk 1 — Skeleton + Track A fit path
 
+> **Status: ✅ done** — landed in `6e911d3`
+> (`feat(chunk-1): Track A fit skeleton -- surv_fit() pooled-logistic hazard`).
+> 79 tests passing. `devtools::check()`: 0 errors / 0 warnings.
+
 > Per-chunk implementation guide for `survatr` chunk 1. Reads alongside
 > [SURVIVAL_PACKAGE_HANDOFF.md](SURVIVAL_PACKAGE_HANDOFF.md) (scope, design,
 > invariants) and [.claude/hard-rules.md](.claude/hard-rules.md) (project

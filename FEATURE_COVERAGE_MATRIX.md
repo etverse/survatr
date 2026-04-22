@@ -42,7 +42,28 @@ reflects **current** state, not planned scope. Planned scope lives in
 | Duplicated `(id, time)` rows | 🔴 | `test-prepare_data.R` | `survatr_duplicate_pp_row`. |
 | Input mutation safety (`data.frame` / `data.table` both copied) | 🟢 | `test-prepare_data.R`, `test-surv_fit.R` | Post-fit name / row-count equality with pre-fit snapshot. |
 
-### Contrast path — ships in chunk 2.
+### Contrast path (`contrast.survatr_fit()`)
+
+| Surface | Status | Test file | Oracle |
+|---|---|---|---|
+| `type = "survival"` on constant-hazard DGP | 🟢 | `test-contrast-survival.R`, `test-survival_curve.R` | Closed-form `S(t) = (1 - h)^t` on n = 5000, absolute tolerance 0.03 (~4 MC-SE). |
+| `type = "risk"` | 🟢 | `test-contrast-survival.R` | Derived from `s_hat`; returns curve-only (empty `contrasts` stub). |
+| `type = "risk_difference"` | 🟢 | `test-contrast.R` | DGP with no treatment effect: RD ≈ 0 across time, tolerance 0.02 at n = 5000. |
+| `type = "risk_ratio"` | 🟢 | `test-contrast.R` | DGP with no treatment effect: RR ≈ 1, tolerance 0.15. |
+| `type = "rmst"` | 🟢 | `test-rmst.R`, `test-contrast.R` | Closed-form trapezoidal integral of `(1-h)^t` matched to 1e-12; curve-only shape verified. |
+| `type = "rmst_difference"` | 🟢 | `test-contrast.R` | DGP with no effect: RMST-diff ≈ 0, tolerance 0.1. |
+| Oracle cross-check vs `lmtp::lmtp_tmle(outcome_type = "survival")` | 🟡 | `test-contrast-lmtp-oracle.R` | Point-estimate smoke test skipped on CRAN and skipped when the lmtp call can't fit the toy DGP. Kept to catch regressions on larger DGPs. |
+| Per-individual cumulative product (Jensen-safe) | 🟢 | `test-survival_curve.R` | Cumulative product within id before averaging across ids; monotone non-increasing in t on random DGPs. |
+| RMST trapezoidal quadrature (closed form) | 🟢 | `test-rmst.R` | Explicit sum of `(S(t_i) + S(t_{i+1}))/2 * (t_{i+1} - t_i)` reproduced to 1e-12. |
+| `fit$pp_data` mutation safety | 🟢 | `test-contrast.R` | Names / nrow / treatment column identical pre- and post- `contrast()`. |
+| Empty / unnamed / duplicate-named interventions | 🔴 | `test-contrast-rejections.R` | `survatr_bad_interventions`. |
+| Non-`causatr_intervention` list elements | 🔴 | `test-contrast-rejections.R` | `survatr_bad_interventions`; error message points to `causatr::static()` et al. |
+| `times` not numeric / empty / NA / outside `fit$time_grid` | 🔴 | `test-contrast-rejections.R` | `survatr_bad_times` (structural) / `survatr_time_extrapolation` (values outside grid). |
+| Bad `reference` (not a name in `interventions`) | 🔴 | `test-contrast-rejections.R` | `survatr_bad_reference`. |
+| `ci_method = "sandwich"` / `"bootstrap"` | 🔴 | `test-contrast-rejections.R` | `survatr_ci_not_available`. Sandwich ships in chunk 3; bootstrap in chunk 4. |
+| Unknown `ci_method` / `type` | 🔴 | `test-contrast-rejections.R` | `survatr_bad_ci_method` / `match.arg` error. |
+| `se` / `ci_lower` / `ci_upper` columns | 🟡 | `test-contrast.R` | All `NA_real_` at chunk 2 by design; sandwich / bootstrap fill these in chunks 3 / 4. |
+
 ### Sandwich variance — ships in chunk 3.
 ### Bootstrap + S3 polish — ships in chunk 4.
 ### IPW weighted MSM — ships in chunk 5.
