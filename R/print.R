@@ -72,10 +72,15 @@ print.survatr_result <- function(x, n = 10L, ...) {
   cat(sprintf("  Contrasts:   %d rows\n", nrow(x$contrasts)))
 
   show <- if (nrow(x$contrasts) > 0L) x$contrasts else x$estimates
-  n <- min(n, nrow(show))
-  if (n > 0L) {
+  ## Use `head()` (not `show[seq_len(n)]`) because `show` may carry an
+  ## `n` column (the per-time sample count from `compute_survival_curve`)
+  ## that would bind via data.table NSE to the subsetting expression and
+  ## override the function argument. `head` on a data.table respects the
+  ## integer row count directly.
+  n_rows <- min(n, nrow(show))
+  if (n_rows > 0L) {
     cat("\n")
-    print(show[seq_len(n)])
+    print(utils::head(show, n_rows))
   }
   invisible(x)
 }

@@ -113,6 +113,31 @@ test_that("contrast is idempotent with respect to fit$pp_data", {
   expect_equal(fit$pp_data$A, snap_A)
 })
 
+## Regression test for B4 (2026-04-22 critical review, round 1):
+## `print.survatr_result` previously used `show[seq_len(n)]` where `show`
+## was a data.table whose `n` column (sample count) shadowed the local
+## `n` argument inside data.table NSE, printing ~nrow phantom NA rows.
+## Fixed by switching to `utils::head(show, n_rows)` in the same commit
+## as this test. Repro: `/tmp/survatr_repro_b4_print.R`.
+test_that("print.survatr_result does not emit phantom NA rows (B4)", {
+  dt <- sim_constant_hazard(n = 300L, K = 5L, h = 0.1, seed = 411L)
+  fit <- surv_fit(dt, "Y", "A", ~1, "id", "t", time_formula = ~1)
+  res <- contrast(
+    fit,
+    interventions = list(a1 = causatr::static(1)),
+    times = 2,
+    type = "survival",
+    ci_method = "sandwich"
+  )
+  out <- capture.output(print(res))
+  ## Total lines: 8-row banner + 1 blank + 2 data.table header rows + 1
+  ## data row. Anything > ~15 lines means the NSE regression has
+  ## returned.
+  expect_lt(length(out), 15L)
+  ## And no NA marker should appear anywhere in the body.
+  expect_false(any(grepl("\\bNA\\b", out[-seq_len(8L)])))
+})
+
 test_that("print.survatr_result emits a stable banner", {
   dt <- sim_constant_hazard(n = 500L, K = 5L, h = 0.1, seed = 37L)
   fit <- surv_fit(dt, "Y", "A", ~1, "id", "t", time_formula = ~1)
