@@ -1,5 +1,60 @@
 # survatr (development version)
 
+## 2026-04-22 — Round-1 critical review: 9 fixes across chunks 1–4
+
+A full adversarial review of the 214-test chunk-1/2/3/4 surface produced
+four blocking correctness bugs, three required fixes, and two
+suggestions. Each reproduced numerically against a focused script under
+`/tmp/survatr_repro_*.R` before a fix landed; each has a classed
+regression test colocated with the affected area.
+
+**Blocking (numerical correctness)**
+
+- `rmst_weights()` had off-by-one indexing + double-counted the `S(0) =
+  1` prefix, inflating the sandwich SE for `rmst` and `rmst_difference`
+  by up to 2× at `t = 1` and ~57% on irregular grids. Point estimate
+  (`rmst_hat` via `trapezoidal_rmst`) was unaffected. Fix `dd873e5`.
+- `na.action = na.omit` + NA in a confounder caused `prep$X_fit`
+  (post-NA-drop) to misalign with `fit_idx` (pre-drop), crashing the
+  sandwich IF chain with a subscript-OOB. Rejected upfront with
+  `survatr_na_in_predictors` (NA in `censoring` still allowed). Fix
+  `f7c7f95`.
+- Ragged PP (ids dropped post-event) crashed the sandwich / bootstrap
+  paths on a defensive assertion. Rejected upfront with
+  `survatr_ragged_pp` and a padding recipe. The legacy
+  single-row-id = wide heuristic retired in favor of the
+  rectangularity check. Fix `d6a2765`.
+- `print.survatr_result` used `show[seq_len(n)]` where `show` is a
+  data.table whose `n` column shadowed the function argument via NSE,
+  printing hundreds of phantom NA rows. Fixed by `utils::head()`.
+  Fix `de4c5e0`.
+
+**Required (latent but fragile)**
+
+- Bootstrap `seed` was silently non-reproducible under `parallel !=
+  "no"` — `mclapply` / `parLapply` ignore the serial RNG unless
+  L'Ecuyer-CMRG is set first. Now sets and restores the RNG kind
+  around the parallel call. Fix `9c2b0b6`.
+- Non-binary outcome / censoring values silently walked the risk-set
+  cumsums. Rejected upfront with `survatr_bad_indicator`. Fix
+  `bcb9d95`.
+- `validate_times()` rejected `Date` / `POSIXct` / `difftime` grids.
+  Relaxed to accept the time-like classes. Fix `c8e37d6`.
+
+**Suggestions**
+
+- `.cf_hazard` / `.cf_surv` added to `SURVATR_RESERVED_COLS`.
+- `build_contrasts()` merge slimmed to select only the target
+  estimand column, stable under chunk-5+ IPW columns. Fix `4935adb`.
+
+Full suite after all fixes: pass (see commit messages for per-chunk
+coverage additions).
+
+**CI infrastructure fix** (separate from the review): `.Rbuildignore`
+pattern `^\.claude$` only matched the literal path and let R CMD build
+recurse into dangling `.claude/skills/` symlinks on CI. Widened to
+`^\.claude(/|$)`. Fix `915d5eb`.
+
 ## 2026-04-22 — Track A bootstrap + S3 polish
 
 Ship `ci_method = "bootstrap"` in `contrast.survatr_fit()` and the S3

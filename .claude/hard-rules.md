@@ -102,6 +102,44 @@ Project-specific rules that override / extend the etverse-wide rules at
   invoking the cause-specific + CIF path is an error
   (`survatr_competing_misuse`).
 
+### Established invariants from 2026-04-22 round-1 critical review
+
+Do NOT flag these as bugs. Each has a classed-error boundary check
+and a regression test:
+
+- **NA in predictor columns is rejected upfront** (`survatr_na_in_predictors`).
+  Track A's contrast path predicts on every PP row; NA would either
+  silently propagate through `cumprod` or be dropped by `glm`'s
+  `na.omit` (our permitted default), misaligning `prep$X_fit` with
+  `fit_idx`. NA in the `censoring` column retains "uncensored"
+  semantics and is still accepted.
+- **Rectangular PP is required** (`survatr_ragged_pp`). Every id must
+  have a row at every unique time. Ragged PP (post-event / post-censor
+  rows dropped) is rejected at `prepare_pp_data()`. Users pad with
+  `outcome = 0` and `censoring = 1` on the padded rows so the
+  risk-set builder drops them from the fit. Single-row ids in a
+  `n_times == 1` study are trivially rectangular and accepted.
+- **Outcome and censoring columns are 0/1 indicators**
+  (`survatr_bad_indicator`). Non-binary values walk the cumsum risk-set
+  machinery without error.
+- **`rmst_weights()` diagonal entries are `dt[j] / 2`, not
+  `dt[j-1]/2 + dt[j]/2`.** The `S(0) = 1` contribution is the constant
+  `dt[1] / 2` that drops out of the delta and is NOT in the matrix.
+  Contract: `W %*% s_hat + dt[1]/2 == trapezoidal_rmst(times, s_hat)`.
+- **`print.survatr_result` must not use `show[seq_len(n)]`.** The
+  local `n` arg collides with the `n` column of `estimates` under
+  data.table NSE. Use `utils::head()` or a non-colliding name.
+- **Bootstrap reproducibility under parallel backends requires
+  L'Ecuyer-CMRG.** The serial-path `set.seed(seed)` is ignored by
+  `mclapply` / `parLapply` otherwise. `bootstrap_survival()` sets
+  L'Ecuyer-CMRG before `set.seed()` when parallel != "no" and
+  restores the caller's prior RNGkind on exit.
+- **Reserved columns include `.cf_hazard` and `.cf_surv`** in addition
+  to `.survatr_prev_event` / `.survatr_prev_cens`. The former live only
+  on internal copies but are still guarded at the boundary.
+- **`validate_times()` accepts numeric + Date + POSIXct + POSIXlt +
+  difftime.** `is.numeric()` alone rejects all time-like classes.
+
 ### Implementation conventions
 
 - **causatr is the engine.** Import `prepare_model_if()`,
