@@ -62,6 +62,46 @@ test_that("bootstrap is reproducible with a fixed seed", {
   expect_equal(r1$estimates$ci_lower, r2$estimates$ci_lower)
 })
 
+## Regression test for R1 (2026-04-22 critical review, round 1): bootstrap
+## `seed` was silently non-reproducible under `parallel = "multicore"`
+## because mclapply ignores the serial RNG state unless
+## RNGkind("L'Ecuyer-CMRG") is set first. Fixed by saving the prior
+## RNGkind, switching to L'Ecuyer-CMRG when parallel != "no", and
+## restoring on exit. Repro: `/tmp/survatr_repro_r1_parallel_seed.R`.
+test_that("bootstrap is reproducible under parallel = 'multicore' (R1)", {
+  skip_on_cran()
+  skip_on_os("windows") ## mclapply is POSIX-only; covered by snow separately
+  dt <- sim_constant_hazard(n = 300L, K = 4L, h = 0.1, seed = 901L)
+  fit <- surv_fit(dt, "Y", "A", ~1, "id", "t", time_formula = ~1)
+  r1 <- contrast(
+    fit,
+    list(a0 = causatr::static(0)),
+    times = 1:4,
+    type = "survival",
+    ci_method = "bootstrap",
+    n_boot = 30L,
+    seed = 42L,
+    parallel = "multicore",
+    ncpus = 2L
+  )
+  r2 <- contrast(
+    fit,
+    list(a0 = causatr::static(0)),
+    times = 1:4,
+    type = "survival",
+    ci_method = "bootstrap",
+    n_boot = 30L,
+    seed = 42L,
+    parallel = "multicore",
+    ncpus = 2L
+  )
+  expect_equal(r1$estimates$se, r2$estimates$se)
+  expect_equal(r1$estimates$ci_lower, r2$estimates$ci_lower)
+
+  ## Caller's RNGkind must be restored (not leaked as "L'Ecuyer-CMRG").
+  expect_false(identical(RNGkind()[1L], "L'Ecuyer-CMRG"))
+})
+
 test_that("bootstrap supports risk_difference with populated contrasts CIs", {
   dt <- sim_constant_hazard(n = 800L, K = 5L, h = 0.08, seed = 229L)
   fit <- surv_fit(dt, "Y", "A", ~1, "id", "t", time_formula = ~1)

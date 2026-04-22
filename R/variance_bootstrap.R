@@ -141,9 +141,23 @@ bootstrap_survival <- function(
     flatten_boot_result(boot_res, meta)
   }
 
+  ## Reproducibility under parallel backends requires an L'Ecuyer
+  ## stream: `mclapply` / `parLapply` ignore the serial RNG state
+  ## otherwise, so two calls with the same `seed` would produce
+  ## different replicate sequences. Save and restore the prior RNG
+  ## kind so we do not leak L'Ecuyer back to the caller.
+  prev_kind <- NULL
   if (!is.null(seed)) {
+    if (!identical(parallel, "no")) {
+      prev_kind <- RNGkind()
+      RNGkind("L'Ecuyer-CMRG")
+    }
     set.seed(seed)
   }
+  on.exit(
+    if (!is.null(prev_kind)) RNGkind(prev_kind[1L], prev_kind[2L], prev_kind[3L]),
+    add = TRUE
+  )
 
   b <- boot::boot(
     data = unique_ids,
