@@ -8,8 +8,14 @@
 #' split lets the user fit the hazard model once and cheaply contrast many
 #' interventions on top.
 #'
-#' @param data A person-period (long) `data.frame` or `data.table` with one
-#'   row per `(id, time)` pair. Wide data must be reshaped upstream with
+#' @param data A person-period (long) `data.frame` or `data.table`,
+#'   **rectangular** across ids: every unique `id` must have one row at
+#'   every unique `time` value. Ragged PP (ids dropped post-event /
+#'   post-censor) is rejected with class `survatr_ragged_pp`. Pad ragged
+#'   data before calling `surv_fit()` by appending rows with
+#'   `outcome = 0` and (if used) `censoring = 1` so the risk-set builder
+#'   drops them from the fit. Wide data (one row per id across a
+#'   multi-period study) must be reshaped with
 #'   `causatr::to_person_period()`.
 #' @param outcome Character scalar. Column name of the event indicator
 #'   (`1` = event at this period, `0` = no event). Must be in `data`.

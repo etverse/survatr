@@ -36,9 +36,13 @@ test_that("prepare_pp_data rejects missing columns", {
 })
 
 test_that("prepare_pp_data rejects wide (one row per id) input", {
+  ## A wide fixture: 5 ids, each with one row, but the time grid has
+  ## n_times > 1 so at least some id is missing most time values. The
+  ## message distinguishes "wide" from "ragged" at the n_times == 1
+  ## degenerate edge case.
   wide <- data.table::data.table(
-    id = 1:5,
-    t = 1L,
+    id = c(1, 2, 3, 4, 5),
+    t = c(1, 2, 3, 1, 2),
     A = c(1, 0, 1, 0, 1),
     Y = c(0, 1, 0, 1, 0)
   )
@@ -50,6 +54,32 @@ test_that("prepare_pp_data rejects wide (one row per id) input", {
     prepare_pp_data(wide, "Y", "A", "id", "t"),
     error = TRUE
   )
+})
+
+## Regression test for B3 / S3 (2026-04-22 critical review, round 1):
+## Ragged PP -- ids missing a row at some time in the unique-time grid --
+## previously crashed the sandwich IF chain with a subscript-OOB at
+## compute_survival_if_matrix line 111. Now rejected at prepare_pp_data
+## with a dedicated class `survatr_ragged_pp`. The classic "one id had
+## the event at t=1 and post-event rows were dropped" case is the target
+## scenario. Repro: `/tmp/survatr_repro_b3_ragged_pp.R`.
+test_that("prepare_pp_data rejects ragged PP (B3 / S3)", {
+  ## Standard ragged case: id 1 event at t=1, only (1, 1) present.
+  rect <- data.table::CJ(id = 1:5, t = 1:3)
+  rect[, A := 1L]
+  rect[, Y := 0L]
+  data.table::setcolorder(rect, c("id", "t", "A", "Y"))
+  ragged <- rect[-2L] ## drop (1, 2), leaving 14 rows instead of 15
+  expect_error(
+    prepare_pp_data(ragged, "Y", "A", "id", "t"),
+    class = "survatr_ragged_pp"
+  )
+
+  ## Single-row ids in a 1-period study (n_times = 1) are trivially
+  ## rectangular and must be accepted. This replaces the old hard
+  ## "one-row-per-id = wide" heuristic which conflated ragged and wide.
+  one_period <- data.table::data.table(id = 1:5, t = 1L, A = 0L, Y = 0L)
+  expect_silent(prepare_pp_data(one_period, "Y", "A", "id", "t"))
 })
 
 test_that("prepare_pp_data rejects duplicated (id, time) rows", {

@@ -21,8 +21,14 @@ surv_fit(
 )
 }
 \arguments{
-\item{data}{A person-period (long) \code{data.frame} or \code{data.table} with one
-row per \verb{(id, time)} pair. Wide data must be reshaped upstream with
+\item{data}{A person-period (long) \code{data.frame} or \code{data.table},
+\strong{rectangular} across ids: every unique \code{id} must have one row at
+every unique \code{time} value. Ragged PP (ids dropped post-event /
+post-censor) is rejected with class \code{survatr_ragged_pp}. Pad ragged
+data before calling \code{surv_fit()} by appending rows with
+\code{outcome = 0} and (if used) \code{censoring = 1} so the risk-set builder
+drops them from the fit. Wide data (one row per id across a
+multi-period study) must be reshaped with
 \code{causatr::to_person_period()}.}
 
 \item{outcome}{Character scalar. Column name of the event indicator
