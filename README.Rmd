@@ -16,6 +16,8 @@ knitr::opts_chunk$set(
 # survatr
 
 <!-- badges: start -->
+[![R-CMD-check](https://github.com/etverse/survatr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/etverse/survatr/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/etverse/survatr/graph/badge.svg)](https://app.codecov.io/gh/etverse/survatr)
 <!-- badges: end -->
 
 The goal of survatr is to ...
