@@ -1,0 +1,45 @@
+Package: survatr
+Title: Causal Survival Analysis for Methodological Triangulation
+Version: 0.0.0.9000
+Date: 2026-04-22
+Authors@R: 
+    person("Lorenzo", "Fabbri", , "lorenzo.fabbri92sm@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0003-3031-322X"))
+Description: Causal survival analysis via pooled-logistic hazard
+    g-computation, inverse probability weighting, and iterated conditional
+    expectation (ICE) on person-period data. Extends the causatr engine to
+    time-to-event outcomes with delta-method sandwich variance on
+    cumulative-product survival curves, risk difference / risk ratio /
+    RMST contrasts, competing-risks cause-specific hazards, and empirical
+    bootstrap. Part of the etverse ecosystem.
+License: MIT + file LICENSE
+Depends: 
+    R (>= 4.1.0)
+Imports: 
+    boot,
+    causatr,
+    data.table (>= 1.14.0),
+    numDeriv,
+    rlang (>= 1.0.0),
+    sandwich,
+    stats
+Suggests: 
+    gfoRmula,
+    knitr,
+    lmtp,
+    MatchIt,
+    mgcv,
+    quarto,
+    splines,
+    survival,
+    testthat (>= 3.0.0)
+VignetteBuilder: 
+    quarto
+Remotes: 
+    github::etverse/causatr
+Config/testthat/edition: 3
+Config/testthat/parallel: true
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3

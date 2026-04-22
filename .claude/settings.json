@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1"
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Bash(Rscript:*)",
+      "Bash(R:*)",
+      "Bash(air:*)",
+      "Bash(quarto:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(xargs:*)",
+      "Bash(./zepid_venv/bin/python:*)",
+      "Bash(claude mcp list)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:*.github.io)",
+      "WebFetch(domain:cran.r-project.org)",
+      "WebFetch(domain:rdocumentation.org)",
+      "WebFetch(domain:www.rdocumentation.org)",
+      "WebFetch(domain:rdrr.io)",
+      "WebFetch(domain:r-pkgs.org)",
+      "WebFetch(domain:marginaleffects.com)",
+      "WebFetch(domain:altdoc.etiennebacher.com)",
+      "WebFetch(domain:deli.readthedocs.io)",
+      "WebFetch(domain:sandwich.r-forge.r-project.org)",
+      "WebFetch(domain:pmc.ncbi.nlm.nih.gov)",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:kosukeimai.github.io)",
+      "WebFetch(domain:etverse.github.io)",
+      "WebFetch(domain:ngreifer.github.io)",
+      "WebSearch",
+      "mcp__r-btw__btw_tool_pkg_test",
+      "mcp__r-btw__btw_tool_pkg_document"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(sudo:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)"
+    ]
+  }
+}
