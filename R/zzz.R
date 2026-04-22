@@ -8,5 +8,9 @@ utils::globalVariables(c(
   "s_hat",
   "risk_hat",
   "rmst_hat",
-  "time"
+  "time",
+  "se",
+  "ci_lower",
+  "ci_upper",
+  "estimate"
 ))

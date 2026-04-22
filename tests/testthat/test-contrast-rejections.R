@@ -110,17 +110,8 @@ test_that("contrast rejects a `reference` that is not in interventions", {
   )
 })
 
-test_that("contrast rejects ci_method in {sandwich, bootstrap} with a pointer", {
+test_that("contrast rejects ci_method = 'bootstrap' with a pointer to sandwich", {
   fit <- make_fit()
-  expect_error(
-    contrast(
-      fit,
-      interventions = list(a1 = causatr::static(1), a0 = causatr::static(0)),
-      times = 1:5,
-      ci_method = "sandwich"
-    ),
-    class = "survatr_ci_not_available"
-  )
   expect_error(
     contrast(
       fit,
@@ -129,6 +120,30 @@ test_that("contrast rejects ci_method in {sandwich, bootstrap} with a pointer", 
       ci_method = "bootstrap"
     ),
     class = "survatr_ci_not_available"
+  )
+})
+
+test_that("contrast rejects bad conf_level", {
+  fit <- make_fit()
+  expect_error(
+    contrast(
+      fit,
+      interventions = list(a0 = causatr::static(0)),
+      times = 1:5,
+      ci_method = "sandwich",
+      conf_level = 1.5
+    ),
+    class = "survatr_bad_conf_level"
+  )
+  expect_error(
+    contrast(
+      fit,
+      interventions = list(a0 = causatr::static(0)),
+      times = 1:5,
+      ci_method = "sandwich",
+      conf_level = 0
+    ),
+    class = "survatr_bad_conf_level"
   )
 })
 

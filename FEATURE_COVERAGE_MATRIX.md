@@ -60,11 +60,22 @@ reflects **current** state, not planned scope. Planned scope lives in
 | Non-`causatr_intervention` list elements | 🔴 | `test-contrast-rejections.R` | `survatr_bad_interventions`; error message points to `causatr::static()` et al. |
 | `times` not numeric / empty / NA / outside `fit$time_grid` | 🔴 | `test-contrast-rejections.R` | `survatr_bad_times` (structural) / `survatr_time_extrapolation` (values outside grid). |
 | Bad `reference` (not a name in `interventions`) | 🔴 | `test-contrast-rejections.R` | `survatr_bad_reference`. |
-| `ci_method = "sandwich"` / `"bootstrap"` | 🔴 | `test-contrast-rejections.R` | `survatr_ci_not_available`. Sandwich ships in chunk 3; bootstrap in chunk 4. |
-| Unknown `ci_method` / `type` | 🔴 | `test-contrast-rejections.R` | `survatr_bad_ci_method` / `match.arg` error. |
-| `se` / `ci_lower` / `ci_upper` columns | 🟡 | `test-contrast.R` | All `NA_real_` at chunk 2 by design; sandwich / bootstrap fill these in chunks 3 / 4. |
+| `ci_method = "bootstrap"` | 🔴 | `test-contrast-rejections.R` | `survatr_ci_not_available`; bootstrap ships in chunk 4. |
+| Unknown `ci_method` / `type` / `conf_level` | 🔴 | `test-contrast-rejections.R` | `survatr_bad_ci_method` / `match.arg` / `survatr_bad_conf_level`. |
+| `se` / `ci_lower` / `ci_upper` columns when `ci_method = "none"` | 🟡 | `test-contrast.R` | All `NA_real_` by design (opt-in CI path). |
 
-### Sandwich variance — ships in chunk 3.
+### Sandwich variance (`ci_method = "sandwich"`, delta-method cross-time IF)
+
+| Surface | Status | Test file | Oracle |
+|---|---|---|---|
+| Per-individual IF matrix for `S^a(t)` (Ch1 + Ch2) | 🟢 | `test-variance_if_survival.R` | Column means ~ 0 across individuals on constant-hazard DGP; sandwich SE within 75% of hand-derived closed-form target (tolerance conservative because closed form ignores at-risk attrition). Also cross-checked: sandwich SE matches empirical SD of `s_hat` across 100 simulation replicates to ~7% at t = 5, n = 3000. |
+| Sandwich CI for `s_hat` / `risk_hat` | 🟢 | `test-sandwich-survival.R` | 200-rep coverage simulation at n = 1000, K = 6, h = 0.08 achieves ≥ 88% nominal 95% coverage at t ∈ {1, 5}. Single-seed sanity test at n = 5000 covers truth. |
+| Sandwich CI for `risk_difference` | 🟢 | `test-sandwich-risk-difference.R` | 200-rep coverage simulation on a no-effect DGP: RD CI covers 0 at ≥ 88% nominal 95%. |
+| Sandwich CI for `risk_ratio` (log-scale) | 🟢 | `test-sandwich-risk-ratio.R` | Single-seed test: CI is strictly positive, `ci_upper > ci_lower`, and covers 1 on a no-effect DGP. |
+| Sandwich CI for `rmst` (trapezoidal quadratic form) | 🟢 | `test-sandwich-rmst.R` | SE is non-negative, monotone non-decreasing in `t` (by construction of the cumulative trapezoidal integral of a positive IF), CI bounds finite. |
+| Sandwich CI for `rmst_difference` | 🟢 | `test-sandwich-rmst.R` | CI at `t = 10` covers 0 on a no-effect DGP (n = 3000). |
+| `conf_level` in (0, 1) | 🟢 | `test-contrast-rejections.R` | Rejects values outside the open interval with `survatr_bad_conf_level`. |
+| `model_fn` ≠ `stats::glm` (e.g. `mgcv::gam`) | 🔴 | — | Deferred: sandwich code uses `causatr:::prepare_model_if()` which abort-early on `mgcv::gam` without `$Vp`. Chunk 4 bootstrap is the user path for non-GLM fitters. |
 ### Bootstrap + S3 polish — ships in chunk 4.
 ### IPW weighted MSM — ships in chunk 5.
 

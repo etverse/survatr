@@ -12,6 +12,7 @@
     "rmst_difference"),
   reference = NULL,
   ci_method = "none",
+  conf_level = 0.95,
   ...
 )
 }
@@ -36,9 +37,14 @@ difference / ratio contrasts. Defaults to the first name in
 \code{interventions}. Ignored by \code{type = "survival"}, \code{"risk"}, and
 \code{"rmst"} (no pairwise contrast).}
 
-\item{ci_method}{Only \code{"none"} is accepted at this chunk. \code{"sandwich"}
-and \code{"bootstrap"} ship in chunks 3 and 4; passing them now raises
+\item{ci_method}{One of \code{"none"} (point estimates only; default),
+\code{"sandwich"} (delta-method cross-time IF aggregation via
+\code{causatr:::prepare_model_if()}; pointwise Wald bands). \code{"bootstrap"}
+is reserved for a later chunk and is currently rejected with
 \code{survatr_ci_not_available}.}
+
+\item{conf_level}{Confidence level for the Wald CIs when
+\code{ci_method != "none"}. Numeric scalar in \verb{(0, 1)}, default \code{0.95}.}
 
 \item{...}{Unused; reserved for future chunks.}
 }

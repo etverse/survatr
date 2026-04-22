@@ -1,5 +1,49 @@
 # survatr (development version)
 
+## 2026-04-22 — Track A sandwich variance
+
+Ship `ci_method = "sandwich"` in `contrast.survatr_fit()` — delta-method
+cross-time influence function aggregation on the cumulative-product
+survival curve. The chunk-2 placeholder `NA_real_` columns for `se` /
+`ci_lower` / `ci_upper` are now filled with pointwise Wald CIs at the
+user-supplied `conf_level` (default `0.95`).
+
+Per-individual IF on `S^a(t)` decomposes into two pieces:
+
+1. **Ch1** (target variability): `IF1_i(t) = S^a_i(t) - S^a(t)`.
+2. **Ch2** (beta uncertainty): `IF2_i(t) = -n_ids * J_bar(t)' * B_inv * psi_i`,
+   where `J_bar(t)` is the population gradient of `S^a(t)` wrt beta,
+   `B_inv = (X'WX)^{-1}` from `causatr:::prepare_model_if()`, and `psi_i`
+   is the per-individual sum of score contributions across the
+   at-risk rows belonging to individual `i`.
+
+The cross-time covariance `V = crossprod(IF_mat) / n_ids^2` yields
+pointwise SEs on the diagonal; the RMST SE is the quadratic form
+`w_j' V w_j` with trapezoidal weights from `rmst_weights()`. Risk
+difference / RMST difference propagate via the contrast IF
+`IF_ref - IF_a1`. Risk ratio is built on the log scale and the CI
+endpoints are exponentiated so the reported bounds are strictly positive.
+
+Wiring: the `survatr_ci_not_available` signal now triggers only on
+`ci_method = "bootstrap"` (reserved for chunk 4). The `conf_level`
+argument is validated at the boundary with the new
+`survatr_bad_conf_level` class.
+
+New rejection surface: `survatr_bad_conf_level`.
+
+Testing: 26 new tests across `test-variance_if_survival.R`,
+`test-sandwich-survival.R`, `test-sandwich-risk-difference.R`,
+`test-sandwich-rmst.R`, `test-sandwich-risk-ratio.R`. Coverage pinned by
+two 200-rep simulations (nominal 95% on `s_hat` and on `risk_difference`
+around 0 under a no-effect DGP) achieving ≥ 88% coverage — skipped on
+CRAN to keep the full-check runtime reasonable. A companion single-seed
+check confirms the sandwich SE matches the empirical SD across 100
+replicates at n = 3000 within 7% at t = 5.
+
+Full suite: 173 passing / 0 failing / 1 skip.
+`devtools::check()`: 0 errors / 0 warnings / 2 NOTEs (env timestamp +
+unused `Imports: boot` reserved for chunk 4).
+
 ## 2026-04-22 — Track A contrast path (no variance)
 
 Ship `contrast.survatr_fit()` -- the curve-shaped entry point for

@@ -47,9 +47,13 @@ contrast <- function(fit, ...) {
 #'   difference / ratio contrasts. Defaults to the first name in
 #'   `interventions`. Ignored by `type = "survival"`, `"risk"`, and
 #'   `"rmst"` (no pairwise contrast).
-#' @param ci_method Only `"none"` is accepted at this chunk. `"sandwich"`
-#'   and `"bootstrap"` ship in chunks 3 and 4; passing them now raises
+#' @param ci_method One of `"none"` (point estimates only; default),
+#'   `"sandwich"` (delta-method cross-time IF aggregation via
+#'   `causatr:::prepare_model_if()`; pointwise Wald bands). `"bootstrap"`
+#'   is reserved for a later chunk and is currently rejected with
 #'   `survatr_ci_not_available`.
+#' @param conf_level Confidence level for the Wald CIs when
+#'   `ci_method != "none"`. Numeric scalar in `(0, 1)`, default `0.95`.
 #' @param ... Unused; reserved for future chunks.
 #'
 #' @return A `survatr_result` list with `estimates`, `contrasts`,
@@ -69,6 +73,7 @@ contrast.survatr_fit <- function(
   ),
   reference = NULL,
   ci_method = "none",
+  conf_level = 0.95,
   ...
 ) {
   type <- match.arg(type)
@@ -77,6 +82,7 @@ contrast.survatr_fit <- function(
   times <- validate_times(times, fit$time_grid)
   reference <- validate_reference(reference, interventions, type)
   validate_ci_method(ci_method)
+  validate_conf_level(conf_level)
 
   ## Per-intervention survival curves. Build the counterfactual PP data,
   ## predict hazards on every row (at-risk rows are irrelevant for the
@@ -114,6 +120,37 @@ contrast.survatr_fit <- function(
     reference = reference,
     interventions = interventions
   )
+
+  ## Sandwich variance: delta-method cross-time IF aggregation. For each
+  ## intervention we build the n_ids x |t| IF matrix on S^a(t), then
+  ## propagate to the estimand's SE / CI via fill_sandwich_ses().
+  if (identical(ci_method, "sandwich")) {
+    shared <- prepare_sandwich_shared(fit)
+    if_list <- lapply(names(interventions), function(iv_name) {
+      compute_survival_if_matrix(
+        fit = fit,
+        intervention = interventions[[iv_name]],
+        times = times,
+        prep = shared$prep,
+        fit_idx = shared$fit_idx,
+        id_vec = shared$id_vec,
+        unique_ids = shared$unique_ids
+      )
+    })
+    names(if_list) <- names(interventions)
+    filled <- fill_sandwich_ses(
+      estimates = estimates,
+      contrasts = contrasts,
+      if_list = if_list,
+      type = type,
+      reference = reference,
+      times = times,
+      conf_level = conf_level,
+      n_ids = length(shared$unique_ids)
+    )
+    estimates <- filled$estimates
+    contrasts <- filled$contrasts
+  }
 
   new_survatr_result(
     estimates = estimates,
@@ -267,9 +304,9 @@ validate_reference <- function(
 
 #' Reject unsupported ci_method values
 #'
-#' Only `"none"` is accepted at chunk 2. `"sandwich"` and `"bootstrap"` are
-#' deliberately rejected so the user gets a signal pointing to the chunks
-#' that wire them up rather than silently falling back to no CIs.
+#' Accepts `"none"` (no CIs) and `"sandwich"` (delta-method cross-time IF).
+#' `"bootstrap"` ships in a later chunk and is currently rejected with a
+#' pointer so users get a clear signal rather than a silent no-CI fallback.
 #'
 #' @param ci_method Scalar character.
 #' @param call Caller frame.
@@ -277,24 +314,55 @@ validate_reference <- function(
 #' @return Invisibly `NULL`.
 #' @noRd
 validate_ci_method <- function(ci_method, call = rlang::caller_env()) {
-  if (identical(ci_method, "none")) {
+  if (ci_method %in% c("none", "sandwich")) {
     return(invisible(NULL))
   }
-  if (ci_method %in% c("sandwich", "bootstrap")) {
+  if (identical(ci_method, "bootstrap")) {
     rlang::abort(
       paste0(
-        "`ci_method = \"",
-        ci_method,
-        "\"` is not available. survatr currently returns point estimates ",
-        "only (`ci_method = \"none\"`)."
+        "`ci_method = \"bootstrap\"` is not yet wired. Use ",
+        "`ci_method = \"sandwich\"` for analytical cross-time variance, ",
+        "or `\"none\"` for point estimates only."
       ),
       class = "survatr_ci_not_available",
       call = call
     )
   }
   rlang::abort(
-    paste0("`ci_method` must be \"none\". Got \"", ci_method, "\"."),
+    paste0(
+      "`ci_method` must be one of \"none\", \"sandwich\". Got \"",
+      ci_method,
+      "\"."
+    ),
     class = "survatr_bad_ci_method",
     call = call
   )
+}
+
+#' Validate the `conf_level` argument
+#'
+#' @param conf_level Numeric scalar.
+#' @param call Caller frame.
+#'
+#' @return Invisibly `NULL`.
+#' @noRd
+validate_conf_level <- function(conf_level, call = rlang::caller_env()) {
+  if (
+    !is.numeric(conf_level) ||
+      length(conf_level) != 1L ||
+      is.na(conf_level) ||
+      conf_level <= 0 ||
+      conf_level >= 1
+  ) {
+    rlang::abort(
+      paste0(
+        "`conf_level` must be a single numeric value in (0, 1). Got ",
+        deparse(conf_level),
+        "."
+      ),
+      class = "survatr_bad_conf_level",
+      call = call
+    )
+  }
+  invisible(NULL)
 }
