@@ -40,6 +40,48 @@ test_that("rmst_weights gives a cumulative trapezoid quadrature matrix", {
   }
 })
 
+## Regression test for B1 (2026-04-22 critical review, round 1):
+## `rmst_weights()` previously had off-by-one indexing on the per-interval
+## `dt` contributions AND double-counted `S(0) = 1` onto the first column
+## of every row, inflating the sandwich SE for `rmst` and
+## `rmst_difference` by up to 2x at t_1 and ~57% on irregular grids.
+## Fixed in the same commit as this test. Repro script:
+## `/tmp/survatr_repro_b1_rmst_weights.R`. Contract:
+##   W %*% s_hat + dt[1]/2 == trapezoidal_rmst(times, s_hat)
+## for any `times` (sorted, first > 0) and any `s_hat` in [0, 1].
+test_that("rmst_weights matches trapezoidal_rmst on arbitrary grids (B1)", {
+  for (times in list(
+    1:5,
+    seq(2, 10, by = 2),
+    c(1, 3, 7, 12),
+    c(2.5, 5, 7.5, 10),
+    c(0.1, 0.5, 1.0, 2.0, 5.0)
+  )) {
+    W <- rmst_weights(times)
+    dt1_half <- times[1L] / 2 ## dt[1] = t_1 - 0 = t_1; constant for S(0) = 1
+    s_hat <- seq(1 - 1e-3, 1 - 0.9, length.out = length(times))
+    rmst_from_W <- as.numeric(W %*% s_hat) + dt1_half
+    rmst_direct <- trapezoidal_rmst(times, s_hat)
+    expect_equal(rmst_from_W, rmst_direct, tolerance = 1e-12)
+  }
+})
+
+test_that("rmst_weights has correct per-row trapezoid structure (B1)", {
+  times <- c(1, 3, 4, 7)
+  dt <- diff(c(0, times))
+  W <- rmst_weights(times)
+  ## Row j = 1: only the (0, t_1) half-interval contributes to S(t_1).
+  expect_equal(W[1L, ], c(dt[1L] / 2, 0, 0, 0))
+  ## Row j > 1: column 1 gets dt[1]/2 + dt[2]/2; column j gets dt[j]/2;
+  ## interior columns get (dt[i] + dt[i+1]) / 2.
+  expect_equal(W[2L, 1L], dt[1L] / 2 + dt[2L] / 2)
+  expect_equal(W[2L, 2L], dt[2L] / 2)
+  expect_equal(W[3L, 2L], (dt[2L] + dt[3L]) / 2)
+  expect_equal(W[3L, 3L], dt[3L] / 2)
+  expect_equal(W[4L, 3L], (dt[3L] + dt[4L]) / 2)
+  expect_equal(W[4L, 4L], dt[4L] / 2)
+})
+
 test_that("add_rmst_to_estimates replaces s_hat / risk_hat with rmst_hat", {
   est <- data.table::data.table(
     intervention = rep(c("a1", "a0"), each = 4L),

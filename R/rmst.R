@@ -30,38 +30,41 @@ trapezoidal_rmst <- function(times, s_hat) {
 
 #' Trapezoidal weights on a time grid
 #'
-#' Return the vector `w` such that the cumulative RMST at `times` equals
-#' the dot product `crossprod(w_j, s_hat)` (for the final element `t*`).
-#' Used by the variance engine in chunk 3 to propagate a per-individual IF
-#' on `S^a_i(t)` to a per-individual IF on `RMST^a_i(t)` via `IF_RMST =
-#' IF_S %*% w`.
+#' Return the matrix `W` such that the cumulative RMST at `times` equals
+#' `W %*% s_hat + dt[1] / 2`, where the `dt[1] / 2` constant is the
+#' contribution from the prepended `(0, S(0) = 1)` point and does not
+#' depend on beta. Used by the variance engine in chunk 3 to propagate a
+#' per-individual IF on `S^a_i(t)` to a per-individual IF on
+#' `RMST^a_i(t)`: since the constant drops out of the delta, the row
+#' `W[j, ]` is exactly `d RMST(t_j) / d s_hat`.
 #'
-#' Not used by chunk 2's `trapezoidal_rmst()` (which just computes the
-#' value); exposed now so the RMST quadrature lives in one place.
+#' Derivation of the entries, with `dt[i] := t_i - t_{i-1}` and `t_0 = 0`:
+#'
+#' - `W[j, 1] = dt[1] / 2` for `j == 1` (contribution from (0, t_1))
+#' - `W[j, 1] = dt[1] / 2 + dt[2] / 2` for `j >= 2` (plus (t_1, t_2))
+#' - `W[j, i] = (dt[i] + dt[i+1]) / 2` for `1 < i < j` (interior)
+#' - `W[j, j] = dt[j] / 2` for `j >= 2` (last point, half-interval)
+#' - `W[j, i] = 0` for `i > j` (future times do not enter RMST(t_j))
 #'
 #' @param times Numeric vector, sorted ascending, first value > 0.
 #'
 #' @return Numeric matrix of dimension `length(times) x length(times)`
 #'   whose `j`th row gives the trapezoidal weights for `RMST(t_j)` on the
-#'   `S(t_1), ..., S(t_{length(times)})` vector.
+#'   `S(t_1), ..., S(t_K)` vector (with `S(0) = 1` implicit).
 #' @noRd
 rmst_weights <- function(times) {
   K <- length(times)
-  t_full <- c(0, times)
-  dt <- diff(t_full)
+  dt <- diff(c(0, times)) ## length K, dt[i] = t_i - t_{i-1}
   W <- matrix(0, nrow = K, ncol = K)
-  ## Row j holds the weights so that W[j, ] %*% s_hat = RMST(t_j).
-  ## The (0, S(0) = 1) prefix contributes a constant `dt[1] / 2` that does
-  ## not multiply any `s_hat` element; the variance aggregation later only
-  ## needs derivatives wrt S, so the constant drops out.
   for (j in seq_len(K)) {
     for (i in seq_len(j)) {
-      if (i == 1L) {
-        W[j, i] <- W[j, i] + dt[1L] / 2
-      } else {
-        W[j, i] <- W[j, i] + dt[i - 1L] / 2
-      }
+      ## Contribution from interval (t_{i-1}, t_i). t_0 = 0.
       W[j, i] <- W[j, i] + dt[i] / 2
+      ## Contribution from interval (t_i, t_{i+1}) when that interval is
+      ## below the target time t_j (i.e. i < j).
+      if (i < j) {
+        W[j, i] <- W[j, i] + dt[i + 1L] / 2
+      }
     }
   }
   W
