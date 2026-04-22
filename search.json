@@ -1,5 +1,65 @@
 [
   {
+    "objectID": "NEWS.html",
+    "href": "NEWS.html",
+    "title": "survatr (development version)",
+    "section": "",
+    "text": "A full adversarial review of the 214-test chunk-1/2/3/4 surface produced four blocking correctness bugs, three required fixes, and two suggestions. Each reproduced numerically against a focused script under /tmp/survatr_repro_*.R before a fix landed; each has a classed regression test colocated with the affected area.\nBlocking (numerical correctness)\n\nrmst_weights() had off-by-one indexing + double-counted the S(0) = 1 prefix, inflating the sandwich SE for rmst and rmst_difference by up to 2× at t = 1 and ~57% on irregular grids. Point estimate (rmst_hat via trapezoidal_rmst) was unaffected. Fix dd873e5.\nna.action = na.omit + NA in a confounder caused prep$X_fit (post-NA-drop) to misalign with fit_idx (pre-drop), crashing the sandwich IF chain with a subscript-OOB. Rejected upfront with survatr_na_in_predictors (NA in censoring still allowed). Fix f7c7f95.\nRagged PP (ids dropped post-event) crashed the sandwich / bootstrap paths on a defensive assertion. Rejected upfront with survatr_ragged_pp and a padding recipe. The legacy single-row-id = wide heuristic retired in favor of the rectangularity check. Fix d6a2765.\nprint.survatr_result used show[seq_len(n)] where show is a data.table whose n column shadowed the function argument via NSE, printing hundreds of phantom NA rows. Fixed by utils::head(). Fix de4c5e0.\n\nRequired (latent but fragile)\n\nBootstrap seed was silently non-reproducible under parallel != \"no\" — mclapply / parLapply ignore the serial RNG unless L’Ecuyer-CMRG is set first. Now sets and restores the RNG kind around the parallel call. Fix 9c2b0b6.\nNon-binary outcome / censoring values silently walked the risk-set cumsums. Rejected upfront with survatr_bad_indicator. Fix bcb9d95.\nvalidate_times() rejected Date / POSIXct / difftime grids. Relaxed to accept the time-like classes. Fix c8e37d6.\n\nSuggestions\n\n.cf_hazard / .cf_surv added to SURVATR_RESERVED_COLS.\nbuild_contrasts() merge slimmed to select only the target estimand column, stable under chunk-5+ IPW columns. Fix 4935adb.\n\nFull suite after all fixes: pass (see commit messages for per-chunk coverage additions).\nCI infrastructure fix (separate from the review): .Rbuildignore pattern ^\\.claude$ only matched the literal path and let R CMD build recurse into dangling .claude/skills/ symlinks on CI. Widened to ^\\.claude(/|$). Fix 915d5eb.\n\n\n\nShip ci_method = \"bootstrap\" in contrast.survatr_fit() and the S3 method surface that turns a survatr_result into a plot, a tidy long table, or a forest plot.\nBootstrap. Resamples individuals (all of each id’s PP rows together), refits the hazard model via surv_fit() per replicate, recomputes the per-intervention curves and the requested contrasts, and derives pointwise CIs from the replicate distribution. Per-id resampling is load-bearing: row-level resampling would break the within-id cumulative-product dependence and bias variance for longer horizons. Two CI flavors:\n\nPercentile (default): quantile(replicates, (1-conf)/2, (1+conf)/2). Transform-invariant, so the same code handles risk_ratio without a log-scale detour.\nWald: point +/- z * sd(replicates). Matches the sandwich shape.\n\nNew arguments on contrast(): n_boot (default 500L), boot_ci (\"percentile\" | \"wald\"), parallel (forwarded to boot::boot()), ncpus, seed (when non-null, set.seed(seed) before the replicate loop so the whole sequence is reproducible). When a replicate fails to refit / contrast it is recorded as NA; if &gt; 10% of replicates fail, the call aborts with survatr_boot_failed.\nNew rejection surface: survatr_bad_n_boot, survatr_bad_boot_ci, survatr_bad_parallel.\nci_method now accepts all three values (\"none\", \"sandwich\", \"bootstrap\"); the chunk-3 survatr_ci_not_available placeholder signal is retired.\nS3 polish.\n\ntidy.survatr_result() – long data.frame with columns intervention | contrast | time | estimand | estimate | se | ci_lower | ci_upper. which = c(\"all\", \"estimates\", \"contrasts\"), conf.int = TRUE. The tidy generic is re-exported from generics (now an Imports: dependency).\nplot.survatr_result() – base-R graphics with optional CI ribbons. Auto-dispatches curves for survival / risk / rmst and contrasts (with reference line at 0 or 1) for the three pairwise types.\nforrest.survatr_result() – forest plot at a user-chosen t_ref. One row per pairwise contrast. Rejects curve-only types with survatr_forrest_wrong_type and out-of-grid t_ref with survatr_bad_t_ref.\n\nBug fix on the way: build_contrasts() previously returned a zero-column data.table when the user passed a contrast-shaped type with only a single intervention (everyone vs everyone -&gt; empty). It now returns the schema-complete empty-stub used by curve-only types, so downstream code sees a stable shape.\nTesting: 30+ new tests across test-bootstrap-survival.R, test-bootstrap-rejections.R, test-tidy-survatr_result.R, test-plot-survatr_result.R, test-forrest-survatr_result.R. The bootstrap-vs-sandwich cross-check (skipped on CRAN) pins B = 500 at n = 1500 to within 30% of the sandwich SE.\n\n\n\nShip ci_method = \"sandwich\" in contrast.survatr_fit() — delta-method cross-time influence function aggregation on the cumulative-product survival curve. The chunk-2 placeholder NA_real_ columns for se / ci_lower / ci_upper are now filled with pointwise Wald CIs at the user-supplied conf_level (default 0.95).\nPer-individual IF on S^a(t) decomposes into two pieces:\n\nCh1 (target variability): IF1_i(t) = S^a_i(t) - S^a(t).\nCh2 (beta uncertainty): IF2_i(t) = -n_ids * J_bar(t)' * B_inv * psi_i, where J_bar(t) is the population gradient of S^a(t) wrt beta, B_inv = (X'WX)^{-1} from causatr:::prepare_model_if(), and psi_i is the per-individual sum of score contributions across the at-risk rows belonging to individual i.\n\nThe cross-time covariance V = crossprod(IF_mat) / n_ids^2 yields pointwise SEs on the diagonal; the RMST SE is the quadratic form w_j' V w_j with trapezoidal weights from rmst_weights(). Risk difference / RMST difference propagate via the contrast IF IF_ref - IF_a1. Risk ratio is built on the log scale and the CI endpoints are exponentiated so the reported bounds are strictly positive.\nWiring: the survatr_ci_not_available signal now triggers only on ci_method = \"bootstrap\" (reserved for chunk 4). The conf_level argument is validated at the boundary with the new survatr_bad_conf_level class.\nNew rejection surface: survatr_bad_conf_level.\nTesting: 26 new tests across test-variance_if_survival.R, test-sandwich-survival.R, test-sandwich-risk-difference.R, test-sandwich-rmst.R, test-sandwich-risk-ratio.R. Coverage pinned by two 200-rep simulations (nominal 95% on s_hat and on risk_difference around 0 under a no-effect DGP) achieving ≥ 88% coverage — skipped on CRAN to keep the full-check runtime reasonable. A companion single-seed check confirms the sandwich SE matches the empirical SD across 100 replicates at n = 3000 within 7% at t = 5.\nFull suite: 173 passing / 0 failing / 1 skip. devtools::check(): 0 errors / 0 warnings / 2 NOTEs (env timestamp + unused Imports: boot reserved for chunk 4).\n\n\n\nShip contrast.survatr_fit() – the curve-shaped entry point for Track A. Given a survatr_fit and a named list of causatr interventions, build the counterfactual person-period data under each intervention, predict per-row hazards, cumulate within individual to S^a_i(t), and average across individuals to S^a(t) = (1/n) sum_i S^a_i(t). Derive risk / risk-difference / risk-ratio / RMST / RMST-difference contrasts on a user-chosen time grid.\nReturns a survatr_result S3: $estimates and $contrasts data.tables indexed by time, plus time_grid, type, reference, ci_method, and call. se / ci_lower / ci_upper columns are NA_real_ at this chunk; sandwich variance ships in chunk 3 and bootstrap in chunk 4. ci_method = \"sandwich\" / \"bootstrap\" are rejected now with class survatr_ci_not_available.\nRMST is computed with a trapezoidal quadrature on the user’s times grid, prepending S(0) = 1 to integrate from the origin; the quadrature weights are exposed as rmst_weights() for chunk 3’s delta-method RMST SE.\ncontrast() is an S3 generic local to survatr (not a re-export of causatr::contrast, which is a plain function there). When both packages are attached, survatr’s generic shadows the causatr function; users who need the scalar-outcome path should call causatr::contrast() explicitly.\nTesting: 68 new tests across test-contrast.R, test-contrast-survival.R, test-contrast-rejections.R, test-predict_hazard.R, test-survival_curve.R, test-rmst.R, and a 🟡 test-contrast-lmtp-oracle.R that skips on CRAN and on toy-DGP fit failures. Closed-form oracle: S(t) = (1 - h)^t agrees with contrast(type = \"survival\") within 0.03 absolute at n = 5000; trapezoidal RMST matches hand-expanded sum to 1e-12.\n\n\n\nFirst working entry point: surv_fit() fits the pooled-logistic discrete-time hazard model logit h(t | A, L) = alpha(t) + beta_A A + beta_L L on person-period data and returns a survatr_fit S3 object. The fit builds the risk set by dropping rows at/after the first event per id and rows at/after the first censor per id, and automatically switches the GLM family to quasibinomial() when external weights are supplied.\nPorts the pre-removal causatr::causat_survival() fit path into a dedicated package with the naming / error-class surface tightened: reserved internal columns are .survatr_prev_event / .survatr_prev_cens, classed errors use the survatr_* prefix, and model_fn is a first-class argument (default stats::glm, accepts any mgcv::gam-style fitter).\nRejection paths wired with classed errors: survatr_matching_rejected (points to survival::coxph(..., weights = , cluster = )), survatr_bad_estimator, survatr_competing_misuse, survatr_bad_na_action, survatr_reserved_col, survatr_bad_weights, survatr_col_not_found, survatr_not_person_period, survatr_duplicate_pp_row.\nTesting: 79 tests across test-checks.R, test-prepare_data.R, test-risk_set.R, test-surv_fit.R, test-surv_fit-weighted.R, and test-surv_fit-family-oracle.R. The oracle test pins the logit intercept against qlogis(h) on a closed-form constant-hazard DGP (n = 5000) for both binomial() and quasibinomial() families.\nContrast, variance, bootstrap, IPW, ICE, competing risks, and diagnose() ship in subsequent chunks.",
+    "crumbs": [
+      "News"
+    ]
+  },
+  {
+    "objectID": "NEWS.html#round-1-critical-review-9-fixes-across-chunks-14",
+    "href": "NEWS.html#round-1-critical-review-9-fixes-across-chunks-14",
+    "title": "survatr (development version)",
+    "section": "",
+    "text": "A full adversarial review of the 214-test chunk-1/2/3/4 surface produced four blocking correctness bugs, three required fixes, and two suggestions. Each reproduced numerically against a focused script under /tmp/survatr_repro_*.R before a fix landed; each has a classed regression test colocated with the affected area.\nBlocking (numerical correctness)\n\nrmst_weights() had off-by-one indexing + double-counted the S(0) = 1 prefix, inflating the sandwich SE for rmst and rmst_difference by up to 2× at t = 1 and ~57% on irregular grids. Point estimate (rmst_hat via trapezoidal_rmst) was unaffected. Fix dd873e5.\nna.action = na.omit + NA in a confounder caused prep$X_fit (post-NA-drop) to misalign with fit_idx (pre-drop), crashing the sandwich IF chain with a subscript-OOB. Rejected upfront with survatr_na_in_predictors (NA in censoring still allowed). Fix f7c7f95.\nRagged PP (ids dropped post-event) crashed the sandwich / bootstrap paths on a defensive assertion. Rejected upfront with survatr_ragged_pp and a padding recipe. The legacy single-row-id = wide heuristic retired in favor of the rectangularity check. Fix d6a2765.\nprint.survatr_result used show[seq_len(n)] where show is a data.table whose n column shadowed the function argument via NSE, printing hundreds of phantom NA rows. Fixed by utils::head(). Fix de4c5e0.\n\nRequired (latent but fragile)\n\nBootstrap seed was silently non-reproducible under parallel != \"no\" — mclapply / parLapply ignore the serial RNG unless L’Ecuyer-CMRG is set first. Now sets and restores the RNG kind around the parallel call. Fix 9c2b0b6.\nNon-binary outcome / censoring values silently walked the risk-set cumsums. Rejected upfront with survatr_bad_indicator. Fix bcb9d95.\nvalidate_times() rejected Date / POSIXct / difftime grids. Relaxed to accept the time-like classes. Fix c8e37d6.\n\nSuggestions\n\n.cf_hazard / .cf_surv added to SURVATR_RESERVED_COLS.\nbuild_contrasts() merge slimmed to select only the target estimand column, stable under chunk-5+ IPW columns. Fix 4935adb.\n\nFull suite after all fixes: pass (see commit messages for per-chunk coverage additions).\nCI infrastructure fix (separate from the review): .Rbuildignore pattern ^\\.claude$ only matched the literal path and let R CMD build recurse into dangling .claude/skills/ symlinks on CI. Widened to ^\\.claude(/|$). Fix 915d5eb.",
+    "crumbs": [
+      "News"
+    ]
+  },
+  {
+    "objectID": "NEWS.html#track-a-bootstrap-s3-polish",
+    "href": "NEWS.html#track-a-bootstrap-s3-polish",
+    "title": "survatr (development version)",
+    "section": "",
+    "text": "Ship ci_method = \"bootstrap\" in contrast.survatr_fit() and the S3 method surface that turns a survatr_result into a plot, a tidy long table, or a forest plot.\nBootstrap. Resamples individuals (all of each id’s PP rows together), refits the hazard model via surv_fit() per replicate, recomputes the per-intervention curves and the requested contrasts, and derives pointwise CIs from the replicate distribution. Per-id resampling is load-bearing: row-level resampling would break the within-id cumulative-product dependence and bias variance for longer horizons. Two CI flavors:\n\nPercentile (default): quantile(replicates, (1-conf)/2, (1+conf)/2). Transform-invariant, so the same code handles risk_ratio without a log-scale detour.\nWald: point +/- z * sd(replicates). Matches the sandwich shape.\n\nNew arguments on contrast(): n_boot (default 500L), boot_ci (\"percentile\" | \"wald\"), parallel (forwarded to boot::boot()), ncpus, seed (when non-null, set.seed(seed) before the replicate loop so the whole sequence is reproducible). When a replicate fails to refit / contrast it is recorded as NA; if &gt; 10% of replicates fail, the call aborts with survatr_boot_failed.\nNew rejection surface: survatr_bad_n_boot, survatr_bad_boot_ci, survatr_bad_parallel.\nci_method now accepts all three values (\"none\", \"sandwich\", \"bootstrap\"); the chunk-3 survatr_ci_not_available placeholder signal is retired.\nS3 polish.\n\ntidy.survatr_result() – long data.frame with columns intervention | contrast | time | estimand | estimate | se | ci_lower | ci_upper. which = c(\"all\", \"estimates\", \"contrasts\"), conf.int = TRUE. The tidy generic is re-exported from generics (now an Imports: dependency).\nplot.survatr_result() – base-R graphics with optional CI ribbons. Auto-dispatches curves for survival / risk / rmst and contrasts (with reference line at 0 or 1) for the three pairwise types.\nforrest.survatr_result() – forest plot at a user-chosen t_ref. One row per pairwise contrast. Rejects curve-only types with survatr_forrest_wrong_type and out-of-grid t_ref with survatr_bad_t_ref.\n\nBug fix on the way: build_contrasts() previously returned a zero-column data.table when the user passed a contrast-shaped type with only a single intervention (everyone vs everyone -&gt; empty). It now returns the schema-complete empty-stub used by curve-only types, so downstream code sees a stable shape.\nTesting: 30+ new tests across test-bootstrap-survival.R, test-bootstrap-rejections.R, test-tidy-survatr_result.R, test-plot-survatr_result.R, test-forrest-survatr_result.R. The bootstrap-vs-sandwich cross-check (skipped on CRAN) pins B = 500 at n = 1500 to within 30% of the sandwich SE.",
+    "crumbs": [
+      "News"
+    ]
+  },
+  {
+    "objectID": "NEWS.html#track-a-sandwich-variance",
+    "href": "NEWS.html#track-a-sandwich-variance",
+    "title": "survatr (development version)",
+    "section": "",
+    "text": "Ship ci_method = \"sandwich\" in contrast.survatr_fit() — delta-method cross-time influence function aggregation on the cumulative-product survival curve. The chunk-2 placeholder NA_real_ columns for se / ci_lower / ci_upper are now filled with pointwise Wald CIs at the user-supplied conf_level (default 0.95).\nPer-individual IF on S^a(t) decomposes into two pieces:\n\nCh1 (target variability): IF1_i(t) = S^a_i(t) - S^a(t).\nCh2 (beta uncertainty): IF2_i(t) = -n_ids * J_bar(t)' * B_inv * psi_i, where J_bar(t) is the population gradient of S^a(t) wrt beta, B_inv = (X'WX)^{-1} from causatr:::prepare_model_if(), and psi_i is the per-individual sum of score contributions across the at-risk rows belonging to individual i.\n\nThe cross-time covariance V = crossprod(IF_mat) / n_ids^2 yields pointwise SEs on the diagonal; the RMST SE is the quadratic form w_j' V w_j with trapezoidal weights from rmst_weights(). Risk difference / RMST difference propagate via the contrast IF IF_ref - IF_a1. Risk ratio is built on the log scale and the CI endpoints are exponentiated so the reported bounds are strictly positive.\nWiring: the survatr_ci_not_available signal now triggers only on ci_method = \"bootstrap\" (reserved for chunk 4). The conf_level argument is validated at the boundary with the new survatr_bad_conf_level class.\nNew rejection surface: survatr_bad_conf_level.\nTesting: 26 new tests across test-variance_if_survival.R, test-sandwich-survival.R, test-sandwich-risk-difference.R, test-sandwich-rmst.R, test-sandwich-risk-ratio.R. Coverage pinned by two 200-rep simulations (nominal 95% on s_hat and on risk_difference around 0 under a no-effect DGP) achieving ≥ 88% coverage — skipped on CRAN to keep the full-check runtime reasonable. A companion single-seed check confirms the sandwich SE matches the empirical SD across 100 replicates at n = 3000 within 7% at t = 5.\nFull suite: 173 passing / 0 failing / 1 skip. devtools::check(): 0 errors / 0 warnings / 2 NOTEs (env timestamp + unused Imports: boot reserved for chunk 4).",
+    "crumbs": [
+      "News"
+    ]
+  },
+  {
+    "objectID": "NEWS.html#track-a-contrast-path-no-variance",
+    "href": "NEWS.html#track-a-contrast-path-no-variance",
+    "title": "survatr (development version)",
+    "section": "",
+    "text": "Ship contrast.survatr_fit() – the curve-shaped entry point for Track A. Given a survatr_fit and a named list of causatr interventions, build the counterfactual person-period data under each intervention, predict per-row hazards, cumulate within individual to S^a_i(t), and average across individuals to S^a(t) = (1/n) sum_i S^a_i(t). Derive risk / risk-difference / risk-ratio / RMST / RMST-difference contrasts on a user-chosen time grid.\nReturns a survatr_result S3: $estimates and $contrasts data.tables indexed by time, plus time_grid, type, reference, ci_method, and call. se / ci_lower / ci_upper columns are NA_real_ at this chunk; sandwich variance ships in chunk 3 and bootstrap in chunk 4. ci_method = \"sandwich\" / \"bootstrap\" are rejected now with class survatr_ci_not_available.\nRMST is computed with a trapezoidal quadrature on the user’s times grid, prepending S(0) = 1 to integrate from the origin; the quadrature weights are exposed as rmst_weights() for chunk 3’s delta-method RMST SE.\ncontrast() is an S3 generic local to survatr (not a re-export of causatr::contrast, which is a plain function there). When both packages are attached, survatr’s generic shadows the causatr function; users who need the scalar-outcome path should call causatr::contrast() explicitly.\nTesting: 68 new tests across test-contrast.R, test-contrast-survival.R, test-contrast-rejections.R, test-predict_hazard.R, test-survival_curve.R, test-rmst.R, and a 🟡 test-contrast-lmtp-oracle.R that skips on CRAN and on toy-DGP fit failures. Closed-form oracle: S(t) = (1 - h)^t agrees with contrast(type = \"survival\") within 0.03 absolute at n = 5000; trapezoidal RMST matches hand-expanded sum to 1e-12.",
+    "crumbs": [
+      "News"
+    ]
+  },
+  {
+    "objectID": "NEWS.html#track-a-fit-skeleton",
+    "href": "NEWS.html#track-a-fit-skeleton",
+    "title": "survatr (development version)",
+    "section": "",
+    "text": "First working entry point: surv_fit() fits the pooled-logistic discrete-time hazard model logit h(t | A, L) = alpha(t) + beta_A A + beta_L L on person-period data and returns a survatr_fit S3 object. The fit builds the risk set by dropping rows at/after the first event per id and rows at/after the first censor per id, and automatically switches the GLM family to quasibinomial() when external weights are supplied.\nPorts the pre-removal causatr::causat_survival() fit path into a dedicated package with the naming / error-class surface tightened: reserved internal columns are .survatr_prev_event / .survatr_prev_cens, classed errors use the survatr_* prefix, and model_fn is a first-class argument (default stats::glm, accepts any mgcv::gam-style fitter).\nRejection paths wired with classed errors: survatr_matching_rejected (points to survival::coxph(..., weights = , cluster = )), survatr_bad_estimator, survatr_competing_misuse, survatr_bad_na_action, survatr_reserved_col, survatr_bad_weights, survatr_col_not_found, survatr_not_person_period, survatr_duplicate_pp_row.\nTesting: 79 tests across test-checks.R, test-prepare_data.R, test-risk_set.R, test-surv_fit.R, test-surv_fit-weighted.R, and test-surv_fit-family-oracle.R. The oracle test pins the logit intercept against qlogis(h) on a closed-form constant-hazard DGP (n = 5000) for both binomial() and quasibinomial() families.\nContrast, variance, bootstrap, IPW, ICE, competing risks, and diagnose() ship in subsequent chunks.",
+    "crumbs": [
+      "News"
+    ]
+  },
+  {
     "objectID": "LICENSE.html",
     "href": "LICENSE.html",
     "title": "MIT License",
@@ -7,6 +67,236 @@
     "text": "MIT License\nCopyright (c) 2026 survatr authors\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\nTHE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
     "crumbs": [
       "License"
+    ]
+  },
+  {
+    "objectID": "CITATION.html",
+    "href": "CITATION.html",
+    "title": "Citation",
+    "section": "",
+    "text": "Citation\nTo cite package ‘survatr’ in publications use:\n\nFabbri L (2026). survatr: Causal Survival Analysis for Methodological Triangulation. R package version 0.0.0.9000, https://github.com/etverse/survatr.",
+    "crumbs": [
+      "Citation"
+    ]
+  },
+  {
+    "objectID": "man/tidy.html",
+    "href": "man/tidy.html",
+    "title": "survatr",
+    "section": "",
+    "text": "Tidy generic re-exported from generics",
+    "crumbs": [
+      "Reference",
+      "tidy"
+    ]
+  },
+  {
+    "objectID": "man/tidy.html#tidy-generic-re-exported-from-generics",
+    "href": "man/tidy.html#tidy-generic-re-exported-from-generics",
+    "title": "survatr",
+    "section": "",
+    "text": "Tidy generic re-exported from generics",
+    "crumbs": [
+      "Reference",
+      "tidy"
+    ]
+  },
+  {
+    "objectID": "man/tidy.survatr_result.html",
+    "href": "man/tidy.survatr_result.html",
+    "title": "survatr",
+    "section": "",
+    "text": "Stacks the per-intervention estimates and pairwise contrasts into a single long data.frame suitable for downstream plotting or further aggregation. The estimand column identifies which column the row came from: s_hat / risk_hat / rmst_hat for intervention rows, risk_difference / risk_ratio / rmst_difference for contrast rows.\n\n\n\n## S3 method for class 'survatr_result'\ntidy(x, which = c(\"all\", \"estimates\", \"contrasts\"), conf.int = TRUE, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result from contrast().\n\n\n\n\nwhich\n\n\nOne of “estimates” (per-intervention rows only), “contrasts” (pairwise rows only), or “all” (both stacked). Default “all”.\n\n\n\n\nconf.int\n\n\nLogical; when FALSE, drop ci_lower / ci_upper columns. Default TRUE.\n\n\n\n\n…\n\n\nUnused.\n\n\n\n\n\n\nA data.frame in long format with columns intervention | contrast | time | estimand | estimate | se | ci_lower | ci_upper (or a subset when which / conf.int restrict it).",
+    "crumbs": [
+      "Reference",
+      "tidy.survatr_result"
+    ]
+  },
+  {
+    "objectID": "man/tidy.survatr_result.html#tidy-a-survatr_result-into-long-format",
+    "href": "man/tidy.survatr_result.html#tidy-a-survatr_result-into-long-format",
+    "title": "survatr",
+    "section": "",
+    "text": "Stacks the per-intervention estimates and pairwise contrasts into a single long data.frame suitable for downstream plotting or further aggregation. The estimand column identifies which column the row came from: s_hat / risk_hat / rmst_hat for intervention rows, risk_difference / risk_ratio / rmst_difference for contrast rows.\n\n\n\n## S3 method for class 'survatr_result'\ntidy(x, which = c(\"all\", \"estimates\", \"contrasts\"), conf.int = TRUE, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result from contrast().\n\n\n\n\nwhich\n\n\nOne of “estimates” (per-intervention rows only), “contrasts” (pairwise rows only), or “all” (both stacked). Default “all”.\n\n\n\n\nconf.int\n\n\nLogical; when FALSE, drop ci_lower / ci_upper columns. Default TRUE.\n\n\n\n\n…\n\n\nUnused.\n\n\n\n\n\n\nA data.frame in long format with columns intervention | contrast | time | estimand | estimate | se | ci_lower | ci_upper (or a subset when which / conf.int restrict it).",
+    "crumbs": [
+      "Reference",
+      "tidy.survatr_result"
+    ]
+  },
+  {
+    "objectID": "man/print.survatr_result.html",
+    "href": "man/print.survatr_result.html",
+    "title": "survatr",
+    "section": "",
+    "text": "Minimal banner + head of the result’s contrasts (or estimates for curve-only types). A polished print + plot / tidy / forrest surface ships with the S3 polish in a later chunk.\n\n\n\n## S3 method for class 'survatr_result'\nprint(x, n = 10L, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result.\n\n\n\n\nn\n\n\nMaximum number of rows from the contrasts / estimates table to show (default 10).\n\n\n\n\n…\n\n\nUnused.\n\n\n\n\n\n\nThe result object, invisibly.",
+    "crumbs": [
+      "Reference",
+      "print.survatr_result"
+    ]
+  },
+  {
+    "objectID": "man/print.survatr_result.html#print-a-survatr_result",
+    "href": "man/print.survatr_result.html#print-a-survatr_result",
+    "title": "survatr",
+    "section": "",
+    "text": "Minimal banner + head of the result’s contrasts (or estimates for curve-only types). A polished print + plot / tidy / forrest surface ships with the S3 polish in a later chunk.\n\n\n\n## S3 method for class 'survatr_result'\nprint(x, n = 10L, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result.\n\n\n\n\nn\n\n\nMaximum number of rows from the contrasts / estimates table to show (default 10).\n\n\n\n\n…\n\n\nUnused.\n\n\n\n\n\n\nThe result object, invisibly.",
+    "crumbs": [
+      "Reference",
+      "print.survatr_result"
+    ]
+  },
+  {
+    "objectID": "man/forrest.survatr_result.html",
+    "href": "man/forrest.survatr_result.html",
+    "title": "survatr",
+    "section": "",
+    "text": "Extract the row(s) of x$contrasts at t_ref and render a horizontal forest plot: one row per contrast, with point estimate, 95% CI (from x$ci_method), and a textual label. Only available for contrast-shaped types (risk_difference, risk_ratio, rmst_difference).\n\n\n\n## S3 method for class 'survatr_result'\nforrest(x, t_ref, col = NULL, main = NULL, xlab = NULL, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result.\n\n\n\n\nt_ref\n\n\nNumeric scalar; must be in x$time_grid.\n\n\n\n\ncol\n\n\nSingle color for point + segment. Default grDevices::palette()[1].\n\n\n\n\nmain\n\n\nOptional plot title.\n\n\n\n\nxlab\n\n\nOptional x-axis label.\n\n\n\n\n…\n\n\nPassed to plot.default().\n\n\n\n\n\n\nThe survatr_result, invisibly.",
+    "crumbs": [
+      "Reference",
+      "forrest.survatr_result"
+    ]
+  },
+  {
+    "objectID": "man/forrest.survatr_result.html#forest-plot-of-contrasts-at-a-reference-time",
+    "href": "man/forrest.survatr_result.html#forest-plot-of-contrasts-at-a-reference-time",
+    "title": "survatr",
+    "section": "",
+    "text": "Extract the row(s) of x$contrasts at t_ref and render a horizontal forest plot: one row per contrast, with point estimate, 95% CI (from x$ci_method), and a textual label. Only available for contrast-shaped types (risk_difference, risk_ratio, rmst_difference).\n\n\n\n## S3 method for class 'survatr_result'\nforrest(x, t_ref, col = NULL, main = NULL, xlab = NULL, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result.\n\n\n\n\nt_ref\n\n\nNumeric scalar; must be in x$time_grid.\n\n\n\n\ncol\n\n\nSingle color for point + segment. Default grDevices::palette()[1].\n\n\n\n\nmain\n\n\nOptional plot title.\n\n\n\n\nxlab\n\n\nOptional x-axis label.\n\n\n\n\n…\n\n\nPassed to plot.default().\n\n\n\n\n\n\nThe survatr_result, invisibly.",
+    "crumbs": [
+      "Reference",
+      "forrest.survatr_result"
+    ]
+  },
+  {
+    "objectID": "man/forrest.html",
+    "href": "man/forrest.html",
+    "title": "survatr",
+    "section": "",
+    "text": "S3 generic for forest-style plots at a user-chosen reference time. survatr ships forrest.survatr_result() which slices the result at a single t_ref and renders one row per pairwise contrast with a point estimate and CI.\n\n\n\nforrest(x, ...)\n\n\n\n\n\n\n\nx\n\n\nObject to dispatch on.\n\n\n\n\n…\n\n\nArguments passed to methods.\n\n\n\n\n\n\nThe deliberate misspelling forrest matches causatr’s convention (clarity about the plot style, not the Gump reference).\n\n\n\nMethod-dependent.",
+    "crumbs": [
+      "Reference",
+      "forrest"
+    ]
+  },
+  {
+    "objectID": "man/forrest.html#forest-plot-generic",
+    "href": "man/forrest.html#forest-plot-generic",
+    "title": "survatr",
+    "section": "",
+    "text": "S3 generic for forest-style plots at a user-chosen reference time. survatr ships forrest.survatr_result() which slices the result at a single t_ref and renders one row per pairwise contrast with a point estimate and CI.\n\n\n\nforrest(x, ...)\n\n\n\n\n\n\n\nx\n\n\nObject to dispatch on.\n\n\n\n\n…\n\n\nArguments passed to methods.\n\n\n\n\n\n\nThe deliberate misspelling forrest matches causatr’s convention (clarity about the plot style, not the Gump reference).\n\n\n\nMethod-dependent.",
+    "crumbs": [
+      "Reference",
+      "forrest"
+    ]
+  },
+  {
+    "objectID": "man/contrast.survatr_fit.html",
+    "href": "man/contrast.survatr_fit.html",
+    "title": "survatr",
+    "section": "",
+    "text": "Given a survatr_fit (chunk 1) and a named list of interventions, build the counterfactual person-period data under each intervention, predict the per-row hazard, cumulate within individual to get S^a_i(t), and average across individuals to get the population survival curve S^a(t) = (1/n) sum_i S^a_i(t). Derive risk / risk-difference / risk-ratio / RMST / RMST-difference contrasts from there.\n\n\n\n## S3 method for class 'survatr_fit'\ncontrast(\n  fit,\n  interventions,\n  times,\n  type = c(\"risk_difference\", \"survival\", \"risk\", \"risk_ratio\", \"rmst\",\n    \"rmst_difference\"),\n  reference = NULL,\n  ci_method = \"none\",\n  conf_level = 0.95,\n  n_boot = 500L,\n  boot_ci = \"percentile\",\n  parallel = \"no\",\n  ncpus = 1L,\n  seed = NULL,\n  ...\n)\n\n\n\n\n\n\n\nfit\n\n\nA survatr_fit.\n\n\n\n\ninterventions\n\n\nA named list of causatr_intervention objects (causatr::static(), causatr::shift(), causatr::scale_by(), causatr::threshold(), causatr::dynamic()). The element names are carried through to the intervention column of the result.\n\n\n\n\ntimes\n\n\nNumeric vector of time points at which to evaluate the survival curve. Must all be elements of fit$time_grid — extrapolation beyond the observed grid is rejected with survatr_time_extrapolation.\n\n\n\n\ntype\n\n\nOne of “survival”, “risk”, “risk_difference”, “risk_ratio”, “rmst”, “rmst_difference”.\n\n\n\n\nreference\n\n\nName of the intervention used as the reference in difference / ratio contrasts. Defaults to the first name in interventions. Ignored by type = “survival”, “risk”, and “rmst” (no pairwise contrast).\n\n\n\n\nci_method\n\n\nOne of “none” (point estimates only), “sandwich” (delta-method cross-time IF aggregation via causatr:::prepare_model_if()), or “bootstrap” (resample individuals, refit the hazard model per replicate, percentile or Wald CIs). Default “none”.\n\n\n\n\nconf_level\n\n\nConfidence level for the CIs when ci_method != “none”. Numeric scalar in (0, 1), default 0.95.\n\n\n\n\nn_boot\n\n\nInteger; number of bootstrap replicates. Ignored when ci_method != “bootstrap”. Default 500L.\n\n\n\n\nboot_ci\n\n\nOne of “percentile” (sample-quantile CI) or “wald” (point estimate +/- z * sd(replicates)). Default “percentile”. Percentile is transform-invariant and is the safer default for ratios / RMST.\n\n\n\n\nparallel\n\n\nOne of “no”, “multicore”, “snow”; forwarded to boot::boot(). Default “no”.\n\n\n\n\nncpus\n\n\nInteger; number of CPUs for parallel bootstrap. Default 1L.\n\n\n\n\nseed\n\n\nInteger scalar or NULL. When non-null, set.seed(seed) is called before the bootstrap loop so the replicate sequence is reproducible. Default NULL.\n\n\n\n\n…\n\n\nUnused; reserved for future chunks.\n\n\n\n\n\n\nNo variance in this chunk. All se / ci_* columns come back as NA_real_; sandwich variance ships with chunk 3 (delta-method cross-time IF aggregation) and bootstrap with chunk 4.\n\n\n\nA survatr_result list with estimates, contrasts, time_grid, type, reference, ci_method, and call components.",
+    "crumbs": [
+      "Reference",
+      "contrast.survatr_fit"
+    ]
+  },
+  {
+    "objectID": "man/contrast.survatr_fit.html#survival-curve-contrasts-on-a-fitted-hazard-model",
+    "href": "man/contrast.survatr_fit.html#survival-curve-contrasts-on-a-fitted-hazard-model",
+    "title": "survatr",
+    "section": "",
+    "text": "Given a survatr_fit (chunk 1) and a named list of interventions, build the counterfactual person-period data under each intervention, predict the per-row hazard, cumulate within individual to get S^a_i(t), and average across individuals to get the population survival curve S^a(t) = (1/n) sum_i S^a_i(t). Derive risk / risk-difference / risk-ratio / RMST / RMST-difference contrasts from there.\n\n\n\n## S3 method for class 'survatr_fit'\ncontrast(\n  fit,\n  interventions,\n  times,\n  type = c(\"risk_difference\", \"survival\", \"risk\", \"risk_ratio\", \"rmst\",\n    \"rmst_difference\"),\n  reference = NULL,\n  ci_method = \"none\",\n  conf_level = 0.95,\n  n_boot = 500L,\n  boot_ci = \"percentile\",\n  parallel = \"no\",\n  ncpus = 1L,\n  seed = NULL,\n  ...\n)\n\n\n\n\n\n\n\nfit\n\n\nA survatr_fit.\n\n\n\n\ninterventions\n\n\nA named list of causatr_intervention objects (causatr::static(), causatr::shift(), causatr::scale_by(), causatr::threshold(), causatr::dynamic()). The element names are carried through to the intervention column of the result.\n\n\n\n\ntimes\n\n\nNumeric vector of time points at which to evaluate the survival curve. Must all be elements of fit$time_grid — extrapolation beyond the observed grid is rejected with survatr_time_extrapolation.\n\n\n\n\ntype\n\n\nOne of “survival”, “risk”, “risk_difference”, “risk_ratio”, “rmst”, “rmst_difference”.\n\n\n\n\nreference\n\n\nName of the intervention used as the reference in difference / ratio contrasts. Defaults to the first name in interventions. Ignored by type = “survival”, “risk”, and “rmst” (no pairwise contrast).\n\n\n\n\nci_method\n\n\nOne of “none” (point estimates only), “sandwich” (delta-method cross-time IF aggregation via causatr:::prepare_model_if()), or “bootstrap” (resample individuals, refit the hazard model per replicate, percentile or Wald CIs). Default “none”.\n\n\n\n\nconf_level\n\n\nConfidence level for the CIs when ci_method != “none”. Numeric scalar in (0, 1), default 0.95.\n\n\n\n\nn_boot\n\n\nInteger; number of bootstrap replicates. Ignored when ci_method != “bootstrap”. Default 500L.\n\n\n\n\nboot_ci\n\n\nOne of “percentile” (sample-quantile CI) or “wald” (point estimate +/- z * sd(replicates)). Default “percentile”. Percentile is transform-invariant and is the safer default for ratios / RMST.\n\n\n\n\nparallel\n\n\nOne of “no”, “multicore”, “snow”; forwarded to boot::boot(). Default “no”.\n\n\n\n\nncpus\n\n\nInteger; number of CPUs for parallel bootstrap. Default 1L.\n\n\n\n\nseed\n\n\nInteger scalar or NULL. When non-null, set.seed(seed) is called before the bootstrap loop so the replicate sequence is reproducible. Default NULL.\n\n\n\n\n…\n\n\nUnused; reserved for future chunks.\n\n\n\n\n\n\nNo variance in this chunk. All se / ci_* columns come back as NA_real_; sandwich variance ships with chunk 3 (delta-method cross-time IF aggregation) and bootstrap with chunk 4.\n\n\n\nA survatr_result list with estimates, contrasts, time_grid, type, reference, ci_method, and call components.",
+    "crumbs": [
+      "Reference",
+      "contrast.survatr_fit"
+    ]
+  },
+  {
+    "objectID": "man/contrast.html",
+    "href": "man/contrast.html",
+    "title": "survatr",
+    "section": "",
+    "text": "S3 generic dispatched on the class of fit. survatr ships contrast.survatr_fit() for time-indexed survival / risk / RMST contrasts.\n\n\n\ncontrast(fit, ...)\n\n\n\n\n\n\n\nfit\n\n\nA fitted model object.\n\n\n\n\n…\n\n\nArguments passed to methods.\n\n\n\n\n\n\ncausatr::contrast() (same symbol name in causatr, but not an S3 generic there) handles scalar-outcome causatr_fit objects. If both packages are attached, this generic shadows causatr::contrast(); users who need the causatr path should call causatr::contrast() explicitly.\n\n\n\nMethod-dependent.",
+    "crumbs": [
+      "Reference",
+      "contrast"
+    ]
+  },
+  {
+    "objectID": "man/contrast.html#contrast-generic",
+    "href": "man/contrast.html#contrast-generic",
+    "title": "survatr",
+    "section": "",
+    "text": "S3 generic dispatched on the class of fit. survatr ships contrast.survatr_fit() for time-indexed survival / risk / RMST contrasts.\n\n\n\ncontrast(fit, ...)\n\n\n\n\n\n\n\nfit\n\n\nA fitted model object.\n\n\n\n\n…\n\n\nArguments passed to methods.\n\n\n\n\n\n\ncausatr::contrast() (same symbol name in causatr, but not an S3 generic there) handles scalar-outcome causatr_fit objects. If both packages are attached, this generic shadows causatr::contrast(); users who need the causatr path should call causatr::contrast() explicitly.\n\n\n\nMethod-dependent.",
+    "crumbs": [
+      "Reference",
+      "contrast"
+    ]
+  },
+  {
+    "objectID": "man/surv_fit.html",
+    "href": "man/surv_fit.html",
+    "title": "survatr",
+    "section": "",
+    "text": "Fit-only entry point for survatr. Builds the risk set and fits the pooled-logistic discrete-time hazard model logit h(t | A, L) = alpha(t) + beta_A A + beta_L L on the at-risk person-period rows. Survival curves, risk / RMST contrasts, and variance live in contrast() (time-indexed curve-shaped result). This two-step split lets the user fit the hazard model once and cheaply contrast many interventions on top.\n\n\n\nsurv_fit(\n  data,\n  outcome,\n  treatment,\n  confounders,\n  id,\n  time,\n  censoring = NULL,\n  competing = NULL,\n  time_formula = ~splines::ns(time, 4),\n  weights = NULL,\n  estimator = \"gcomp\",\n  model_fn = stats::glm,\n  ...\n)\n\n\n\n\n\n\n\ndata\n\n\nA person-period (long) data.frame or data.table, rectangular across ids: every unique id must have one row at every unique time value. Ragged PP (ids dropped post-event / post-censor) is rejected with class survatr_ragged_pp. Pad ragged data before calling surv_fit() by appending rows with outcome = 0 and (if used) censoring = 1 so the risk-set builder drops them from the fit. Wide data (one row per id across a multi-period study) must be reshaped with causatr::to_person_period().\n\n\n\n\noutcome\n\n\nCharacter scalar. Column name of the event indicator (1 = event at this period, 0 = no event). Must be in data.\n\n\n\n\ntreatment\n\n\nCharacter scalar. Column name of the (baseline, point) treatment. For Track A the treatment is constant within id.\n\n\n\n\nconfounders\n\n\nA one-sided formula (e.g. ~ L1 + L2) describing the covariate adjustment set.\n\n\n\n\nid\n\n\nCharacter scalar. Column name of the individual identifier.\n\n\n\n\ntime\n\n\nCharacter scalar. Column name of the discrete period index (integer-valued; sorted within id).\n\n\n\n\ncensoring\n\n\nCharacter scalar or NULL. Column name of the censoring indicator (1 = censored at this period). NA or 0 means uncensored. When NULL, every uncensored period is treated as at-risk until the first event.\n\n\n\n\ncompeting\n\n\nReserved for the cause-specific hazards + CIF path. Passing anything other than NULL is an error in the current release – competing risks have a dedicated entry point rather than being silently folded into surv_fit() (which would fit a biased cause-deleted hazard).\n\n\n\n\ntime_formula\n\n\nOne-sided formula for the baseline hazard alpha(t). Defaults to ~ splines::ns(time, 4) (4 df natural spline on the time variable). Pass ~ factor(time) for period dummies or ~ 1 for a time-constant hazard.\n\n\n\n\nweights\n\n\nOptional numeric vector of external weights, length nrow(data). When supplied, the hazard model is fit with stats::quasibinomial() rather than stats::binomial() (same score equations, free dispersion – drops the \"non-integer #successes\" warning). The variance engine in later chunks reads the family from fit$family to pick the right dispersion.\n\n\n\n\nestimator\n\n\nCharacter scalar. Currently “gcomp” (pooled-logistic standardization). “ipw” and “ice” ship in later tracks and are rejected here. Matching is a hard reject with class survatr_matching_rejected pointing to survival::coxph(…, weights = , cluster = ).\n\n\n\n\nmodel_fn\n\n\nFitting function for the hazard model. Defaults to stats::glm. Accepts any function matching the stats::glm interface (formula, data, family, weights, …), e.g. mgcv::gam with an s(time) term in time_formula.\n\n\n\n\n…\n\n\nForwarded to model_fn. na.action = na.exclude is rejected with class survatr_bad_na_action – na.exclude pads working residuals with NAs while model.matrix() drops them, which silently corrupts the sandwich variance downstream.\n\n\n\n\n\n\nAn object of class survatr_fit holding the fitted hazard model, the person-period data (internal .survatr_* columns stripped), the time grid, and metadata needed by contrast() and diagnose().\n\n\n\ncausatr::to_person_period() for reshaping wide data.",
+    "crumbs": [
+      "Reference",
+      "surv_fit"
+    ]
+  },
+  {
+    "objectID": "man/surv_fit.html#fit-a-causal-survival-hazard-model-on-person-period-data",
+    "href": "man/surv_fit.html#fit-a-causal-survival-hazard-model-on-person-period-data",
+    "title": "survatr",
+    "section": "",
+    "text": "Fit-only entry point for survatr. Builds the risk set and fits the pooled-logistic discrete-time hazard model logit h(t | A, L) = alpha(t) + beta_A A + beta_L L on the at-risk person-period rows. Survival curves, risk / RMST contrasts, and variance live in contrast() (time-indexed curve-shaped result). This two-step split lets the user fit the hazard model once and cheaply contrast many interventions on top.\n\n\n\nsurv_fit(\n  data,\n  outcome,\n  treatment,\n  confounders,\n  id,\n  time,\n  censoring = NULL,\n  competing = NULL,\n  time_formula = ~splines::ns(time, 4),\n  weights = NULL,\n  estimator = \"gcomp\",\n  model_fn = stats::glm,\n  ...\n)\n\n\n\n\n\n\n\ndata\n\n\nA person-period (long) data.frame or data.table, rectangular across ids: every unique id must have one row at every unique time value. Ragged PP (ids dropped post-event / post-censor) is rejected with class survatr_ragged_pp. Pad ragged data before calling surv_fit() by appending rows with outcome = 0 and (if used) censoring = 1 so the risk-set builder drops them from the fit. Wide data (one row per id across a multi-period study) must be reshaped with causatr::to_person_period().\n\n\n\n\noutcome\n\n\nCharacter scalar. Column name of the event indicator (1 = event at this period, 0 = no event). Must be in data.\n\n\n\n\ntreatment\n\n\nCharacter scalar. Column name of the (baseline, point) treatment. For Track A the treatment is constant within id.\n\n\n\n\nconfounders\n\n\nA one-sided formula (e.g. ~ L1 + L2) describing the covariate adjustment set.\n\n\n\n\nid\n\n\nCharacter scalar. Column name of the individual identifier.\n\n\n\n\ntime\n\n\nCharacter scalar. Column name of the discrete period index (integer-valued; sorted within id).\n\n\n\n\ncensoring\n\n\nCharacter scalar or NULL. Column name of the censoring indicator (1 = censored at this period). NA or 0 means uncensored. When NULL, every uncensored period is treated as at-risk until the first event.\n\n\n\n\ncompeting\n\n\nReserved for the cause-specific hazards + CIF path. Passing anything other than NULL is an error in the current release – competing risks have a dedicated entry point rather than being silently folded into surv_fit() (which would fit a biased cause-deleted hazard).\n\n\n\n\ntime_formula\n\n\nOne-sided formula for the baseline hazard alpha(t). Defaults to ~ splines::ns(time, 4) (4 df natural spline on the time variable). Pass ~ factor(time) for period dummies or ~ 1 for a time-constant hazard.\n\n\n\n\nweights\n\n\nOptional numeric vector of external weights, length nrow(data). When supplied, the hazard model is fit with stats::quasibinomial() rather than stats::binomial() (same score equations, free dispersion – drops the \"non-integer #successes\" warning). The variance engine in later chunks reads the family from fit$family to pick the right dispersion.\n\n\n\n\nestimator\n\n\nCharacter scalar. Currently “gcomp” (pooled-logistic standardization). “ipw” and “ice” ship in later tracks and are rejected here. Matching is a hard reject with class survatr_matching_rejected pointing to survival::coxph(…, weights = , cluster = ).\n\n\n\n\nmodel_fn\n\n\nFitting function for the hazard model. Defaults to stats::glm. Accepts any function matching the stats::glm interface (formula, data, family, weights, …), e.g. mgcv::gam with an s(time) term in time_formula.\n\n\n\n\n…\n\n\nForwarded to model_fn. na.action = na.exclude is rejected with class survatr_bad_na_action – na.exclude pads working residuals with NAs while model.matrix() drops them, which silently corrupts the sandwich variance downstream.\n\n\n\n\n\n\nAn object of class survatr_fit holding the fitted hazard model, the person-period data (internal .survatr_* columns stripped), the time grid, and metadata needed by contrast() and diagnose().\n\n\n\ncausatr::to_person_period() for reshaping wide data.",
+    "crumbs": [
+      "Reference",
+      "surv_fit"
+    ]
+  },
+  {
+    "objectID": "man/print.survatr_fit.html",
+    "href": "man/print.survatr_fit.html",
+    "title": "survatr",
+    "section": "",
+    "text": "Minimal banner summary for the fit object returned by surv_fit(). Reports the track, estimator, outcome / treatment / id / time columns, number of individuals, number of person-period rows used to fit, and the time grid span. A richer print (coef table, time-spline degrees of freedom) ships with the contrast / S3 polish in a later chunk.\n\n\n\n## S3 method for class 'survatr_fit'\nprint(x, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_fit.\n\n\n\n\n…\n\n\nUnused.\n\n\n\n\n\n\nThe fit object, invisibly.",
+    "crumbs": [
+      "Reference",
+      "print.survatr_fit"
+    ]
+  },
+  {
+    "objectID": "man/print.survatr_fit.html#print-a-survatr_fit",
+    "href": "man/print.survatr_fit.html#print-a-survatr_fit",
+    "title": "survatr",
+    "section": "",
+    "text": "Minimal banner summary for the fit object returned by surv_fit(). Reports the track, estimator, outcome / treatment / id / time columns, number of individuals, number of person-period rows used to fit, and the time grid span. A richer print (coef table, time-spline degrees of freedom) ships with the contrast / S3 polish in a later chunk.\n\n\n\n## S3 method for class 'survatr_fit'\nprint(x, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_fit.\n\n\n\n\n…\n\n\nUnused.\n\n\n\n\n\n\nThe fit object, invisibly.",
+    "crumbs": [
+      "Reference",
+      "print.survatr_fit"
+    ]
+  },
+  {
+    "objectID": "man/plot.survatr_result.html",
+    "href": "man/plot.survatr_result.html",
+    "title": "survatr",
+    "section": "",
+    "text": "Base-R graphics rendering of survival / risk / RMST curves or of risk-difference / risk-ratio / RMST-difference contrasts. Dispatches on x$type:\n\n\n\n## S3 method for class 'survatr_result'\nplot(\n  x,\n  which = c(\"auto\", \"curves\", \"contrasts\"),\n  main = NULL,\n  xlab = NULL,\n  ylab = NULL,\n  col = NULL,\n  ribbon = TRUE,\n  ribbon_alpha = 0.2,\n  ...\n)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result.\n\n\n\n\nwhich\n\n\nOne of “auto”, “curves”, “contrasts”. “auto” picks curves for survival / risk / rmst and contrasts for the three pairwise types.\n\n\n\n\nmain\n\n\nOptional plot title.\n\n\n\n\nxlab, ylab\n\n\nOptional axis labels. Sensible defaults are picked based on type.\n\n\n\n\ncol\n\n\nOptional vector of colors, length n_interventions (or n_contrasts). Defaults to grDevices::palette().\n\n\n\n\nribbon\n\n\nLogical; when TRUE and CI columns are populated, shade a polygon between ci_lower and ci_upper. Default TRUE.\n\n\n\n\nribbon_alpha\n\n\nNumeric in (0, 1); ribbon transparency (via grDevices::adjustcolor). Default 0.2.\n\n\n\n\n…\n\n\nPassed to the underlying plot.default() call.\n\n\n\n\n\n\n\n\nsurvival / risk / rmst: one line per intervention (colored), CI ribbons when populated.\n\n\nrisk_difference / risk_ratio / rmst_difference: one line per contrast (colored), CI ribbons when populated, and a reference line at 0 (for differences) or 1 (for ratios).\n\n\n\n\n\nThe survatr_result, invisibly.",
+    "crumbs": [
+      "Reference",
+      "plot.survatr_result"
+    ]
+  },
+  {
+    "objectID": "man/plot.survatr_result.html#plot-a-survatr_result",
+    "href": "man/plot.survatr_result.html#plot-a-survatr_result",
+    "title": "survatr",
+    "section": "",
+    "text": "Base-R graphics rendering of survival / risk / RMST curves or of risk-difference / risk-ratio / RMST-difference contrasts. Dispatches on x$type:\n\n\n\n## S3 method for class 'survatr_result'\nplot(\n  x,\n  which = c(\"auto\", \"curves\", \"contrasts\"),\n  main = NULL,\n  xlab = NULL,\n  ylab = NULL,\n  col = NULL,\n  ribbon = TRUE,\n  ribbon_alpha = 0.2,\n  ...\n)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result.\n\n\n\n\nwhich\n\n\nOne of “auto”, “curves”, “contrasts”. “auto” picks curves for survival / risk / rmst and contrasts for the three pairwise types.\n\n\n\n\nmain\n\n\nOptional plot title.\n\n\n\n\nxlab, ylab\n\n\nOptional axis labels. Sensible defaults are picked based on type.\n\n\n\n\ncol\n\n\nOptional vector of colors, length n_interventions (or n_contrasts). Defaults to grDevices::palette().\n\n\n\n\nribbon\n\n\nLogical; when TRUE and CI columns are populated, shade a polygon between ci_lower and ci_upper. Default TRUE.\n\n\n\n\nribbon_alpha\n\n\nNumeric in (0, 1); ribbon transparency (via grDevices::adjustcolor). Default 0.2.\n\n\n\n\n…\n\n\nPassed to the underlying plot.default() call.\n\n\n\n\n\n\n\n\nsurvival / risk / rmst: one line per intervention (colored), CI ribbons when populated.\n\n\nrisk_difference / risk_ratio / rmst_difference: one line per contrast (colored), CI ribbons when populated, and a reference line at 0 (for differences) or 1 (for ratios).\n\n\n\n\n\nThe survatr_result, invisibly.",
+    "crumbs": [
+      "Reference",
+      "plot.survatr_result"
     ]
   },
   {
@@ -120,286 +410,6 @@
     ]
   },
   {
-    "objectID": "man/contrast.survatr_fit.html",
-    "href": "man/contrast.survatr_fit.html",
-    "title": "survatr",
-    "section": "",
-    "text": "Given a survatr_fit (chunk 1) and a named list of interventions, build the counterfactual person-period data under each intervention, predict the per-row hazard, cumulate within individual to get S^a_i(t), and average across individuals to get the population survival curve S^a(t) = (1/n) sum_i S^a_i(t). Derive risk / risk-difference / risk-ratio / RMST / RMST-difference contrasts from there.\n\n\n\n## S3 method for class 'survatr_fit'\ncontrast(\n  fit,\n  interventions,\n  times,\n  type = c(\"risk_difference\", \"survival\", \"risk\", \"risk_ratio\", \"rmst\",\n    \"rmst_difference\"),\n  reference = NULL,\n  ci_method = \"none\",\n  conf_level = 0.95,\n  n_boot = 500L,\n  boot_ci = \"percentile\",\n  parallel = \"no\",\n  ncpus = 1L,\n  seed = NULL,\n  ...\n)\n\n\n\n\n\n\n\nfit\n\n\nA survatr_fit.\n\n\n\n\ninterventions\n\n\nA named list of causatr_intervention objects (causatr::static(), causatr::shift(), causatr::scale_by(), causatr::threshold(), causatr::dynamic()). The element names are carried through to the intervention column of the result.\n\n\n\n\ntimes\n\n\nNumeric vector of time points at which to evaluate the survival curve. Must all be elements of fit$time_grid — extrapolation beyond the observed grid is rejected with survatr_time_extrapolation.\n\n\n\n\ntype\n\n\nOne of “survival”, “risk”, “risk_difference”, “risk_ratio”, “rmst”, “rmst_difference”.\n\n\n\n\nreference\n\n\nName of the intervention used as the reference in difference / ratio contrasts. Defaults to the first name in interventions. Ignored by type = “survival”, “risk”, and “rmst” (no pairwise contrast).\n\n\n\n\nci_method\n\n\nOne of “none” (point estimates only), “sandwich” (delta-method cross-time IF aggregation via causatr:::prepare_model_if()), or “bootstrap” (resample individuals, refit the hazard model per replicate, percentile or Wald CIs). Default “none”.\n\n\n\n\nconf_level\n\n\nConfidence level for the CIs when ci_method != “none”. Numeric scalar in (0, 1), default 0.95.\n\n\n\n\nn_boot\n\n\nInteger; number of bootstrap replicates. Ignored when ci_method != “bootstrap”. Default 500L.\n\n\n\n\nboot_ci\n\n\nOne of “percentile” (sample-quantile CI) or “wald” (point estimate +/- z * sd(replicates)). Default “percentile”. Percentile is transform-invariant and is the safer default for ratios / RMST.\n\n\n\n\nparallel\n\n\nOne of “no”, “multicore”, “snow”; forwarded to boot::boot(). Default “no”.\n\n\n\n\nncpus\n\n\nInteger; number of CPUs for parallel bootstrap. Default 1L.\n\n\n\n\nseed\n\n\nInteger scalar or NULL. When non-null, set.seed(seed) is called before the bootstrap loop so the replicate sequence is reproducible. Default NULL.\n\n\n\n\n…\n\n\nUnused; reserved for future chunks.\n\n\n\n\n\n\nNo variance in this chunk. All se / ci_* columns come back as NA_real_; sandwich variance ships with chunk 3 (delta-method cross-time IF aggregation) and bootstrap with chunk 4.\n\n\n\nA survatr_result list with estimates, contrasts, time_grid, type, reference, ci_method, and call components.",
-    "crumbs": [
-      "Reference",
-      "contrast.survatr_fit"
-    ]
-  },
-  {
-    "objectID": "man/contrast.survatr_fit.html#survival-curve-contrasts-on-a-fitted-hazard-model",
-    "href": "man/contrast.survatr_fit.html#survival-curve-contrasts-on-a-fitted-hazard-model",
-    "title": "survatr",
-    "section": "",
-    "text": "Given a survatr_fit (chunk 1) and a named list of interventions, build the counterfactual person-period data under each intervention, predict the per-row hazard, cumulate within individual to get S^a_i(t), and average across individuals to get the population survival curve S^a(t) = (1/n) sum_i S^a_i(t). Derive risk / risk-difference / risk-ratio / RMST / RMST-difference contrasts from there.\n\n\n\n## S3 method for class 'survatr_fit'\ncontrast(\n  fit,\n  interventions,\n  times,\n  type = c(\"risk_difference\", \"survival\", \"risk\", \"risk_ratio\", \"rmst\",\n    \"rmst_difference\"),\n  reference = NULL,\n  ci_method = \"none\",\n  conf_level = 0.95,\n  n_boot = 500L,\n  boot_ci = \"percentile\",\n  parallel = \"no\",\n  ncpus = 1L,\n  seed = NULL,\n  ...\n)\n\n\n\n\n\n\n\nfit\n\n\nA survatr_fit.\n\n\n\n\ninterventions\n\n\nA named list of causatr_intervention objects (causatr::static(), causatr::shift(), causatr::scale_by(), causatr::threshold(), causatr::dynamic()). The element names are carried through to the intervention column of the result.\n\n\n\n\ntimes\n\n\nNumeric vector of time points at which to evaluate the survival curve. Must all be elements of fit$time_grid — extrapolation beyond the observed grid is rejected with survatr_time_extrapolation.\n\n\n\n\ntype\n\n\nOne of “survival”, “risk”, “risk_difference”, “risk_ratio”, “rmst”, “rmst_difference”.\n\n\n\n\nreference\n\n\nName of the intervention used as the reference in difference / ratio contrasts. Defaults to the first name in interventions. Ignored by type = “survival”, “risk”, and “rmst” (no pairwise contrast).\n\n\n\n\nci_method\n\n\nOne of “none” (point estimates only), “sandwich” (delta-method cross-time IF aggregation via causatr:::prepare_model_if()), or “bootstrap” (resample individuals, refit the hazard model per replicate, percentile or Wald CIs). Default “none”.\n\n\n\n\nconf_level\n\n\nConfidence level for the CIs when ci_method != “none”. Numeric scalar in (0, 1), default 0.95.\n\n\n\n\nn_boot\n\n\nInteger; number of bootstrap replicates. Ignored when ci_method != “bootstrap”. Default 500L.\n\n\n\n\nboot_ci\n\n\nOne of “percentile” (sample-quantile CI) or “wald” (point estimate +/- z * sd(replicates)). Default “percentile”. Percentile is transform-invariant and is the safer default for ratios / RMST.\n\n\n\n\nparallel\n\n\nOne of “no”, “multicore”, “snow”; forwarded to boot::boot(). Default “no”.\n\n\n\n\nncpus\n\n\nInteger; number of CPUs for parallel bootstrap. Default 1L.\n\n\n\n\nseed\n\n\nInteger scalar or NULL. When non-null, set.seed(seed) is called before the bootstrap loop so the replicate sequence is reproducible. Default NULL.\n\n\n\n\n…\n\n\nUnused; reserved for future chunks.\n\n\n\n\n\n\nNo variance in this chunk. All se / ci_* columns come back as NA_real_; sandwich variance ships with chunk 3 (delta-method cross-time IF aggregation) and bootstrap with chunk 4.\n\n\n\nA survatr_result list with estimates, contrasts, time_grid, type, reference, ci_method, and call components.",
-    "crumbs": [
-      "Reference",
-      "contrast.survatr_fit"
-    ]
-  },
-  {
-    "objectID": "man/print.survatr_fit.html",
-    "href": "man/print.survatr_fit.html",
-    "title": "survatr",
-    "section": "",
-    "text": "Minimal banner summary for the fit object returned by surv_fit(). Reports the track, estimator, outcome / treatment / id / time columns, number of individuals, number of person-period rows used to fit, and the time grid span. A richer print (coef table, time-spline degrees of freedom) ships with the contrast / S3 polish in a later chunk.\n\n\n\n## S3 method for class 'survatr_fit'\nprint(x, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_fit.\n\n\n\n\n…\n\n\nUnused.\n\n\n\n\n\n\nThe fit object, invisibly.",
-    "crumbs": [
-      "Reference",
-      "print.survatr_fit"
-    ]
-  },
-  {
-    "objectID": "man/print.survatr_fit.html#print-a-survatr_fit",
-    "href": "man/print.survatr_fit.html#print-a-survatr_fit",
-    "title": "survatr",
-    "section": "",
-    "text": "Minimal banner summary for the fit object returned by surv_fit(). Reports the track, estimator, outcome / treatment / id / time columns, number of individuals, number of person-period rows used to fit, and the time grid span. A richer print (coef table, time-spline degrees of freedom) ships with the contrast / S3 polish in a later chunk.\n\n\n\n## S3 method for class 'survatr_fit'\nprint(x, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_fit.\n\n\n\n\n…\n\n\nUnused.\n\n\n\n\n\n\nThe fit object, invisibly.",
-    "crumbs": [
-      "Reference",
-      "print.survatr_fit"
-    ]
-  },
-  {
-    "objectID": "man/tidy.html",
-    "href": "man/tidy.html",
-    "title": "survatr",
-    "section": "",
-    "text": "Tidy generic re-exported from generics",
-    "crumbs": [
-      "Reference",
-      "tidy"
-    ]
-  },
-  {
-    "objectID": "man/tidy.html#tidy-generic-re-exported-from-generics",
-    "href": "man/tidy.html#tidy-generic-re-exported-from-generics",
-    "title": "survatr",
-    "section": "",
-    "text": "Tidy generic re-exported from generics",
-    "crumbs": [
-      "Reference",
-      "tidy"
-    ]
-  },
-  {
-    "objectID": "man/forrest.html",
-    "href": "man/forrest.html",
-    "title": "survatr",
-    "section": "",
-    "text": "S3 generic for forest-style plots at a user-chosen reference time. survatr ships forrest.survatr_result() which slices the result at a single t_ref and renders one row per pairwise contrast with a point estimate and CI.\n\n\n\nforrest(x, ...)\n\n\n\n\n\n\n\nx\n\n\nObject to dispatch on.\n\n\n\n\n…\n\n\nArguments passed to methods.\n\n\n\n\n\n\nThe deliberate misspelling forrest matches causatr’s convention (clarity about the plot style, not the Gump reference).\n\n\n\nMethod-dependent.",
-    "crumbs": [
-      "Reference",
-      "forrest"
-    ]
-  },
-  {
-    "objectID": "man/forrest.html#forest-plot-generic",
-    "href": "man/forrest.html#forest-plot-generic",
-    "title": "survatr",
-    "section": "",
-    "text": "S3 generic for forest-style plots at a user-chosen reference time. survatr ships forrest.survatr_result() which slices the result at a single t_ref and renders one row per pairwise contrast with a point estimate and CI.\n\n\n\nforrest(x, ...)\n\n\n\n\n\n\n\nx\n\n\nObject to dispatch on.\n\n\n\n\n…\n\n\nArguments passed to methods.\n\n\n\n\n\n\nThe deliberate misspelling forrest matches causatr’s convention (clarity about the plot style, not the Gump reference).\n\n\n\nMethod-dependent.",
-    "crumbs": [
-      "Reference",
-      "forrest"
-    ]
-  },
-  {
-    "objectID": "man/contrast.html",
-    "href": "man/contrast.html",
-    "title": "survatr",
-    "section": "",
-    "text": "S3 generic dispatched on the class of fit. survatr ships contrast.survatr_fit() for time-indexed survival / risk / RMST contrasts.\n\n\n\ncontrast(fit, ...)\n\n\n\n\n\n\n\nfit\n\n\nA fitted model object.\n\n\n\n\n…\n\n\nArguments passed to methods.\n\n\n\n\n\n\ncausatr::contrast() (same symbol name in causatr, but not an S3 generic there) handles scalar-outcome causatr_fit objects. If both packages are attached, this generic shadows causatr::contrast(); users who need the causatr path should call causatr::contrast() explicitly.\n\n\n\nMethod-dependent.",
-    "crumbs": [
-      "Reference",
-      "contrast"
-    ]
-  },
-  {
-    "objectID": "man/contrast.html#contrast-generic",
-    "href": "man/contrast.html#contrast-generic",
-    "title": "survatr",
-    "section": "",
-    "text": "S3 generic dispatched on the class of fit. survatr ships contrast.survatr_fit() for time-indexed survival / risk / RMST contrasts.\n\n\n\ncontrast(fit, ...)\n\n\n\n\n\n\n\nfit\n\n\nA fitted model object.\n\n\n\n\n…\n\n\nArguments passed to methods.\n\n\n\n\n\n\ncausatr::contrast() (same symbol name in causatr, but not an S3 generic there) handles scalar-outcome causatr_fit objects. If both packages are attached, this generic shadows causatr::contrast(); users who need the causatr path should call causatr::contrast() explicitly.\n\n\n\nMethod-dependent.",
-    "crumbs": [
-      "Reference",
-      "contrast"
-    ]
-  },
-  {
-    "objectID": "NEWS.html",
-    "href": "NEWS.html",
-    "title": "survatr (development version)",
-    "section": "",
-    "text": "A full adversarial review of the 214-test chunk-1/2/3/4 surface produced four blocking correctness bugs, three required fixes, and two suggestions. Each reproduced numerically against a focused script under /tmp/survatr_repro_*.R before a fix landed; each has a classed regression test colocated with the affected area.\nBlocking (numerical correctness)\n\nrmst_weights() had off-by-one indexing + double-counted the S(0) = 1 prefix, inflating the sandwich SE for rmst and rmst_difference by up to 2× at t = 1 and ~57% on irregular grids. Point estimate (rmst_hat via trapezoidal_rmst) was unaffected. Fix dd873e5.\nna.action = na.omit + NA in a confounder caused prep$X_fit (post-NA-drop) to misalign with fit_idx (pre-drop), crashing the sandwich IF chain with a subscript-OOB. Rejected upfront with survatr_na_in_predictors (NA in censoring still allowed). Fix f7c7f95.\nRagged PP (ids dropped post-event) crashed the sandwich / bootstrap paths on a defensive assertion. Rejected upfront with survatr_ragged_pp and a padding recipe. The legacy single-row-id = wide heuristic retired in favor of the rectangularity check. Fix d6a2765.\nprint.survatr_result used show[seq_len(n)] where show is a data.table whose n column shadowed the function argument via NSE, printing hundreds of phantom NA rows. Fixed by utils::head(). Fix de4c5e0.\n\nRequired (latent but fragile)\n\nBootstrap seed was silently non-reproducible under parallel != \"no\" — mclapply / parLapply ignore the serial RNG unless L’Ecuyer-CMRG is set first. Now sets and restores the RNG kind around the parallel call. Fix 9c2b0b6.\nNon-binary outcome / censoring values silently walked the risk-set cumsums. Rejected upfront with survatr_bad_indicator. Fix bcb9d95.\nvalidate_times() rejected Date / POSIXct / difftime grids. Relaxed to accept the time-like classes. Fix c8e37d6.\n\nSuggestions\n\n.cf_hazard / .cf_surv added to SURVATR_RESERVED_COLS.\nbuild_contrasts() merge slimmed to select only the target estimand column, stable under chunk-5+ IPW columns. Fix 4935adb.\n\nFull suite after all fixes: pass (see commit messages for per-chunk coverage additions).\nCI infrastructure fix (separate from the review): .Rbuildignore pattern ^\\.claude$ only matched the literal path and let R CMD build recurse into dangling .claude/skills/ symlinks on CI. Widened to ^\\.claude(/|$). Fix 915d5eb.\n\n\n\nShip ci_method = \"bootstrap\" in contrast.survatr_fit() and the S3 method surface that turns a survatr_result into a plot, a tidy long table, or a forest plot.\nBootstrap. Resamples individuals (all of each id’s PP rows together), refits the hazard model via surv_fit() per replicate, recomputes the per-intervention curves and the requested contrasts, and derives pointwise CIs from the replicate distribution. Per-id resampling is load-bearing: row-level resampling would break the within-id cumulative-product dependence and bias variance for longer horizons. Two CI flavors:\n\nPercentile (default): quantile(replicates, (1-conf)/2, (1+conf)/2). Transform-invariant, so the same code handles risk_ratio without a log-scale detour.\nWald: point +/- z * sd(replicates). Matches the sandwich shape.\n\nNew arguments on contrast(): n_boot (default 500L), boot_ci (\"percentile\" | \"wald\"), parallel (forwarded to boot::boot()), ncpus, seed (when non-null, set.seed(seed) before the replicate loop so the whole sequence is reproducible). When a replicate fails to refit / contrast it is recorded as NA; if &gt; 10% of replicates fail, the call aborts with survatr_boot_failed.\nNew rejection surface: survatr_bad_n_boot, survatr_bad_boot_ci, survatr_bad_parallel.\nci_method now accepts all three values (\"none\", \"sandwich\", \"bootstrap\"); the chunk-3 survatr_ci_not_available placeholder signal is retired.\nS3 polish.\n\ntidy.survatr_result() – long data.frame with columns intervention | contrast | time | estimand | estimate | se | ci_lower | ci_upper. which = c(\"all\", \"estimates\", \"contrasts\"), conf.int = TRUE. The tidy generic is re-exported from generics (now an Imports: dependency).\nplot.survatr_result() – base-R graphics with optional CI ribbons. Auto-dispatches curves for survival / risk / rmst and contrasts (with reference line at 0 or 1) for the three pairwise types.\nforrest.survatr_result() – forest plot at a user-chosen t_ref. One row per pairwise contrast. Rejects curve-only types with survatr_forrest_wrong_type and out-of-grid t_ref with survatr_bad_t_ref.\n\nBug fix on the way: build_contrasts() previously returned a zero-column data.table when the user passed a contrast-shaped type with only a single intervention (everyone vs everyone -&gt; empty). It now returns the schema-complete empty-stub used by curve-only types, so downstream code sees a stable shape.\nTesting: 30+ new tests across test-bootstrap-survival.R, test-bootstrap-rejections.R, test-tidy-survatr_result.R, test-plot-survatr_result.R, test-forrest-survatr_result.R. The bootstrap-vs-sandwich cross-check (skipped on CRAN) pins B = 500 at n = 1500 to within 30% of the sandwich SE.\n\n\n\nShip ci_method = \"sandwich\" in contrast.survatr_fit() — delta-method cross-time influence function aggregation on the cumulative-product survival curve. The chunk-2 placeholder NA_real_ columns for se / ci_lower / ci_upper are now filled with pointwise Wald CIs at the user-supplied conf_level (default 0.95).\nPer-individual IF on S^a(t) decomposes into two pieces:\n\nCh1 (target variability): IF1_i(t) = S^a_i(t) - S^a(t).\nCh2 (beta uncertainty): IF2_i(t) = -n_ids * J_bar(t)' * B_inv * psi_i, where J_bar(t) is the population gradient of S^a(t) wrt beta, B_inv = (X'WX)^{-1} from causatr:::prepare_model_if(), and psi_i is the per-individual sum of score contributions across the at-risk rows belonging to individual i.\n\nThe cross-time covariance V = crossprod(IF_mat) / n_ids^2 yields pointwise SEs on the diagonal; the RMST SE is the quadratic form w_j' V w_j with trapezoidal weights from rmst_weights(). Risk difference / RMST difference propagate via the contrast IF IF_ref - IF_a1. Risk ratio is built on the log scale and the CI endpoints are exponentiated so the reported bounds are strictly positive.\nWiring: the survatr_ci_not_available signal now triggers only on ci_method = \"bootstrap\" (reserved for chunk 4). The conf_level argument is validated at the boundary with the new survatr_bad_conf_level class.\nNew rejection surface: survatr_bad_conf_level.\nTesting: 26 new tests across test-variance_if_survival.R, test-sandwich-survival.R, test-sandwich-risk-difference.R, test-sandwich-rmst.R, test-sandwich-risk-ratio.R. Coverage pinned by two 200-rep simulations (nominal 95% on s_hat and on risk_difference around 0 under a no-effect DGP) achieving ≥ 88% coverage — skipped on CRAN to keep the full-check runtime reasonable. A companion single-seed check confirms the sandwich SE matches the empirical SD across 100 replicates at n = 3000 within 7% at t = 5.\nFull suite: 173 passing / 0 failing / 1 skip. devtools::check(): 0 errors / 0 warnings / 2 NOTEs (env timestamp + unused Imports: boot reserved for chunk 4).\n\n\n\nShip contrast.survatr_fit() – the curve-shaped entry point for Track A. Given a survatr_fit and a named list of causatr interventions, build the counterfactual person-period data under each intervention, predict per-row hazards, cumulate within individual to S^a_i(t), and average across individuals to S^a(t) = (1/n) sum_i S^a_i(t). Derive risk / risk-difference / risk-ratio / RMST / RMST-difference contrasts on a user-chosen time grid.\nReturns a survatr_result S3: $estimates and $contrasts data.tables indexed by time, plus time_grid, type, reference, ci_method, and call. se / ci_lower / ci_upper columns are NA_real_ at this chunk; sandwich variance ships in chunk 3 and bootstrap in chunk 4. ci_method = \"sandwich\" / \"bootstrap\" are rejected now with class survatr_ci_not_available.\nRMST is computed with a trapezoidal quadrature on the user’s times grid, prepending S(0) = 1 to integrate from the origin; the quadrature weights are exposed as rmst_weights() for chunk 3’s delta-method RMST SE.\ncontrast() is an S3 generic local to survatr (not a re-export of causatr::contrast, which is a plain function there). When both packages are attached, survatr’s generic shadows the causatr function; users who need the scalar-outcome path should call causatr::contrast() explicitly.\nTesting: 68 new tests across test-contrast.R, test-contrast-survival.R, test-contrast-rejections.R, test-predict_hazard.R, test-survival_curve.R, test-rmst.R, and a 🟡 test-contrast-lmtp-oracle.R that skips on CRAN and on toy-DGP fit failures. Closed-form oracle: S(t) = (1 - h)^t agrees with contrast(type = \"survival\") within 0.03 absolute at n = 5000; trapezoidal RMST matches hand-expanded sum to 1e-12.\n\n\n\nFirst working entry point: surv_fit() fits the pooled-logistic discrete-time hazard model logit h(t | A, L) = alpha(t) + beta_A A + beta_L L on person-period data and returns a survatr_fit S3 object. The fit builds the risk set by dropping rows at/after the first event per id and rows at/after the first censor per id, and automatically switches the GLM family to quasibinomial() when external weights are supplied.\nPorts the pre-removal causatr::causat_survival() fit path into a dedicated package with the naming / error-class surface tightened: reserved internal columns are .survatr_prev_event / .survatr_prev_cens, classed errors use the survatr_* prefix, and model_fn is a first-class argument (default stats::glm, accepts any mgcv::gam-style fitter).\nRejection paths wired with classed errors: survatr_matching_rejected (points to survival::coxph(..., weights = , cluster = )), survatr_bad_estimator, survatr_competing_misuse, survatr_bad_na_action, survatr_reserved_col, survatr_bad_weights, survatr_col_not_found, survatr_not_person_period, survatr_duplicate_pp_row.\nTesting: 79 tests across test-checks.R, test-prepare_data.R, test-risk_set.R, test-surv_fit.R, test-surv_fit-weighted.R, and test-surv_fit-family-oracle.R. The oracle test pins the logit intercept against qlogis(h) on a closed-form constant-hazard DGP (n = 5000) for both binomial() and quasibinomial() families.\nContrast, variance, bootstrap, IPW, ICE, competing risks, and diagnose() ship in subsequent chunks.",
-    "crumbs": [
-      "News"
-    ]
-  },
-  {
-    "objectID": "NEWS.html#round-1-critical-review-9-fixes-across-chunks-14",
-    "href": "NEWS.html#round-1-critical-review-9-fixes-across-chunks-14",
-    "title": "survatr (development version)",
-    "section": "",
-    "text": "A full adversarial review of the 214-test chunk-1/2/3/4 surface produced four blocking correctness bugs, three required fixes, and two suggestions. Each reproduced numerically against a focused script under /tmp/survatr_repro_*.R before a fix landed; each has a classed regression test colocated with the affected area.\nBlocking (numerical correctness)\n\nrmst_weights() had off-by-one indexing + double-counted the S(0) = 1 prefix, inflating the sandwich SE for rmst and rmst_difference by up to 2× at t = 1 and ~57% on irregular grids. Point estimate (rmst_hat via trapezoidal_rmst) was unaffected. Fix dd873e5.\nna.action = na.omit + NA in a confounder caused prep$X_fit (post-NA-drop) to misalign with fit_idx (pre-drop), crashing the sandwich IF chain with a subscript-OOB. Rejected upfront with survatr_na_in_predictors (NA in censoring still allowed). Fix f7c7f95.\nRagged PP (ids dropped post-event) crashed the sandwich / bootstrap paths on a defensive assertion. Rejected upfront with survatr_ragged_pp and a padding recipe. The legacy single-row-id = wide heuristic retired in favor of the rectangularity check. Fix d6a2765.\nprint.survatr_result used show[seq_len(n)] where show is a data.table whose n column shadowed the function argument via NSE, printing hundreds of phantom NA rows. Fixed by utils::head(). Fix de4c5e0.\n\nRequired (latent but fragile)\n\nBootstrap seed was silently non-reproducible under parallel != \"no\" — mclapply / parLapply ignore the serial RNG unless L’Ecuyer-CMRG is set first. Now sets and restores the RNG kind around the parallel call. Fix 9c2b0b6.\nNon-binary outcome / censoring values silently walked the risk-set cumsums. Rejected upfront with survatr_bad_indicator. Fix bcb9d95.\nvalidate_times() rejected Date / POSIXct / difftime grids. Relaxed to accept the time-like classes. Fix c8e37d6.\n\nSuggestions\n\n.cf_hazard / .cf_surv added to SURVATR_RESERVED_COLS.\nbuild_contrasts() merge slimmed to select only the target estimand column, stable under chunk-5+ IPW columns. Fix 4935adb.\n\nFull suite after all fixes: pass (see commit messages for per-chunk coverage additions).\nCI infrastructure fix (separate from the review): .Rbuildignore pattern ^\\.claude$ only matched the literal path and let R CMD build recurse into dangling .claude/skills/ symlinks on CI. Widened to ^\\.claude(/|$). Fix 915d5eb.",
-    "crumbs": [
-      "News"
-    ]
-  },
-  {
-    "objectID": "NEWS.html#track-a-bootstrap-s3-polish",
-    "href": "NEWS.html#track-a-bootstrap-s3-polish",
-    "title": "survatr (development version)",
-    "section": "",
-    "text": "Ship ci_method = \"bootstrap\" in contrast.survatr_fit() and the S3 method surface that turns a survatr_result into a plot, a tidy long table, or a forest plot.\nBootstrap. Resamples individuals (all of each id’s PP rows together), refits the hazard model via surv_fit() per replicate, recomputes the per-intervention curves and the requested contrasts, and derives pointwise CIs from the replicate distribution. Per-id resampling is load-bearing: row-level resampling would break the within-id cumulative-product dependence and bias variance for longer horizons. Two CI flavors:\n\nPercentile (default): quantile(replicates, (1-conf)/2, (1+conf)/2). Transform-invariant, so the same code handles risk_ratio without a log-scale detour.\nWald: point +/- z * sd(replicates). Matches the sandwich shape.\n\nNew arguments on contrast(): n_boot (default 500L), boot_ci (\"percentile\" | \"wald\"), parallel (forwarded to boot::boot()), ncpus, seed (when non-null, set.seed(seed) before the replicate loop so the whole sequence is reproducible). When a replicate fails to refit / contrast it is recorded as NA; if &gt; 10% of replicates fail, the call aborts with survatr_boot_failed.\nNew rejection surface: survatr_bad_n_boot, survatr_bad_boot_ci, survatr_bad_parallel.\nci_method now accepts all three values (\"none\", \"sandwich\", \"bootstrap\"); the chunk-3 survatr_ci_not_available placeholder signal is retired.\nS3 polish.\n\ntidy.survatr_result() – long data.frame with columns intervention | contrast | time | estimand | estimate | se | ci_lower | ci_upper. which = c(\"all\", \"estimates\", \"contrasts\"), conf.int = TRUE. The tidy generic is re-exported from generics (now an Imports: dependency).\nplot.survatr_result() – base-R graphics with optional CI ribbons. Auto-dispatches curves for survival / risk / rmst and contrasts (with reference line at 0 or 1) for the three pairwise types.\nforrest.survatr_result() – forest plot at a user-chosen t_ref. One row per pairwise contrast. Rejects curve-only types with survatr_forrest_wrong_type and out-of-grid t_ref with survatr_bad_t_ref.\n\nBug fix on the way: build_contrasts() previously returned a zero-column data.table when the user passed a contrast-shaped type with only a single intervention (everyone vs everyone -&gt; empty). It now returns the schema-complete empty-stub used by curve-only types, so downstream code sees a stable shape.\nTesting: 30+ new tests across test-bootstrap-survival.R, test-bootstrap-rejections.R, test-tidy-survatr_result.R, test-plot-survatr_result.R, test-forrest-survatr_result.R. The bootstrap-vs-sandwich cross-check (skipped on CRAN) pins B = 500 at n = 1500 to within 30% of the sandwich SE.",
-    "crumbs": [
-      "News"
-    ]
-  },
-  {
-    "objectID": "NEWS.html#track-a-sandwich-variance",
-    "href": "NEWS.html#track-a-sandwich-variance",
-    "title": "survatr (development version)",
-    "section": "",
-    "text": "Ship ci_method = \"sandwich\" in contrast.survatr_fit() — delta-method cross-time influence function aggregation on the cumulative-product survival curve. The chunk-2 placeholder NA_real_ columns for se / ci_lower / ci_upper are now filled with pointwise Wald CIs at the user-supplied conf_level (default 0.95).\nPer-individual IF on S^a(t) decomposes into two pieces:\n\nCh1 (target variability): IF1_i(t) = S^a_i(t) - S^a(t).\nCh2 (beta uncertainty): IF2_i(t) = -n_ids * J_bar(t)' * B_inv * psi_i, where J_bar(t) is the population gradient of S^a(t) wrt beta, B_inv = (X'WX)^{-1} from causatr:::prepare_model_if(), and psi_i is the per-individual sum of score contributions across the at-risk rows belonging to individual i.\n\nThe cross-time covariance V = crossprod(IF_mat) / n_ids^2 yields pointwise SEs on the diagonal; the RMST SE is the quadratic form w_j' V w_j with trapezoidal weights from rmst_weights(). Risk difference / RMST difference propagate via the contrast IF IF_ref - IF_a1. Risk ratio is built on the log scale and the CI endpoints are exponentiated so the reported bounds are strictly positive.\nWiring: the survatr_ci_not_available signal now triggers only on ci_method = \"bootstrap\" (reserved for chunk 4). The conf_level argument is validated at the boundary with the new survatr_bad_conf_level class.\nNew rejection surface: survatr_bad_conf_level.\nTesting: 26 new tests across test-variance_if_survival.R, test-sandwich-survival.R, test-sandwich-risk-difference.R, test-sandwich-rmst.R, test-sandwich-risk-ratio.R. Coverage pinned by two 200-rep simulations (nominal 95% on s_hat and on risk_difference around 0 under a no-effect DGP) achieving ≥ 88% coverage — skipped on CRAN to keep the full-check runtime reasonable. A companion single-seed check confirms the sandwich SE matches the empirical SD across 100 replicates at n = 3000 within 7% at t = 5.\nFull suite: 173 passing / 0 failing / 1 skip. devtools::check(): 0 errors / 0 warnings / 2 NOTEs (env timestamp + unused Imports: boot reserved for chunk 4).",
-    "crumbs": [
-      "News"
-    ]
-  },
-  {
-    "objectID": "NEWS.html#track-a-contrast-path-no-variance",
-    "href": "NEWS.html#track-a-contrast-path-no-variance",
-    "title": "survatr (development version)",
-    "section": "",
-    "text": "Ship contrast.survatr_fit() – the curve-shaped entry point for Track A. Given a survatr_fit and a named list of causatr interventions, build the counterfactual person-period data under each intervention, predict per-row hazards, cumulate within individual to S^a_i(t), and average across individuals to S^a(t) = (1/n) sum_i S^a_i(t). Derive risk / risk-difference / risk-ratio / RMST / RMST-difference contrasts on a user-chosen time grid.\nReturns a survatr_result S3: $estimates and $contrasts data.tables indexed by time, plus time_grid, type, reference, ci_method, and call. se / ci_lower / ci_upper columns are NA_real_ at this chunk; sandwich variance ships in chunk 3 and bootstrap in chunk 4. ci_method = \"sandwich\" / \"bootstrap\" are rejected now with class survatr_ci_not_available.\nRMST is computed with a trapezoidal quadrature on the user’s times grid, prepending S(0) = 1 to integrate from the origin; the quadrature weights are exposed as rmst_weights() for chunk 3’s delta-method RMST SE.\ncontrast() is an S3 generic local to survatr (not a re-export of causatr::contrast, which is a plain function there). When both packages are attached, survatr’s generic shadows the causatr function; users who need the scalar-outcome path should call causatr::contrast() explicitly.\nTesting: 68 new tests across test-contrast.R, test-contrast-survival.R, test-contrast-rejections.R, test-predict_hazard.R, test-survival_curve.R, test-rmst.R, and a 🟡 test-contrast-lmtp-oracle.R that skips on CRAN and on toy-DGP fit failures. Closed-form oracle: S(t) = (1 - h)^t agrees with contrast(type = \"survival\") within 0.03 absolute at n = 5000; trapezoidal RMST matches hand-expanded sum to 1e-12.",
-    "crumbs": [
-      "News"
-    ]
-  },
-  {
-    "objectID": "NEWS.html#track-a-fit-skeleton",
-    "href": "NEWS.html#track-a-fit-skeleton",
-    "title": "survatr (development version)",
-    "section": "",
-    "text": "First working entry point: surv_fit() fits the pooled-logistic discrete-time hazard model logit h(t | A, L) = alpha(t) + beta_A A + beta_L L on person-period data and returns a survatr_fit S3 object. The fit builds the risk set by dropping rows at/after the first event per id and rows at/after the first censor per id, and automatically switches the GLM family to quasibinomial() when external weights are supplied.\nPorts the pre-removal causatr::causat_survival() fit path into a dedicated package with the naming / error-class surface tightened: reserved internal columns are .survatr_prev_event / .survatr_prev_cens, classed errors use the survatr_* prefix, and model_fn is a first-class argument (default stats::glm, accepts any mgcv::gam-style fitter).\nRejection paths wired with classed errors: survatr_matching_rejected (points to survival::coxph(..., weights = , cluster = )), survatr_bad_estimator, survatr_competing_misuse, survatr_bad_na_action, survatr_reserved_col, survatr_bad_weights, survatr_col_not_found, survatr_not_person_period, survatr_duplicate_pp_row.\nTesting: 79 tests across test-checks.R, test-prepare_data.R, test-risk_set.R, test-surv_fit.R, test-surv_fit-weighted.R, and test-surv_fit-family-oracle.R. The oracle test pins the logit intercept against qlogis(h) on a closed-form constant-hazard DGP (n = 5000) for both binomial() and quasibinomial() families.\nContrast, variance, bootstrap, IPW, ICE, competing risks, and diagnose() ship in subsequent chunks.",
-    "crumbs": [
-      "News"
-    ]
-  },
-  {
-    "objectID": "man/tidy.survatr_result.html",
-    "href": "man/tidy.survatr_result.html",
-    "title": "survatr",
-    "section": "",
-    "text": "Stacks the per-intervention estimates and pairwise contrasts into a single long data.frame suitable for downstream plotting or further aggregation. The estimand column identifies which column the row came from: s_hat / risk_hat / rmst_hat for intervention rows, risk_difference / risk_ratio / rmst_difference for contrast rows.\n\n\n\n## S3 method for class 'survatr_result'\ntidy(x, which = c(\"all\", \"estimates\", \"contrasts\"), conf.int = TRUE, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result from contrast().\n\n\n\n\nwhich\n\n\nOne of “estimates” (per-intervention rows only), “contrasts” (pairwise rows only), or “all” (both stacked). Default “all”.\n\n\n\n\nconf.int\n\n\nLogical; when FALSE, drop ci_lower / ci_upper columns. Default TRUE.\n\n\n\n\n…\n\n\nUnused.\n\n\n\n\n\n\nA data.frame in long format with columns intervention | contrast | time | estimand | estimate | se | ci_lower | ci_upper (or a subset when which / conf.int restrict it).",
-    "crumbs": [
-      "Reference",
-      "tidy.survatr_result"
-    ]
-  },
-  {
-    "objectID": "man/tidy.survatr_result.html#tidy-a-survatr_result-into-long-format",
-    "href": "man/tidy.survatr_result.html#tidy-a-survatr_result-into-long-format",
-    "title": "survatr",
-    "section": "",
-    "text": "Stacks the per-intervention estimates and pairwise contrasts into a single long data.frame suitable for downstream plotting or further aggregation. The estimand column identifies which column the row came from: s_hat / risk_hat / rmst_hat for intervention rows, risk_difference / risk_ratio / rmst_difference for contrast rows.\n\n\n\n## S3 method for class 'survatr_result'\ntidy(x, which = c(\"all\", \"estimates\", \"contrasts\"), conf.int = TRUE, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result from contrast().\n\n\n\n\nwhich\n\n\nOne of “estimates” (per-intervention rows only), “contrasts” (pairwise rows only), or “all” (both stacked). Default “all”.\n\n\n\n\nconf.int\n\n\nLogical; when FALSE, drop ci_lower / ci_upper columns. Default TRUE.\n\n\n\n\n…\n\n\nUnused.\n\n\n\n\n\n\nA data.frame in long format with columns intervention | contrast | time | estimand | estimate | se | ci_lower | ci_upper (or a subset when which / conf.int restrict it).",
-    "crumbs": [
-      "Reference",
-      "tidy.survatr_result"
-    ]
-  },
-  {
-    "objectID": "man/surv_fit.html",
-    "href": "man/surv_fit.html",
-    "title": "survatr",
-    "section": "",
-    "text": "Fit-only entry point for survatr. Builds the risk set and fits the pooled-logistic discrete-time hazard model logit h(t | A, L) = alpha(t) + beta_A A + beta_L L on the at-risk person-period rows. Survival curves, risk / RMST contrasts, and variance live in contrast() (time-indexed curve-shaped result). This two-step split lets the user fit the hazard model once and cheaply contrast many interventions on top.\n\n\n\nsurv_fit(\n  data,\n  outcome,\n  treatment,\n  confounders,\n  id,\n  time,\n  censoring = NULL,\n  competing = NULL,\n  time_formula = ~splines::ns(time, 4),\n  weights = NULL,\n  estimator = \"gcomp\",\n  model_fn = stats::glm,\n  ...\n)\n\n\n\n\n\n\n\ndata\n\n\nA person-period (long) data.frame or data.table, rectangular across ids: every unique id must have one row at every unique time value. Ragged PP (ids dropped post-event / post-censor) is rejected with class survatr_ragged_pp. Pad ragged data before calling surv_fit() by appending rows with outcome = 0 and (if used) censoring = 1 so the risk-set builder drops them from the fit. Wide data (one row per id across a multi-period study) must be reshaped with causatr::to_person_period().\n\n\n\n\noutcome\n\n\nCharacter scalar. Column name of the event indicator (1 = event at this period, 0 = no event). Must be in data.\n\n\n\n\ntreatment\n\n\nCharacter scalar. Column name of the (baseline, point) treatment. For Track A the treatment is constant within id.\n\n\n\n\nconfounders\n\n\nA one-sided formula (e.g. ~ L1 + L2) describing the covariate adjustment set.\n\n\n\n\nid\n\n\nCharacter scalar. Column name of the individual identifier.\n\n\n\n\ntime\n\n\nCharacter scalar. Column name of the discrete period index (integer-valued; sorted within id).\n\n\n\n\ncensoring\n\n\nCharacter scalar or NULL. Column name of the censoring indicator (1 = censored at this period). NA or 0 means uncensored. When NULL, every uncensored period is treated as at-risk until the first event.\n\n\n\n\ncompeting\n\n\nReserved for the cause-specific hazards + CIF path. Passing anything other than NULL is an error in the current release – competing risks have a dedicated entry point rather than being silently folded into surv_fit() (which would fit a biased cause-deleted hazard).\n\n\n\n\ntime_formula\n\n\nOne-sided formula for the baseline hazard alpha(t). Defaults to ~ splines::ns(time, 4) (4 df natural spline on the time variable). Pass ~ factor(time) for period dummies or ~ 1 for a time-constant hazard.\n\n\n\n\nweights\n\n\nOptional numeric vector of external weights, length nrow(data). When supplied, the hazard model is fit with stats::quasibinomial() rather than stats::binomial() (same score equations, free dispersion – drops the \"non-integer #successes\" warning). The variance engine in later chunks reads the family from fit$family to pick the right dispersion.\n\n\n\n\nestimator\n\n\nCharacter scalar. Currently “gcomp” (pooled-logistic standardization). “ipw” and “ice” ship in later tracks and are rejected here. Matching is a hard reject with class survatr_matching_rejected pointing to survival::coxph(…, weights = , cluster = ).\n\n\n\n\nmodel_fn\n\n\nFitting function for the hazard model. Defaults to stats::glm. Accepts any function matching the stats::glm interface (formula, data, family, weights, …), e.g. mgcv::gam with an s(time) term in time_formula.\n\n\n\n\n…\n\n\nForwarded to model_fn. na.action = na.exclude is rejected with class survatr_bad_na_action – na.exclude pads working residuals with NAs while model.matrix() drops them, which silently corrupts the sandwich variance downstream.\n\n\n\n\n\n\nAn object of class survatr_fit holding the fitted hazard model, the person-period data (internal .survatr_* columns stripped), the time grid, and metadata needed by contrast() and diagnose().\n\n\n\ncausatr::to_person_period() for reshaping wide data.",
-    "crumbs": [
-      "Reference",
-      "surv_fit"
-    ]
-  },
-  {
-    "objectID": "man/surv_fit.html#fit-a-causal-survival-hazard-model-on-person-period-data",
-    "href": "man/surv_fit.html#fit-a-causal-survival-hazard-model-on-person-period-data",
-    "title": "survatr",
-    "section": "",
-    "text": "Fit-only entry point for survatr. Builds the risk set and fits the pooled-logistic discrete-time hazard model logit h(t | A, L) = alpha(t) + beta_A A + beta_L L on the at-risk person-period rows. Survival curves, risk / RMST contrasts, and variance live in contrast() (time-indexed curve-shaped result). This two-step split lets the user fit the hazard model once and cheaply contrast many interventions on top.\n\n\n\nsurv_fit(\n  data,\n  outcome,\n  treatment,\n  confounders,\n  id,\n  time,\n  censoring = NULL,\n  competing = NULL,\n  time_formula = ~splines::ns(time, 4),\n  weights = NULL,\n  estimator = \"gcomp\",\n  model_fn = stats::glm,\n  ...\n)\n\n\n\n\n\n\n\ndata\n\n\nA person-period (long) data.frame or data.table, rectangular across ids: every unique id must have one row at every unique time value. Ragged PP (ids dropped post-event / post-censor) is rejected with class survatr_ragged_pp. Pad ragged data before calling surv_fit() by appending rows with outcome = 0 and (if used) censoring = 1 so the risk-set builder drops them from the fit. Wide data (one row per id across a multi-period study) must be reshaped with causatr::to_person_period().\n\n\n\n\noutcome\n\n\nCharacter scalar. Column name of the event indicator (1 = event at this period, 0 = no event). Must be in data.\n\n\n\n\ntreatment\n\n\nCharacter scalar. Column name of the (baseline, point) treatment. For Track A the treatment is constant within id.\n\n\n\n\nconfounders\n\n\nA one-sided formula (e.g. ~ L1 + L2) describing the covariate adjustment set.\n\n\n\n\nid\n\n\nCharacter scalar. Column name of the individual identifier.\n\n\n\n\ntime\n\n\nCharacter scalar. Column name of the discrete period index (integer-valued; sorted within id).\n\n\n\n\ncensoring\n\n\nCharacter scalar or NULL. Column name of the censoring indicator (1 = censored at this period). NA or 0 means uncensored. When NULL, every uncensored period is treated as at-risk until the first event.\n\n\n\n\ncompeting\n\n\nReserved for the cause-specific hazards + CIF path. Passing anything other than NULL is an error in the current release – competing risks have a dedicated entry point rather than being silently folded into surv_fit() (which would fit a biased cause-deleted hazard).\n\n\n\n\ntime_formula\n\n\nOne-sided formula for the baseline hazard alpha(t). Defaults to ~ splines::ns(time, 4) (4 df natural spline on the time variable). Pass ~ factor(time) for period dummies or ~ 1 for a time-constant hazard.\n\n\n\n\nweights\n\n\nOptional numeric vector of external weights, length nrow(data). When supplied, the hazard model is fit with stats::quasibinomial() rather than stats::binomial() (same score equations, free dispersion – drops the \"non-integer #successes\" warning). The variance engine in later chunks reads the family from fit$family to pick the right dispersion.\n\n\n\n\nestimator\n\n\nCharacter scalar. Currently “gcomp” (pooled-logistic standardization). “ipw” and “ice” ship in later tracks and are rejected here. Matching is a hard reject with class survatr_matching_rejected pointing to survival::coxph(…, weights = , cluster = ).\n\n\n\n\nmodel_fn\n\n\nFitting function for the hazard model. Defaults to stats::glm. Accepts any function matching the stats::glm interface (formula, data, family, weights, …), e.g. mgcv::gam with an s(time) term in time_formula.\n\n\n\n\n…\n\n\nForwarded to model_fn. na.action = na.exclude is rejected with class survatr_bad_na_action – na.exclude pads working residuals with NAs while model.matrix() drops them, which silently corrupts the sandwich variance downstream.\n\n\n\n\n\n\nAn object of class survatr_fit holding the fitted hazard model, the person-period data (internal .survatr_* columns stripped), the time grid, and metadata needed by contrast() and diagnose().\n\n\n\ncausatr::to_person_period() for reshaping wide data.",
-    "crumbs": [
-      "Reference",
-      "surv_fit"
-    ]
-  },
-  {
-    "objectID": "man/print.survatr_result.html",
-    "href": "man/print.survatr_result.html",
-    "title": "survatr",
-    "section": "",
-    "text": "Minimal banner + head of the result’s contrasts (or estimates for curve-only types). A polished print + plot / tidy / forrest surface ships with the S3 polish in a later chunk.\n\n\n\n## S3 method for class 'survatr_result'\nprint(x, n = 10L, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result.\n\n\n\n\nn\n\n\nMaximum number of rows from the contrasts / estimates table to show (default 10).\n\n\n\n\n…\n\n\nUnused.\n\n\n\n\n\n\nThe result object, invisibly.",
-    "crumbs": [
-      "Reference",
-      "print.survatr_result"
-    ]
-  },
-  {
-    "objectID": "man/print.survatr_result.html#print-a-survatr_result",
-    "href": "man/print.survatr_result.html#print-a-survatr_result",
-    "title": "survatr",
-    "section": "",
-    "text": "Minimal banner + head of the result’s contrasts (or estimates for curve-only types). A polished print + plot / tidy / forrest surface ships with the S3 polish in a later chunk.\n\n\n\n## S3 method for class 'survatr_result'\nprint(x, n = 10L, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result.\n\n\n\n\nn\n\n\nMaximum number of rows from the contrasts / estimates table to show (default 10).\n\n\n\n\n…\n\n\nUnused.\n\n\n\n\n\n\nThe result object, invisibly.",
-    "crumbs": [
-      "Reference",
-      "print.survatr_result"
-    ]
-  },
-  {
-    "objectID": "man/plot.survatr_result.html",
-    "href": "man/plot.survatr_result.html",
-    "title": "survatr",
-    "section": "",
-    "text": "Base-R graphics rendering of survival / risk / RMST curves or of risk-difference / risk-ratio / RMST-difference contrasts. Dispatches on x$type:\n\n\n\n## S3 method for class 'survatr_result'\nplot(\n  x,\n  which = c(\"auto\", \"curves\", \"contrasts\"),\n  main = NULL,\n  xlab = NULL,\n  ylab = NULL,\n  col = NULL,\n  ribbon = TRUE,\n  ribbon_alpha = 0.2,\n  ...\n)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result.\n\n\n\n\nwhich\n\n\nOne of “auto”, “curves”, “contrasts”. “auto” picks curves for survival / risk / rmst and contrasts for the three pairwise types.\n\n\n\n\nmain\n\n\nOptional plot title.\n\n\n\n\nxlab, ylab\n\n\nOptional axis labels. Sensible defaults are picked based on type.\n\n\n\n\ncol\n\n\nOptional vector of colors, length n_interventions (or n_contrasts). Defaults to grDevices::palette().\n\n\n\n\nribbon\n\n\nLogical; when TRUE and CI columns are populated, shade a polygon between ci_lower and ci_upper. Default TRUE.\n\n\n\n\nribbon_alpha\n\n\nNumeric in (0, 1); ribbon transparency (via grDevices::adjustcolor). Default 0.2.\n\n\n\n\n…\n\n\nPassed to the underlying plot.default() call.\n\n\n\n\n\n\n\n\nsurvival / risk / rmst: one line per intervention (colored), CI ribbons when populated.\n\n\nrisk_difference / risk_ratio / rmst_difference: one line per contrast (colored), CI ribbons when populated, and a reference line at 0 (for differences) or 1 (for ratios).\n\n\n\n\n\nThe survatr_result, invisibly.",
-    "crumbs": [
-      "Reference",
-      "plot.survatr_result"
-    ]
-  },
-  {
-    "objectID": "man/plot.survatr_result.html#plot-a-survatr_result",
-    "href": "man/plot.survatr_result.html#plot-a-survatr_result",
-    "title": "survatr",
-    "section": "",
-    "text": "Base-R graphics rendering of survival / risk / RMST curves or of risk-difference / risk-ratio / RMST-difference contrasts. Dispatches on x$type:\n\n\n\n## S3 method for class 'survatr_result'\nplot(\n  x,\n  which = c(\"auto\", \"curves\", \"contrasts\"),\n  main = NULL,\n  xlab = NULL,\n  ylab = NULL,\n  col = NULL,\n  ribbon = TRUE,\n  ribbon_alpha = 0.2,\n  ...\n)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result.\n\n\n\n\nwhich\n\n\nOne of “auto”, “curves”, “contrasts”. “auto” picks curves for survival / risk / rmst and contrasts for the three pairwise types.\n\n\n\n\nmain\n\n\nOptional plot title.\n\n\n\n\nxlab, ylab\n\n\nOptional axis labels. Sensible defaults are picked based on type.\n\n\n\n\ncol\n\n\nOptional vector of colors, length n_interventions (or n_contrasts). Defaults to grDevices::palette().\n\n\n\n\nribbon\n\n\nLogical; when TRUE and CI columns are populated, shade a polygon between ci_lower and ci_upper. Default TRUE.\n\n\n\n\nribbon_alpha\n\n\nNumeric in (0, 1); ribbon transparency (via grDevices::adjustcolor). Default 0.2.\n\n\n\n\n…\n\n\nPassed to the underlying plot.default() call.\n\n\n\n\n\n\n\n\nsurvival / risk / rmst: one line per intervention (colored), CI ribbons when populated.\n\n\nrisk_difference / risk_ratio / rmst_difference: one line per contrast (colored), CI ribbons when populated, and a reference line at 0 (for differences) or 1 (for ratios).\n\n\n\n\n\nThe survatr_result, invisibly.",
-    "crumbs": [
-      "Reference",
-      "plot.survatr_result"
-    ]
-  },
-  {
-    "objectID": "man/forrest.survatr_result.html",
-    "href": "man/forrest.survatr_result.html",
-    "title": "survatr",
-    "section": "",
-    "text": "Extract the row(s) of x$contrasts at t_ref and render a horizontal forest plot: one row per contrast, with point estimate, 95% CI (from x$ci_method), and a textual label. Only available for contrast-shaped types (risk_difference, risk_ratio, rmst_difference).\n\n\n\n## S3 method for class 'survatr_result'\nforrest(x, t_ref, col = NULL, main = NULL, xlab = NULL, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result.\n\n\n\n\nt_ref\n\n\nNumeric scalar; must be in x$time_grid.\n\n\n\n\ncol\n\n\nSingle color for point + segment. Default grDevices::palette()[1].\n\n\n\n\nmain\n\n\nOptional plot title.\n\n\n\n\nxlab\n\n\nOptional x-axis label.\n\n\n\n\n…\n\n\nPassed to plot.default().\n\n\n\n\n\n\nThe survatr_result, invisibly.",
-    "crumbs": [
-      "Reference",
-      "forrest.survatr_result"
-    ]
-  },
-  {
-    "objectID": "man/forrest.survatr_result.html#forest-plot-of-contrasts-at-a-reference-time",
-    "href": "man/forrest.survatr_result.html#forest-plot-of-contrasts-at-a-reference-time",
-    "title": "survatr",
-    "section": "",
-    "text": "Extract the row(s) of x$contrasts at t_ref and render a horizontal forest plot: one row per contrast, with point estimate, 95% CI (from x$ci_method), and a textual label. Only available for contrast-shaped types (risk_difference, risk_ratio, rmst_difference).\n\n\n\n## S3 method for class 'survatr_result'\nforrest(x, t_ref, col = NULL, main = NULL, xlab = NULL, ...)\n\n\n\n\n\n\n\nx\n\n\nA survatr_result.\n\n\n\n\nt_ref\n\n\nNumeric scalar; must be in x$time_grid.\n\n\n\n\ncol\n\n\nSingle color for point + segment. Default grDevices::palette()[1].\n\n\n\n\nmain\n\n\nOptional plot title.\n\n\n\n\nxlab\n\n\nOptional x-axis label.\n\n\n\n\n…\n\n\nPassed to plot.default().\n\n\n\n\n\n\nThe survatr_result, invisibly.",
-    "crumbs": [
-      "Reference",
-      "forrest.survatr_result"
-    ]
-  },
-  {
     "objectID": "index.html",
     "href": "index.html",
     "title": "survatr",
@@ -427,16 +437,6 @@
     "text": "This is a basic example which shows you how to solve a common problem:\nlibrary(survatr)\n## basic example code\nWhat is special about using README.Rmd instead of just README.md? You can include R chunks like so:\nsummary(cars)\n#&gt;      speed           dist       \n#&gt;  Min.   : 4.0   Min.   :  2.00  \n#&gt;  1st Qu.:12.0   1st Qu.: 26.00  \n#&gt;  Median :15.0   Median : 36.00  \n#&gt;  Mean   :15.4   Mean   : 42.98  \n#&gt;  3rd Qu.:19.0   3rd Qu.: 56.00  \n#&gt;  Max.   :25.0   Max.   :120.00\nYou’ll still need to render README.Rmd regularly, to keep README.md up-to-date. devtools::build_readme() is handy for this.\nYou can also embed plots, for example:\n\nIn that case, don’t forget to commit and push the resulting figure files, so they display on GitHub and CRAN.",
     "crumbs": [
       "Home"
-    ]
-  },
-  {
-    "objectID": "CITATION.html",
-    "href": "CITATION.html",
-    "title": "Citation",
-    "section": "",
-    "text": "Citation\nTo cite package ‘survatr’ in publications use:\n\nFabbri L (2026). survatr: Causal Survival Analysis for Methodological Triangulation. R package version 0.0.0.9000, https://github.com/etverse/survatr.",
-    "crumbs": [
-      "Citation"
     ]
   }
 ]
