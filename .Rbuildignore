@@ -19,7 +19,7 @@
 ^\.agents$
 ^\.augment$
 ^\.bob$
-^\.claude$
+^\.claude(/|$)
 ^\.codebuddy$
 ^\.commandcode$
 ^\.continue$
