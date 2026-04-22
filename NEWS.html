@@ -125,6 +125,94 @@ ul.task-list li input[type="checkbox"] {
  <span class="menu-text">Home</span></a>
   </div>
 </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="false">
+ <span class="menu-text">Articles</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vignettes/survatr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Introduction to survatr</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false">
+ <span class="menu-text">Reference</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/contrast.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">contrast</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/contrast.survatr_fit.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">contrast.survatr_fit</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/forrest.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">forrest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/forrest.survatr_result.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">forrest.survatr_result</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/plot.survatr_result.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">plot.survatr_result</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/print.survatr_fit.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">print.survatr_fit</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/print.survatr_result.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">print.survatr_result</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/surv_fit.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">surv_fit</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/tidy.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">tidy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/tidy.survatr_result.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">tidy.survatr_result</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./NEWS.html" class="sidebar-item-text sidebar-link active">
@@ -159,11 +247,82 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="survatr-development-version" class="level1">
 <h1>survatr (development version)</h1>
+<section id="round-1-critical-review-9-fixes-across-chunks-14" class="level2">
+<h2 class="anchored" data-anchor-id="round-1-critical-review-9-fixes-across-chunks-14">2026-04-22 — Round-1 critical review: 9 fixes across chunks 1–4</h2>
+<p>A full adversarial review of the 214-test chunk-1/2/3/4 surface produced four blocking correctness bugs, three required fixes, and two suggestions. Each reproduced numerically against a focused script under <code>/tmp/survatr_repro_*.R</code> before a fix landed; each has a classed regression test colocated with the affected area.</p>
+<p><strong>Blocking (numerical correctness)</strong></p>
 <ul>
-<li>Initial CRAN submission.</li>
+<li><code>rmst_weights()</code> had off-by-one indexing + double-counted the <code>S(0) = 1</code> prefix, inflating the sandwich SE for <code>rmst</code> and <code>rmst_difference</code> by up to 2× at <code>t = 1</code> and ~57% on irregular grids. Point estimate (<code>rmst_hat</code> via <code>trapezoidal_rmst</code>) was unaffected. Fix <code>dd873e5</code>.</li>
+<li><code>na.action = na.omit</code> + NA in a confounder caused <code>prep$X_fit</code> (post-NA-drop) to misalign with <code>fit_idx</code> (pre-drop), crashing the sandwich IF chain with a subscript-OOB. Rejected upfront with <code>survatr_na_in_predictors</code> (NA in <code>censoring</code> still allowed). Fix <code>f7c7f95</code>.</li>
+<li>Ragged PP (ids dropped post-event) crashed the sandwich / bootstrap paths on a defensive assertion. Rejected upfront with <code>survatr_ragged_pp</code> and a padding recipe. The legacy single-row-id = wide heuristic retired in favor of the rectangularity check. Fix <code>d6a2765</code>.</li>
+<li><code>print.survatr_result</code> used <code>show[seq_len(n)]</code> where <code>show</code> is a data.table whose <code>n</code> column shadowed the function argument via NSE, printing hundreds of phantom NA rows. Fixed by <code>utils::head()</code>. Fix <code>de4c5e0</code>.</li>
 </ul>
+<p><strong>Required (latent but fragile)</strong></p>
+<ul>
+<li>Bootstrap <code>seed</code> was silently non-reproducible under <code>parallel != "no"</code> — <code>mclapply</code> / <code>parLapply</code> ignore the serial RNG unless L’Ecuyer-CMRG is set first. Now sets and restores the RNG kind around the parallel call. Fix <code>9c2b0b6</code>.</li>
+<li>Non-binary outcome / censoring values silently walked the risk-set cumsums. Rejected upfront with <code>survatr_bad_indicator</code>. Fix <code>bcb9d95</code>.</li>
+<li><code>validate_times()</code> rejected <code>Date</code> / <code>POSIXct</code> / <code>difftime</code> grids. Relaxed to accept the time-like classes. Fix <code>c8e37d6</code>.</li>
+</ul>
+<p><strong>Suggestions</strong></p>
+<ul>
+<li><code>.cf_hazard</code> / <code>.cf_surv</code> added to <code>SURVATR_RESERVED_COLS</code>.</li>
+<li><code>build_contrasts()</code> merge slimmed to select only the target estimand column, stable under chunk-5+ IPW columns. Fix <code>4935adb</code>.</li>
+</ul>
+<p>Full suite after all fixes: pass (see commit messages for per-chunk coverage additions).</p>
+<p><strong>CI infrastructure fix</strong> (separate from the review): <code>.Rbuildignore</code> pattern <code>^\.claude$</code> only matched the literal path and let R CMD build recurse into dangling <code>.claude/skills/</code> symlinks on CI. Widened to <code>^\.claude(/|$)</code>. Fix <code>915d5eb</code>.</p>
+</section>
+<section id="track-a-bootstrap-s3-polish" class="level2">
+<h2 class="anchored" data-anchor-id="track-a-bootstrap-s3-polish">2026-04-22 — Track A bootstrap + S3 polish</h2>
+<p>Ship <code>ci_method = "bootstrap"</code> in <code>contrast.survatr_fit()</code> and the S3 method surface that turns a <code>survatr_result</code> into a plot, a tidy long table, or a forest plot.</p>
+<p><strong>Bootstrap.</strong> Resamples <strong>individuals</strong> (all of each id’s PP rows together), refits the hazard model via <code>surv_fit()</code> per replicate, recomputes the per-intervention curves and the requested contrasts, and derives pointwise CIs from the replicate distribution. Per-id resampling is load-bearing: row-level resampling would break the within-id cumulative-product dependence and bias variance for longer horizons. Two CI flavors:</p>
+<ul>
+<li><strong>Percentile</strong> (default): <code>quantile(replicates, (1-conf)/2, (1+conf)/2)</code>. Transform-invariant, so the same code handles <code>risk_ratio</code> without a log-scale detour.</li>
+<li><strong>Wald</strong>: <code>point +/- z * sd(replicates)</code>. Matches the sandwich shape.</li>
+</ul>
+<p>New arguments on <code>contrast()</code>: <code>n_boot</code> (default <code>500L</code>), <code>boot_ci</code> (<code>"percentile"</code> | <code>"wald"</code>), <code>parallel</code> (forwarded to <code>boot::boot()</code>), <code>ncpus</code>, <code>seed</code> (when non-null, <code>set.seed(seed)</code> before the replicate loop so the whole sequence is reproducible). When a replicate fails to refit / contrast it is recorded as <code>NA</code>; if &gt; 10% of replicates fail, the call aborts with <code>survatr_boot_failed</code>.</p>
+<p>New rejection surface: <code>survatr_bad_n_boot</code>, <code>survatr_bad_boot_ci</code>, <code>survatr_bad_parallel</code>.</p>
+<p><code>ci_method</code> now accepts all three values (<code>"none"</code>, <code>"sandwich"</code>, <code>"bootstrap"</code>); the chunk-3 <code>survatr_ci_not_available</code> placeholder signal is retired.</p>
+<p><strong>S3 polish.</strong></p>
+<ul>
+<li><code>tidy.survatr_result()</code> – long <code>data.frame</code> with columns <code>intervention | contrast | time | estimand | estimate | se | ci_lower | ci_upper</code>. <code>which = c("all", "estimates", "contrasts")</code>, <code>conf.int = TRUE</code>. The <code>tidy</code> generic is re-exported from <code>generics</code> (now an <code>Imports:</code> dependency).</li>
+<li><code>plot.survatr_result()</code> – base-R graphics with optional CI ribbons. Auto-dispatches curves for <code>survival</code> / <code>risk</code> / <code>rmst</code> and contrasts (with reference line at 0 or 1) for the three pairwise types.</li>
+<li><code>forrest.survatr_result()</code> – forest plot at a user-chosen <code>t_ref</code>. One row per pairwise contrast. Rejects curve-only types with <code>survatr_forrest_wrong_type</code> and out-of-grid <code>t_ref</code> with <code>survatr_bad_t_ref</code>.</li>
+</ul>
+<p>Bug fix on the way: <code>build_contrasts()</code> previously returned a zero-column data.table when the user passed a contrast-shaped <code>type</code> with only a single intervention (everyone vs everyone -&gt; empty). It now returns the schema-complete empty-stub used by curve-only types, so downstream code sees a stable shape.</p>
+<p>Testing: 30+ new tests across <code>test-bootstrap-survival.R</code>, <code>test-bootstrap-rejections.R</code>, <code>test-tidy-survatr_result.R</code>, <code>test-plot-survatr_result.R</code>, <code>test-forrest-survatr_result.R</code>. The bootstrap-vs-sandwich cross-check (skipped on CRAN) pins B = 500 at n = 1500 to within 30% of the sandwich SE.</p>
+</section>
+<section id="track-a-sandwich-variance" class="level2">
+<h2 class="anchored" data-anchor-id="track-a-sandwich-variance">2026-04-22 — Track A sandwich variance</h2>
+<p>Ship <code>ci_method = "sandwich"</code> in <code>contrast.survatr_fit()</code> — delta-method cross-time influence function aggregation on the cumulative-product survival curve. The chunk-2 placeholder <code>NA_real_</code> columns for <code>se</code> / <code>ci_lower</code> / <code>ci_upper</code> are now filled with pointwise Wald CIs at the user-supplied <code>conf_level</code> (default <code>0.95</code>).</p>
+<p>Per-individual IF on <code>S^a(t)</code> decomposes into two pieces:</p>
+<ol type="1">
+<li><strong>Ch1</strong> (target variability): <code>IF1_i(t) = S^a_i(t) - S^a(t)</code>.</li>
+<li><strong>Ch2</strong> (beta uncertainty): <code>IF2_i(t) = -n_ids * J_bar(t)' * B_inv * psi_i</code>, where <code>J_bar(t)</code> is the population gradient of <code>S^a(t)</code> wrt beta, <code>B_inv = (X'WX)^{-1}</code> from <code>causatr:::prepare_model_if()</code>, and <code>psi_i</code> is the per-individual sum of score contributions across the at-risk rows belonging to individual <code>i</code>.</li>
+</ol>
+<p>The cross-time covariance <code>V = crossprod(IF_mat) / n_ids^2</code> yields pointwise SEs on the diagonal; the RMST SE is the quadratic form <code>w_j' V w_j</code> with trapezoidal weights from <code>rmst_weights()</code>. Risk difference / RMST difference propagate via the contrast IF <code>IF_ref - IF_a1</code>. Risk ratio is built on the log scale and the CI endpoints are exponentiated so the reported bounds are strictly positive.</p>
+<p>Wiring: the <code>survatr_ci_not_available</code> signal now triggers only on <code>ci_method = "bootstrap"</code> (reserved for chunk 4). The <code>conf_level</code> argument is validated at the boundary with the new <code>survatr_bad_conf_level</code> class.</p>
+<p>New rejection surface: <code>survatr_bad_conf_level</code>.</p>
+<p>Testing: 26 new tests across <code>test-variance_if_survival.R</code>, <code>test-sandwich-survival.R</code>, <code>test-sandwich-risk-difference.R</code>, <code>test-sandwich-rmst.R</code>, <code>test-sandwich-risk-ratio.R</code>. Coverage pinned by two 200-rep simulations (nominal 95% on <code>s_hat</code> and on <code>risk_difference</code> around 0 under a no-effect DGP) achieving ≥ 88% coverage — skipped on CRAN to keep the full-check runtime reasonable. A companion single-seed check confirms the sandwich SE matches the empirical SD across 100 replicates at n = 3000 within 7% at t = 5.</p>
+<p>Full suite: 173 passing / 0 failing / 1 skip. <code>devtools::check()</code>: 0 errors / 0 warnings / 2 NOTEs (env timestamp + unused <code>Imports: boot</code> reserved for chunk 4).</p>
+</section>
+<section id="track-a-contrast-path-no-variance" class="level2">
+<h2 class="anchored" data-anchor-id="track-a-contrast-path-no-variance">2026-04-22 — Track A contrast path (no variance)</h2>
+<p>Ship <code>contrast.survatr_fit()</code> – the curve-shaped entry point for Track A. Given a <code>survatr_fit</code> and a named list of <code>causatr</code> interventions, build the counterfactual person-period data under each intervention, predict per-row hazards, cumulate within individual to <code>S^a_i(t)</code>, and average across individuals to <code>S^a(t) = (1/n) sum_i S^a_i(t)</code>. Derive risk / risk-difference / risk-ratio / RMST / RMST-difference contrasts on a user-chosen time grid.</p>
+<p>Returns a <code>survatr_result</code> S3: <code>$estimates</code> and <code>$contrasts</code> data.tables indexed by <code>time</code>, plus <code>time_grid</code>, <code>type</code>, <code>reference</code>, <code>ci_method</code>, and <code>call</code>. <code>se</code> / <code>ci_lower</code> / <code>ci_upper</code> columns are <code>NA_real_</code> at this chunk; sandwich variance ships in chunk 3 and bootstrap in chunk 4. <code>ci_method = "sandwich"</code> / <code>"bootstrap"</code> are rejected now with class <code>survatr_ci_not_available</code>.</p>
+<p>RMST is computed with a trapezoidal quadrature on the user’s <code>times</code> grid, prepending <code>S(0) = 1</code> to integrate from the origin; the quadrature weights are exposed as <code>rmst_weights()</code> for chunk 3’s delta-method RMST SE.</p>
+<p><code>contrast()</code> is an S3 generic local to survatr (not a re-export of <code>causatr::contrast</code>, which is a plain function there). When both packages are attached, survatr’s generic shadows the causatr function; users who need the scalar-outcome path should call <code>causatr::contrast()</code> explicitly.</p>
+<p>Testing: 68 new tests across <code>test-contrast.R</code>, <code>test-contrast-survival.R</code>, <code>test-contrast-rejections.R</code>, <code>test-predict_hazard.R</code>, <code>test-survival_curve.R</code>, <code>test-rmst.R</code>, and a 🟡 <code>test-contrast-lmtp-oracle.R</code> that skips on CRAN and on toy-DGP fit failures. Closed-form oracle: <code>S(t) = (1 - h)^t</code> agrees with <code>contrast(type = "survival")</code> within 0.03 absolute at n = 5000; trapezoidal RMST matches hand-expanded sum to 1e-12.</p>
+</section>
+<section id="track-a-fit-skeleton" class="level2">
+<h2 class="anchored" data-anchor-id="track-a-fit-skeleton">2026-04-22 — Track A fit skeleton</h2>
+<p>First working entry point: <code>surv_fit()</code> fits the pooled-logistic discrete-time hazard model <code>logit h(t | A, L) = alpha(t) + beta_A A + beta_L L</code> on person-period data and returns a <code>survatr_fit</code> S3 object. The fit builds the risk set by dropping rows at/after the first event per id and rows at/after the first censor per id, and automatically switches the GLM family to <code>quasibinomial()</code> when external weights are supplied.</p>
+<p>Ports the pre-removal <code>causatr::causat_survival()</code> fit path into a dedicated package with the naming / error-class surface tightened: reserved internal columns are <code>.survatr_prev_event</code> / <code>.survatr_prev_cens</code>, classed errors use the <code>survatr_*</code> prefix, and <code>model_fn</code> is a first-class argument (default <code>stats::glm</code>, accepts any <code>mgcv::gam</code>-style fitter).</p>
+<p>Rejection paths wired with classed errors: <code>survatr_matching_rejected</code> (points to <code>survival::coxph(..., weights = , cluster = )</code>), <code>survatr_bad_estimator</code>, <code>survatr_competing_misuse</code>, <code>survatr_bad_na_action</code>, <code>survatr_reserved_col</code>, <code>survatr_bad_weights</code>, <code>survatr_col_not_found</code>, <code>survatr_not_person_period</code>, <code>survatr_duplicate_pp_row</code>.</p>
+<p>Testing: 79 tests across <code>test-checks.R</code>, <code>test-prepare_data.R</code>, <code>test-risk_set.R</code>, <code>test-surv_fit.R</code>, <code>test-surv_fit-weighted.R</code>, and <code>test-surv_fit-family-oracle.R</code>. The oracle test pins the logit intercept against <code>qlogis(h)</code> on a closed-form constant-hazard DGP (n = 5000) for both <code>binomial()</code> and <code>quasibinomial()</code> families.</p>
+<p>Contrast, variance, bootstrap, IPW, ICE, competing risks, and <code>diagnose()</code> ship in subsequent chunks.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
