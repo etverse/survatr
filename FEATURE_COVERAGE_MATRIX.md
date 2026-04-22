@@ -85,7 +85,8 @@ reflects **current** state, not planned scope. Planned scope lives in
 | Percentile CI | 🟢 | `test-bootstrap-survival.R` | Single-seed coverage of `(1-h)^t` at n = 2000, B = 300. Default `boot_ci = "percentile"` (transform-invariant; safer for ratios / RMST). |
 | Wald CI | 🟢 | `test-bootstrap-survival.R` | Sample-SD × `z` bands around the observed point estimate. |
 | Reproducibility with `seed` | 🟢 | `test-bootstrap-survival.R` | Two calls at the same `seed` return identical SEs and CI endpoints. |
-| Bootstrap SE ≈ sandwich SE (cross-check) | 🟢 | `test-bootstrap-survival.R` | Skipped on CRAN. B = 500 at n = 1500: per-time SE agrees within 30%. |
+| Bootstrap SE ≈ sandwich SE (cross-check) | 🟢 | `test-bootstrap-survival.R` | Skipped on CRAN. B = 500 at n = 1500: per-time SE agrees within 15%. |
+| Empirical-SD oracle: sandwich + bootstrap ≈ sampling SD | 🟢 | `test-bootstrap-survival.R` | Skipped on CRAN. 100-replicate sim truth (n = 1000, h = 0.06, K = 6). Out-of-band 300-rep validation (2026-04-22) pinned both to within 1-2% of truth; the in-test 20% tolerance catches class-of-factor-n_ids scaling bugs like the one fixed in chunk 3 (`a3f79cb`). |
 | `risk_ratio` via percentile CI | 🟢 | `test-bootstrap-survival.R` | Strictly positive; covers 1 on a no-effect DGP. |
 | `risk_difference` with populated contrast CIs | 🟢 | `test-bootstrap-survival.R` | `contrasts$se` / `ci_*` non-NA, point ∈ CI. |
 | Failure guard (>10% replicate failures) | 🔴 | — | `survatr_boot_failed`; point the user at sandwich or at a smaller / simpler DGP. |

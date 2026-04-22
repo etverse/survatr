@@ -24,7 +24,7 @@ Imports:
     rlang (>= 1.0.0),
     sandwich,
     stats
-Suggests: 
+Suggests:
     gfoRmula,
     knitr,
     lmtp,
@@ -34,7 +34,7 @@ Suggests:
     splines,
     survival,
     testthat (>= 3.0.0)
-VignetteBuilder: 
+VignetteBuilder:
     quarto
 Remotes: 
     github::etverse/causatr
