@@ -113,6 +113,64 @@ check_dots_na_action <- function(..., call = rlang::caller_env()) {
   invisible(NULL)
 }
 
+#' Reject NA values in predictor columns
+#'
+#' Track A's contrast path predicts the counterfactual hazard on **every**
+#' person-period row (including rows that were censored / had the event
+#' in reality — the cumulative product `prod_{k <= t} (1 - h^a_{i,k})`
+#' needs every per-period hazard). Any NA in a predictor column would
+#' either (a) silently produce NA predictions that propagate through
+#' `cumprod` and corrupt `s_hat`, or (b) be dropped by `glm`'s
+#' `na.action = na.omit` (the default we permit), creating a size
+#' mismatch between `prep$X_fit` / `r_score` and the post-drop fit
+#' rows — which crashes the sandwich IF chain downstream.
+#'
+#' The simplest and least surprising contract is to reject NAs in the
+#' required columns at the boundary. Users should preprocess (impute or
+#' drop) before calling `surv_fit()`. NA in the `censoring` column
+#' retains its "uncensored" semantics (see `is_uncensored()`) and is
+#' **not** rejected here.
+#'
+#' @param data Person-period `data.table`.
+#' @param cols Character vector of predictor column names to check.
+#' @param call Caller frame.
+#'
+#' @return Invisibly `NULL`.
+#' @noRd
+check_no_na_in_predictors <- function(data, cols, call = rlang::caller_env()) {
+  cols <- intersect(cols, names(data))
+  if (length(cols) == 0L) {
+    return(invisible(NULL))
+  }
+  na_by_col <- vapply(
+    cols,
+    function(cn) anyNA(data[[cn]]),
+    logical(1L)
+  )
+  if (any(na_by_col)) {
+    bad <- cols[na_by_col]
+    rlang::abort(
+      c(
+        paste0(
+          "Predictor column(s) ",
+          paste0("`", bad, "`", collapse = ", "),
+          " contain NA values. Track A's contrast path predicts the ",
+          "counterfactual hazard on every person-period row and cannot ",
+          "be NA-safe."
+        ),
+        i = paste0(
+          "Drop or impute NA rows before calling `surv_fit()`. NA in ",
+          "the `censoring` column is separately treated as 'uncensored' ",
+          "and is not rejected."
+        )
+      ),
+      class = "survatr_na_in_predictors",
+      call = call
+    )
+  }
+  invisible(NULL)
+}
+
 #' Reject user-data collisions with survatr's reserved column names
 #'
 #' survatr adds `.survatr_prev_event` and `.survatr_prev_cens` to the

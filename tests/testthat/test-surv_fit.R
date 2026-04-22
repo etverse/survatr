@@ -126,6 +126,47 @@ test_that("surv_fit rejects na.exclude via ... gate", {
   )
 })
 
+## Regression test for B2 (2026-04-22 critical review, round 1):
+## `na.action = na.omit` (the default) combined with NA values in a
+## predictor column silently misaligned `prep$X_fit` (post-NA-drop)
+## against `fit_idx` (pre-NA-drop) in the sandwich IF chain, producing
+## a subscript-out-of-bounds error. Fixed by rejecting NA in predictor
+## columns upfront at surv_fit() via check_no_na_in_predictors(). Repro:
+## `/tmp/survatr_repro_b2_na_drop.R`.
+test_that("surv_fit rejects NA in predictor columns (B2)", {
+  dt <- sim_constant_hazard(n = 200L, K = 4L, h = 0.1, seed = 441L)
+  dt[, L := rnorm(.N)]
+  dt_na_confounder <- data.table::copy(dt)
+  dt_na_confounder[1L, L := NA]
+  expect_error(
+    surv_fit(dt_na_confounder, "Y", "A", ~L, "id", "t", time_formula = ~1),
+    class = "survatr_na_in_predictors"
+  )
+
+  ## Also rejects NA in outcome, treatment, id, time.
+  dt_na_outcome <- data.table::copy(dt)
+  dt_na_outcome[1L, Y := NA]
+  expect_error(
+    surv_fit(dt_na_outcome, "Y", "A", ~L, "id", "t", time_formula = ~1),
+    class = "survatr_na_in_predictors"
+  )
+
+  ## NA in censoring is NOT rejected (NA retains "uncensored" semantics).
+  dt_na_cens <- data.table::copy(dt)
+  dt_na_cens[, cens := 0L]
+  dt_na_cens[1L, cens := NA]
+  expect_silent(suppressWarnings(surv_fit(
+    dt_na_cens,
+    "Y",
+    "A",
+    ~L,
+    "id",
+    "t",
+    censoring = "cens",
+    time_formula = ~1
+  )))
+})
+
 test_that("surv_fit rejects user-data collisions with reserved columns", {
   dt <- fixture_small_pp()
   dt[, .survatr_prev_event := 0L]

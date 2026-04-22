@@ -178,6 +178,25 @@ prepare_sandwich_shared <- function(fit) {
   )
   fit_idx <- which(fit_rows)
 
+  ## NA rows in predictor columns are rejected at `surv_fit()` time
+  ## (see `check_no_na_in_predictors()`), so `fit_idx` here is always
+  ## aligned with `prep$X_fit`. Keep an assertion so a future code path
+  ## that relaxes the boundary check is caught loudly rather than
+  ## silently corrupting the sandwich variance.
+  if (length(fit$model$na.action) > 0L) {
+    rlang::abort(
+      c(
+        "Sandwich variance: model$na.action is non-empty.",
+        i = paste0(
+          "surv_fit() should have rejected NA rows upfront via ",
+          "check_no_na_in_predictors(). This assertion is a guard ",
+          "against future NA-handling regressions."
+        )
+      ),
+      class = "survatr_if_failed"
+    )
+  }
+
   prep <- causatr:::prepare_model_if(
     model = fit$model,
     fit_idx = fit_idx,

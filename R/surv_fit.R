@@ -139,6 +139,19 @@ surv_fit <- function(
     censoring = censoring
   )
 
+  ## Reject NA in any column that feeds into the hazard-model formula
+  ## or the counterfactual prediction. `censoring` is excluded because
+  ## NA there carries "uncensored" semantics via `is_uncensored()`.
+  predictor_cols <- unique(c(
+    outcome,
+    treatment,
+    id,
+    time,
+    all.vars(confounders),
+    all.vars(time_formula)
+  ))
+  check_no_na_in_predictors(data, predictor_cols)
+
   check_weights(weights, nrow(data))
 
   fit_rows <- build_risk_set(
