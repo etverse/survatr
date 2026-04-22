@@ -156,8 +156,13 @@ check_dots_na_action <- function(..., call = rlang::caller_env()) {
 #'
 #' @return Invisibly `NULL`.
 #' @noRd
-check_indicator_col <- function(data, col, role, allow_na = FALSE,
-                                call = rlang::caller_env()) {
+check_indicator_col <- function(
+  data,
+  col,
+  role,
+  allow_na = FALSE,
+  call = rlang::caller_env()
+) {
   if (!col %in% names(data)) {
     return(invisible(NULL))
   }
@@ -176,7 +181,9 @@ check_indicator_col <- function(data, col, role, allow_na = FALSE,
         paste0(
           "`",
           col,
-          "` (", role, ") must contain only 0 / 1",
+          "` (",
+          role,
+          ") must contain only 0 / 1",
           if (allow_na) " / NA" else "",
           " values."
         ),

@@ -155,7 +155,9 @@ bootstrap_survival <- function(
     set.seed(seed)
   }
   on.exit(
-    if (!is.null(prev_kind)) RNGkind(prev_kind[1L], prev_kind[2L], prev_kind[3L]),
+    if (!is.null(prev_kind)) {
+      RNGkind(prev_kind[1L], prev_kind[2L], prev_kind[3L])
+    },
     add = TRUE
   )
 

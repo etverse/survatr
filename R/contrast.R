@@ -102,7 +102,8 @@ contrast.survatr_fit <- function(
   ## upfront with a clear signal rather than silently returning an empty
   ## contrasts table or erroring deep in the replicate pipeline.
   if (
-    type %in% c("risk_difference", "risk_ratio", "rmst_difference") &&
+    type %in%
+      c("risk_difference", "risk_ratio", "rmst_difference") &&
       length(interventions) < 2L
   ) {
     rlang::abort(
