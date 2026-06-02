@@ -30,6 +30,14 @@ GLM (both ~4% below at n = 1000, R = 1000 — a generic finite-sample
 sandwich-vs-bootstrap gap, not GAM-specific). New tests in
 `test-sandwich-gam.R`.
 
+## 2026-06-02 — Smaller correctness and robustness fixes
+
+- `forrest()` raised the same `survatr_bad_t_ref` class for two distinct
+  failures: a malformed / off-grid `t_ref`, and a valid grid time with no
+  pairwise contrast rows (the empty `contrasts` table a single-intervention
+  result produces). The latter now aborts with
+  `survatr_forrest_no_contrasts` so callers can tell the two apart.
+
 ## 2026-04-22 — Round-1 critical review: 9 fixes across chunks 1–4
 
 A full adversarial review of the 214-test chunk-1/2/3/4 surface produced

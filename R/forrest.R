@@ -75,9 +75,18 @@ forrest.survatr_result <- function(
   }
   rows <- x$contrasts[get("time") == t_ref]
   if (nrow(rows) == 0L) {
+    ## Distinct failure from the `survatr_bad_t_ref` guard above: there
+    ## `t_ref` is malformed or off-grid; here it is a valid grid time but
+    ## the result carries no pairwise contrasts to plot (a single
+    ## intervention yields a schema-complete yet empty `contrasts` table).
     rlang::abort(
-      "No contrast rows found at `t_ref`.",
-      class = "survatr_bad_t_ref"
+      paste0(
+        "No pairwise contrast rows at `t_ref` = ",
+        t_ref,
+        ". A single-intervention result has an empty `contrasts` table, ",
+        "so there is nothing to plot."
+      ),
+      class = "survatr_forrest_no_contrasts"
     )
   }
 
