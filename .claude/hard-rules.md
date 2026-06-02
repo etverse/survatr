@@ -180,6 +180,45 @@ Do NOT flag these as bugs. Each has a regression test.
   design. The causatr remote is unpinned `main`; hard-pinning is deferred to
   release time.
 
+### Established invariants from 2026-06-02 round-3 critical review (IPW, chunk 5)
+
+Do NOT flag these as bugs. Each has a regression test.
+
+- **IPW stabilized weights are composed in survatr, not causatr.** causatr's
+  point IPW is Hájek-on-`Y~1` and rejects univariate stabilization
+  (`causatr_stabilize_univariate`), so it exposes no point-treatment
+  `f(A)/f(A|L)` weight. survatr composes it from two
+  `causatr:::evaluate_density()` calls (full `A~L` + marginal `A~1`) and
+  `causatr:::truncate_weights()`. This is composition of primitives, not
+  reimplementation — do not "move it into causatr".
+- **The IPW sandwich treatment-correction carries exactly ONE factor of
+  `n_ids`.** It is built via `numDeriv` on the weighted-MSM `phi_bar` (÷ n_fit)
+  and `causatr:::apply_model_correction(prep_trt, g)` with `prep_trt` at
+  `n_total = n_ids`; the `n_fit` in `h_t = n_fit·B_inv·J̄` cancels `phi_bar`'s
+  `1/n_fit`. Validated: stacked sandwich SE ≈ full two-stage bootstrap. Do not
+  add or remove an `n_ids` factor without re-running the bootstrap pin.
+- **For stabilized weights the stacked SE is NARROWER than the naive
+  weights-as-known SE.** The treatment-model correction is subtracted (it
+  projects out the variance explained by the propensity score). Do not "fix"
+  the sandwich to be wider than the naive hazard-only SE — that direction is
+  correct (Robins 1999; Hernán, Brumback & Robins 2000; Kostouraki 2024). The
+  marginal-numerator (`A~1`) estimation is intentionally omitted from the IF
+  (conservative).
+- **`risk_ratio` `se` is reported on the NATURAL scale** (`RR · se(log RR)`)
+  in both the sandwich and bootstrap paths, while the CI is built on the log
+  scale and exponentiated. The `se` column is therefore intentionally NOT
+  consistent with `point ± z·se` for ratios — the log-based CI is the correct
+  interval, and `se` is the natural-scale SE of the estimand. Do not flag the
+  `se`-vs-CI asymmetry as a bug.
+- **Missing data is rejected upfront for IPW too.** The IPW treatment-model
+  predictors (`all.vars(confounders)`) flow through
+  `check_no_na_in_predictors()` before dispatch, so NA is rejected
+  (`survatr_na_in_predictors`) rather than silently row-dropped by causatr's
+  treatment-model fit — this preserves the influence-function row alignment.
+- **A constant treatment aborts with `survatr_ipw_no_treatment_variation`**
+  (positivity), guarded before `fit_treatment_model()` so causatr's family
+  auto-detection cannot misclassify a degenerate binary column as "gaussian".
+
 ### Implementation conventions
 
 - **causatr is the engine.** Import `prepare_model_if()`,
