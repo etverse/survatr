@@ -45,6 +45,32 @@ fill_sandwich_ses <- function(
   ## --- per-intervention SE (for the `estimates` table) ------------------
   for (iv_name in names(if_list)) {
     IF_mat <- if_list[[iv_name]]$IF_mat
+    ## The IF matrix must be n_ids x |times| for `crossprod(IF) / n_ids^2`
+    ## to be the cross-time covariance. `compute_survival_if_matrix()`
+    ## guarantees this, but assert it so a future regression there surfaces
+    ## here rather than as a silently wrong vcov.
+    if (
+      !is.matrix(IF_mat) ||
+        nrow(IF_mat) != n_ids ||
+        ncol(IF_mat) != length(times)
+    ) {
+      rlang::abort(
+        paste0(
+          "influence-function matrix for intervention \"",
+          iv_name,
+          "\" is ",
+          nrow(IF_mat),
+          " x ",
+          ncol(IF_mat),
+          " but ",
+          n_ids,
+          " x ",
+          length(times),
+          " (n_ids x |times|) was expected."
+        ),
+        class = "survatr_if_failed"
+      )
+    }
     vcov_mat <- crossprod(IF_mat) / n_ids^2
     if (type %in% c("survival", "risk", "risk_difference", "risk_ratio")) {
       se_vec <- sqrt(pmax(diag(vcov_mat), 0))

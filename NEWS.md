@@ -37,6 +37,17 @@ sandwich-vs-bootstrap gap, not GAM-specific). New tests in
   pairwise contrast rows (the empty `contrasts` table a single-intervention
   result produces). The latter now aborts with
   `survatr_forrest_no_contrasts` so callers can tell the two apart.
+- `compute_survival_curve()` now aborts (`survatr_hazard_misaligned`) when
+  the per-row hazard vector does not align 1:1 with the person-period rows,
+  rather than letting `:=` silently recycle a short vector into a corrupted
+  cumulative product.
+- The sandwich assembly asserts each influence-function matrix is
+  `n_ids x |times|` (`survatr_if_failed`) before forming
+  `crossprod(IF) / n_ids^2`, so a malformed IF surfaces as a clear error
+  rather than a silently wrong covariance.
+- `plot.survatr_result()` builds its per-group row mask in plain R instead of
+  `tbl[get(group_col) == g]`, so a column literally named `g` can no longer
+  shadow the grouping variable under data.table non-standard evaluation.
 
 ## 2026-04-22 — Round-1 critical review: 9 fixes across chunks 1–4
 

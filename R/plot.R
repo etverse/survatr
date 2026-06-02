@@ -125,7 +125,13 @@ plot.survatr_result <- function(
 
   for (g_ix in seq_along(groups)) {
     g <- groups[g_ix]
-    rows <- tbl[get(group_col) == g]
+    ## Build the row mask in plain R, then filter, rather than
+    ## `tbl[get(group_col) == g]`: evaluated inside [.data.table the symbol
+    ## `g` would resolve to a column named "g" if one existed, shadowing the
+    ## loop variable. Computing the logical vector outside the subscript can't
+    ## be shadowed.
+    keep <- tbl[[group_col]] == g
+    rows <- tbl[keep]
     data.table::setorder(rows, time)
     if (ribbon && !all(is.na(rows$ci_lower))) {
       ribbon_col <- grDevices::adjustcolor(col[g_ix], alpha.f = ribbon_alpha)

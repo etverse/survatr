@@ -36,6 +36,23 @@ compute_survival_curve <- function(
   intervention_name
 ) {
   pp <- data.table::copy(pp_data)
+  ## `:=` recycles a short RHS without complaint, which would silently
+  ## corrupt the within-id cumulative product. Require a 1:1 hazard-to-row
+  ## alignment up front (an internal invariant: `predict_hazard_pp()` returns
+  ## one hazard per person-period row).
+  if (length(hazards) != nrow(pp)) {
+    rlang::abort(
+      paste0(
+        "`hazards` has length ",
+        length(hazards),
+        " but `pp_data` has ",
+        nrow(pp),
+        " rows; the per-row hazard vector must align 1:1 with the ",
+        "person-period rows."
+      ),
+      class = "survatr_hazard_misaligned"
+    )
+  }
   pp[, .cf_hazard := hazards]
   data.table::setkeyv(pp, c(id, time))
 
