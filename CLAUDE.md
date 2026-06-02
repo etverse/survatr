@@ -288,7 +288,7 @@ Single source of truth for per-chunk status is the table below. Keep
 | 18 | ⬜ | [CHUNK_18_RECURRENT_MULTISTATE.md](CHUNK_18_RECURRENT_MULTISTATE.md) | Recurrent events + multi-state (illness-death) models. | 2, 3, 7 |
 
 Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18. Chunks 11–18 ratified in the
-2026-06 scope review (`SCOPE_AND_INTEGRATION_REVIEW_2026-06.md`).
+2026-06 scope review.
 
 ## Architecture notes
 

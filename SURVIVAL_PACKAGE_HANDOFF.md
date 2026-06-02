@@ -455,7 +455,7 @@ ICE, competing risks, matching rejection, NHEFS, `diagnose()`). v1.x = chunks
 11–15 (IPCW, quantile/RMTL/YLL estimands, cluster-robust SE, left-truncation,
 parametric AIPW). v2 = chunks 16–18 (simultaneous bands, target-trial/landmark
 tooling, recurrent + multi-state). Chunks 11–18 were ratified in the 2026-06
-scope review (see `SCOPE_AND_INTEGRATION_REVIEW_2026-06.md`); they extend the
+scope review; they extend the
 inherited scope toward the causal-survival field (parity with
 `riskRegression::ate`, `adjustedCurves`, `stdReg2`).
 
