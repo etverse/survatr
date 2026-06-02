@@ -269,3 +269,28 @@ test_that("ipsi() on an IPW fit is rejected as deferred", {
     class = "survatr_ipw_ipsi_deferred"
   )
 })
+
+test_that("IPW rejects degenerate treatment and NA confounders (classed)", {
+  base <- sim_confounded_survival(n = 300L, K = 4L, seed = 1L, gamma = 0.8)
+
+  ## Constant treatment across all ids: no treated/untreated contrast, so the
+  ## inverse-probability weights are undefined (positivity violation). Must give
+  ## a clear no-variation message, not causatr's "gaussian/continuous" one.
+  d_const <- data.table::copy(base)
+  d_const[, A := 1L]
+  expect_error(
+    surv_fit(d_const, "Y", "A", ~L, "id", "t", estimator = "ipw"),
+    class = "survatr_ipw_no_treatment_variation"
+  )
+
+  ## NA in a confounder is rejected upfront. survatr does not delegate missing-
+  ## data handling to causatr's row-dropping: the IPW treatment model's
+  ## predictors flow through `check_no_na_in_predictors()` like the gcomp path,
+  ## so the influence-function row alignment is preserved.
+  d_na <- data.table::copy(base)
+  d_na[1L, L := NA_real_]
+  expect_error(
+    surv_fit(d_na, "Y", "A", ~L, "id", "t", estimator = "ipw"),
+    class = "survatr_na_in_predictors"
+  )
+})

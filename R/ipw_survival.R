@@ -111,6 +111,29 @@ fit_ipw_survival <- function(
     )
   }
 
+  ## Positivity / no-variation guard. If every id shares the same treatment
+  ## value there is no contrast to weight toward, and causatr's family
+  ## auto-detection would see a single unique value and misclassify the binary
+  ## treatment as "gaussian" (its bernoulli check needs exactly two values),
+  ## producing a misleading "continuous treatment" error. Catch it here with a
+  ## clear positivity message instead.
+  if (data.table::uniqueN(baseline[[treatment]]) < 2L) {
+    rlang::abort(
+      c(
+        paste0(
+          "IPW requires variation in `",
+          treatment,
+          "`, but every individual shares the same treatment value."
+        ),
+        i = paste0(
+          "With no treated/untreated contrast the inverse-probability ",
+          "weights are undefined (a positivity violation)."
+        )
+      ),
+      class = "survatr_ipw_no_treatment_variation"
+    )
+  }
+
   ## Full propensity model A ~ L on the baseline rows. causatr fits the density,
   ## drops aliased (collinear) columns, and stores the design `X_prop` and the
   ## aligned `alpha_hat` we reuse in the weight closure for the sandwich.

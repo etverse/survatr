@@ -42,6 +42,12 @@ delta on top.
 
 Continuous / categorical / count treatment types and `ipsi()` are deferred
 to dedicated follow-up chunks (19 / 20) and abort with clear classed errors.
+A constant treatment (no positivity contrast) aborts with
+`survatr_ipw_no_treatment_variation`, and external weights with
+`survatr_ipw_external_weights` (transport is chunk 21). Missing data is
+rejected upfront by `check_no_na_in_predictors()` for the treatment-model
+predictors too — survatr does not delegate NA handling to causatr's
+row-dropping, so the influence-function row alignment is preserved.
 
 ## 2026-06-02 — GAM hazard models work with sandwich variance
 
