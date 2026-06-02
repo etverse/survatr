@@ -1,5 +1,18 @@
 # survatr (development version)
 
+## 2026-06-02 — `risk_ratio` sandwich `se` now reported on the natural scale
+
+The `se` column for `type = "risk_ratio"` under `ci_method = "sandwich"` was
+the SE of `log(RR)` (the natural delta-method quantity), while the bootstrap
+path reported the SD of the RR replicates — so the two methods printed
+different `se` numbers (off by roughly a factor of `RR`) for the same
+estimand. The confidence intervals were correct in both paths (the sandwich
+builds the interval on the log scale and exponentiates). The sandwich now
+reports `se` on the natural RR scale (`RR * se(log RR)`) so the column always
+means "SE of the reported estimand" and matches the bootstrap; the CI is
+still log-based (strictly positive, not `se`-symmetric). Surfaced by the IPW
+work but pre-existing in the gcomp sandwich.
+
 ## 2026-06-02 — IPW weighted hazard MSM (Track A, `estimator = "ipw"`)
 
 `surv_fit(estimator = "ipw")` adds inverse-probability weighting as a

@@ -165,10 +165,17 @@ fill_sandwich_ses <- function(
         get("contrast") == paste0(a1_name, " vs ", reference),
         estimate
       ]
+      ## Report the `se` column on the NATURAL (risk-ratio) scale via the
+      ## delta method (multiply the log-scale SE by RR), so it means "SE of
+      ## the reported estimand" and matches the bootstrap path (which reports
+      ## the SD of the RR replicates). The CI is still built on the log scale
+      ## and exponentiated -- transform-respecting and strictly positive -- so
+      ## it is intentionally not a symmetric `point +/- z * se` interval.
+      se_nat <- rr_vec * se_log
       contrasts[
         get("contrast") == paste0(a1_name, " vs ", reference),
         `:=`(
-          se = se_log,
+          se = se_nat,
           ci_lower = exp(log(rr_vec) - z * se_log),
           ci_upper = exp(log(rr_vec) + z * se_log)
         )
