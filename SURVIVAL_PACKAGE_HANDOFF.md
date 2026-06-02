@@ -435,7 +435,7 @@ Status legend: ✅ done (commit pinned) · 🚧 in progress · ⬜ not started.
 | 2 | ✅ `2525707` | [CHUNK_2_CONTRAST_A.md](CHUNK_2_CONTRAST_A.md) | Track A contrast path: per-individual hazards → survival curve → risk/RMST contrasts, **no variance yet**. Time-indexed `data.table` result shape. | 1 |
 | 3 | ✅ `a3f79cb` | [CHUNK_3_SANDWICH_A.md](CHUNK_3_SANDWICH_A.md) | Track A sandwich variance: delta-method cross-time IF aggregation. Depends on `causatr::prepare_model_if()` / `apply_model_correction()` — import or re-export as `@keywords internal`. | 2 |
 | 4 | ✅ `8a26904` | [CHUNK_4_BOOTSTRAP_S3.md](CHUNK_4_BOOTSTRAP_S3.md) | Track A bootstrap + S3 methods (`print` / `plot` / `tidy` / `forrest` for survival curves). | 2 |
-| 5 | ⬜ | [CHUNK_5_IPW_A.md](CHUNK_5_IPW_A.md) | Track A under IPW: baseline density-ratio weights from `causatr::fit_ipw()`-style treatment model, **broadcast** onto person-period rows, weighted hazard MSM. | 2, causatr IPW |
+| 5 | ✅ | [CHUNK_5_IPW_A.md](CHUNK_5_IPW_A.md) | Track A under IPW (binary; `static` / `dynamic`): baseline stabilized density-ratio weights composed from causatr primitives, **broadcast** onto person-period rows, weighted marginal hazard MSM, two-stage stacked sandwich + dual-refit bootstrap. Extended treatment types / `ipsi()` / external-weight transport deferred to chunks 19–21. | 2, causatr IPW |
 | 6 | ⬜ | [CHUNK_6_ICE_B.md](CHUNK_6_ICE_B.md) | Track B (ICE-hazards): per-step hazard target + survival-tail pseudo-outcome, **reuse** causatr's `ice_iterate()` and `variance_if_ice()` via internal imports. | 3, causatr ICE |
 | 7 | ⬜ | [CHUNK_7_COMPETING_RISKS.md](CHUNK_7_COMPETING_RISKS.md) | Competing risks: parallel cause-specific hazards + CIF contrast + sandwich via stacked EE across cause-specific models. | 2, 3 |
 | 8 | ⬜ | [CHUNK_8_MATCHING_REJECTION.md](CHUNK_8_MATCHING_REJECTION.md) | Matching rejection path + classed error. | — |
@@ -449,6 +449,9 @@ Status legend: ✅ done (commit pinned) · 🚧 in progress · ⬜ not started.
 | 16 | ⬜ | [CHUNK_16_SIMULTANEOUS_BANDS.md](CHUNK_16_SIMULTANEOUS_BANDS.md) | Simultaneous / uniform confidence bands via multiplier bootstrap on the IF matrix. | 3 |
 | 17 | ⬜ | [CHUNK_17_TARGET_TRIAL.md](CHUNK_17_TARGET_TRIAL.md) | Target-trial alignment: landmark analysis + immortal-time `diagnose()` check + vignette. | 2, 10 |
 | 18 | ⬜ | [CHUNK_18_RECURRENT_MULTISTATE.md](CHUNK_18_RECURRENT_MULTISTATE.md) | Recurrent events + multi-state (illness-death) models. | 2, 3, 7 |
+| 19 | ⬜ | [CHUNK_19_IPW_TREATMENT_TYPES.md](CHUNK_19_IPW_TREATMENT_TYPES.md) | IPW extended treatment types for survival: continuous (gaussian shift / scale_by pushforward weights), categorical (k>2, multinomial propensity), count (Poisson/NB). Generalizes the chunk-5 binary weight closure + family-specific density ratios. | 5 |
+| 20 | ⬜ | [CHUNK_20_IPSI_SURVIVAL.md](CHUNK_20_IPSI_SURVIVAL.md) | IPSI (incremental propensity-score) survival: Kennedy (2019) weight-path estimand and its survival curve / sandwich. Not an MSM plug-in — reweights the propensity. | 5 |
+| 21 | ⬜ | [CHUNK_21_IPW_TRANSPORT_WEIGHTS.md](CHUNK_21_IPW_TRANSPORT_WEIGHTS.md) | Survey / external-weight composition with IPW (transport): multiply design weights by the stabilized IPW weight, broadcast, weighted MSM; sampling-block sandwich. | 5 |
 
 **Phasing.** v1 = chunks 1–10 (Track A gcomp/IPW/sandwich/bootstrap/S3, Track B
 ICE, competing risks, matching rejection, NHEFS, `diagnose()`). v1.x = chunks
@@ -457,7 +460,10 @@ parametric AIPW). v2 = chunks 16–18 (simultaneous bands, target-trial/landmark
 tooling, recurrent + multi-state). Chunks 11–18 were ratified in the 2026-06
 scope review; they extend the
 inherited scope toward the causal-survival field (parity with
-`riskRegression::ate`, `adjustedCurves`, `stdReg2`).
+`riskRegression::ate`, `adjustedCurves`, `stdReg2`). ext = chunks 19–21
+(IPW extended treatment types, IPSI survival, survey/external-weight transport)
+— spun out of the chunk-5 scope review (2026-06-02) so the deferred IPW
+extensions are tracked rather than dropped.
 
 ## 11. Package naming / placement
 

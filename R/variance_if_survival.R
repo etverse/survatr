@@ -46,6 +46,10 @@
 #'   same order as `fit$pp_data`.
 #' @param unique_ids Vector of unique id values (in the order they first
 #'   appear in `fit$pp_data`).
+#' @param ipw_corr Output of `prepare_ipw_correction()` under
+#'   `estimator = "ipw"`, or `NULL` (gcomp). When non-`NULL`, the
+#'   treatment-model correction (stacked-EE cross block) is added to the IF
+#'   matrix so the sandwich accounts for the estimated weights.
 #'
 #' @return A list with `s_hat` (length `|times|`) and `IF_mat`
 #'   (`n_ids x |times|` matrix of per-individual IFs on `S^a(t)`).
@@ -57,7 +61,8 @@ compute_survival_if_matrix <- function(
   prep,
   fit_idx,
   id_vec,
-  unique_ids
+  unique_ids,
+  ipw_corr = NULL
 ) {
   pp_cf <- apply_intervention_pp(fit$pp_data, fit$treatment, intervention)
 
@@ -180,6 +185,24 @@ compute_survival_if_matrix <- function(
   Ch2_mat <- IF_beta_per_id %*% J_bar_mat ## n_ids x n_t
   IF_mat <- Ch1_mat + Ch2_mat
 
+  ## IPW: add the stacked-EE treatment-model correction. The weighted hazard
+  ## MSM's coefficients depend on the estimated propensity, so the survival IF
+  ## gains a (subtracted) term propagating the treatment-model score through the
+  ## cross-derivative and the cross-time delta. Ignoring it treats the weights
+  ## as known, which is conservative for stabilized weights (Robins 1999;
+  ## Hernán et al. 2000) -- but we propagate it so the sandwich matches the full
+  ## two-stage bootstrap rather than over-covering.
+  if (!is.null(ipw_corr)) {
+    TC <- compute_treatment_correction(
+      J_bar_mat = J_bar_mat,
+      B_inv = prep$B_inv,
+      n_fit = nrow(prep$X_fit),
+      ipw_corr = ipw_corr,
+      n_ids = n_ids
+    )
+    IF_mat <- IF_mat + TC
+  }
+
   list(s_hat = s_hat, IF_mat = IF_mat)
 }
 
@@ -234,10 +257,25 @@ prepare_sandwich_shared <- function(fit) {
   id_vec <- pp_work[[fit$id]]
   unique_ids <- unique(id_vec)
 
+  ## Under IPW, also build the intervention-independent treatment-model
+  ## correction pieces (cross-derivative + treatment-model bread/score) once,
+  ## shared across interventions like `prep`.
+  ipw_corr <- NULL
+  if (identical(fit$estimator, "ipw")) {
+    ipw_corr <- prepare_ipw_correction(
+      fit = fit,
+      prep = prep,
+      fit_idx = fit_idx,
+      id_vec = id_vec,
+      pp_work = pp_work
+    )
+  }
+
   list(
     prep = prep,
     fit_idx = fit_idx,
     id_vec = id_vec,
-    unique_ids = unique_ids
+    unique_ids = unique_ids,
+    ipw_corr = ipw_corr
   )
 }

@@ -1,6 +1,7 @@
 # Chunk 5 — Track A under IPW (weighted hazard MSM)
 
-> **Status: ⬜ Not started**
+> **Status: ✅ Done** (binary treatment + `static` / `dynamic`; continuous /
+> categorical / count treatment types and `ipsi()` deferred to chunks 19 / 20).
 > **Depends on:** Chunk 2 (contrast spine), Chunk 3 (sandwich IF), causatr IPW
 > internals.
 > **Oracle:** `lmtp::lmtp_tmle(outcome_type = "survival")` (point estimate);
@@ -47,10 +48,17 @@ average-across-ids machinery handles it unchanged.)
 **Variance.** The IF of `S^a(t)` has two stacked blocks: (1) the weighted
 hazard-MSM coefficients via the chunk-3 delta chain on the cumulative product,
 and (2) the **weight-estimation** correction — the treatment-model score
-propagated through the density ratio. Ignoring block (2) is anticonservative.
-causatr's IPW IF machinery supplies the treatment-model block (density-ratio
-IF); survatr stacks it under the cross-time delta chain. This is the survival
-analogue of causatr's point-IPW sandwich.
+propagated through the density ratio, **subtracted** (block-lower-triangular
+M-estimation). For **stabilized** weights, ignoring block (2) is
+**conservative** — the naive robust SE that treats the weights as known is too
+wide, and accounting for the estimated propensity *narrows* the SE (Robins
+1999; Hernán, Brumback & Robins 2000; Kostouraki et al. 2024). The treatment-
+model bread/score come from `causatr:::prepare_model_if()` and the correction
+projection from `causatr:::apply_model_correction()` (with `n_total = n_ids`, so
+causatr handles the M-estimation scaling); survatr supplies only the
+cross-derivative (numDeriv on the weighted-MSM score) and the cross-time delta.
+This is the survival analogue of causatr's point-IPW sandwich. The numerator
+(marginal `A ~ 1`) model's estimation is omitted from the IF (conservative).
 
 ## Deliverables
 
@@ -73,8 +81,13 @@ analogue of causatr's point-IPW sandwich.
 - `test-ipw-survival.R` — point estimate vs `lmtp::lmtp_tmle(outcome_type =
   "survival")` on a confounded DGP (🟡→🟢 once pinned); marginal-MSM sanity vs
   the unadjusted KM when weights ≡ 1.
-- `test-ipw-survival-sandwich.R` — coverage simulation; **assert the stacked SE
-  is wider than the naive hazard-only SE** (proves the weight block is wired).
+- `test-ipw-survival-sandwich.R` — **assert the stacked SE matches the full
+  two-stage bootstrap SE** (the gold-standard truth; resamples ids and refits
+  *both* models), and that the stacked SE is **narrower** than the naive
+  hazard-only SE (proves the weight block is wired) — the narrower direction is
+  the correct one for stabilized weights. Plus a coverage simulation.
+- `test-ipw-survival-bootstrap.R` — per-replicate dual refit, reproducibility,
+  SE ≈ sandwich.
 - `helper-ipw-survival-oracle.R` — reusable lmtp comparator (mirror causatr's
   `helper-ipw-lmtp-oracle.R`).
 
@@ -123,9 +136,17 @@ result <- contrast(fit, interventions = list(a1 = causatr::static(1),
   `test-causatr-integration.R`.
 
 ## Acceptance checklist
-- [ ] `estimator = "ipw"` fits a weighted marginal hazard MSM; curve matches
-      `lmtp` point estimate within tolerance on a confounded DGP.
-- [ ] Stacked sandwich SE > hazard-only SE (weight block verified).
-- [ ] `weights ≡ 1` reproduces the unadjusted (chunk-2-style) curve.
-- [ ] `trim` winsorizes id-level weights; sandwich uses a fixed cutoff.
-- [ ] `FEATURE_COVERAGE_MATRIX.md` + handoff §10 + CLAUDE.md updated.
+- [x] `estimator = "ipw"` fits a weighted marginal hazard MSM; curve matches
+      `lmtp` point estimate within tolerance on a confounded DGP (also pinned vs
+      `causatr::causat(estimator = "ipw")` on a single-period table).
+- [x] Stacked sandwich SE matches the full two-stage bootstrap SE; narrower than
+      the naive hazard-only SE for stabilized weights (weight block verified).
+- [x] Unconfounded / `weights ≈ 1` reproduces the unadjusted (chunk-2-style)
+      curve.
+- [x] `trim` winsorizes id-level weights; sandwich uses a fixed cutoff.
+- [x] `FEATURE_COVERAGE_MATRIX.md` + handoff §10 + CLAUDE.md updated.
+
+## Deferred to follow-up chunks (scope decision, 2026-06-02)
+- Continuous (gaussian shift / scale_by), categorical (k>2), and count
+  (Poisson/NB) treatment IPW → **chunk 19**.
+- `ipsi()` incremental-propensity survival (weight-path estimand) → **chunk 20**.

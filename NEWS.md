@@ -1,5 +1,35 @@
 # survatr (development version)
 
+## 2026-06-02 — IPW weighted hazard MSM (Track A, `estimator = "ipw"`)
+
+`surv_fit(estimator = "ipw")` adds inverse-probability weighting as a
+second, methodologically-distinct estimator of the counterfactual survival
+curve (binary point treatment; `static` / `dynamic` interventions). It fits
+a baseline treatment model on the original-row data, forms **stabilized**
+density-ratio weights `w_i = f(A_i) / f(A_i | L_i)` at the observed
+treatment, broadcasts the per-id weight onto every person-period row, and
+fits a weighted marginal hazard MSM `logit h(t | A) = α(t) + β_A·A`
+(`quasibinomial`). Confounding is handled by the weights, so the hazard
+model carries `A` only. The `contrast()` curve / risk / RMST machinery is
+reused unchanged. New arguments: `propensity_model_fn` (treatment-model
+fitter) and `trim` (optional weight winsorization at a quantile).
+
+The sandwich variance is a two-stage stacked estimating equation: the
+chunk-3 cross-time delta on the weighted hazard MSM, plus a **subtracted**
+treatment-model correction that propagates the propensity-score uncertainty
+through a numeric cross-derivative. For stabilized weights this *narrows*
+the SE relative to treating the weights as known (Robins 1999; Hernán et
+al. 2000); the stacked sandwich matches the full two-stage bootstrap (which
+re-estimates both models per replicate), validated to within 15%. The point
+estimate is validated against `lmtp::lmtp_tmle(outcome_type = "survival")`
+and, degenerately, against `causatr::causat(estimator = "ipw")`. All IPW
+weight, density, truncation, bread, and correction primitives are reused
+from `causatr`; survatr composes the stabilized weight and the cross-time
+delta on top.
+
+Continuous / categorical / count treatment types and `ipsi()` are deferred
+to dedicated follow-up chunks (19 / 20) and abort with clear classed errors.
+
 ## 2026-06-02 — GAM hazard models work with sandwich variance
 
 `contrast(..., ci_method = "sandwich")` aborted with "non-conformable

@@ -272,7 +272,7 @@ Single source of truth for per-chunk status is the table below. Keep
 | 2 | ✅ `2525707` | [CHUNK_2_CONTRAST_A.md](CHUNK_2_CONTRAST_A.md) | Track A contrast path: per-individual hazards → survival curve → risk / RMST contrasts. **No variance yet.** Time-indexed `data.table` result shape. | 1 |
 | 3 | ✅ `a3f79cb` | [CHUNK_3_SANDWICH_A.md](CHUNK_3_SANDWICH_A.md) | Track A sandwich variance: delta-method cross-time IF aggregation on `causatr:::prepare_model_if()` / `apply_model_correction()`. | 2 |
 | 4 | ✅ `8a26904` | [CHUNK_4_BOOTSTRAP_S3.md](CHUNK_4_BOOTSTRAP_S3.md) | Track A bootstrap + S3 methods (`print` / `plot` / `tidy` / `forrest` for survival curves). | 2 |
-| 5 | ⬜ | [CHUNK_5_IPW_A.md](CHUNK_5_IPW_A.md) | Track A under IPW: baseline density-ratio weights from causatr, broadcast onto PP rows, weighted hazard MSM. | 2, causatr IPW |
+| 5 | ✅ | [CHUNK_5_IPW_A.md](CHUNK_5_IPW_A.md) | Track A under IPW (binary; `static` / `dynamic`): baseline stabilized density-ratio weights composed from causatr primitives, broadcast onto PP rows, weighted marginal hazard MSM, two-stage stacked sandwich + dual-refit bootstrap. Extended treatment types / `ipsi()` / external-weight transport deferred to chunks 19–21. | 2, causatr IPW |
 | 6 | ⬜ | [CHUNK_6_ICE_B.md](CHUNK_6_ICE_B.md) | Track B (ICE hazards): per-step hazard target + survival-tail pseudo-outcome, reuse causatr's `ice_iterate()` + `variance_if_ice()` via internal imports. | 3, causatr ICE |
 | 7 | ⬜ | [CHUNK_7_COMPETING_RISKS.md](CHUNK_7_COMPETING_RISKS.md) | Competing risks: parallel cause-specific hazards + CIF contrast + sandwich via stacked EE across cause-specific models. | 2, 3 |
 | 8 | ⬜ | [CHUNK_8_MATCHING_REJECTION.md](CHUNK_8_MATCHING_REJECTION.md) | Matching rejection path + classed error. (Already partially wired in chunk 1's `surv_fit()`; chunk 8 expands to the full rejection surface with a regression test.) | — |
@@ -286,9 +286,13 @@ Single source of truth for per-chunk status is the table below. Keep
 | 16 | ⬜ | [CHUNK_16_SIMULTANEOUS_BANDS.md](CHUNK_16_SIMULTANEOUS_BANDS.md) | Simultaneous / uniform confidence bands (multiplier bootstrap on the IF matrix). | 3 |
 | 17 | ⬜ | [CHUNK_17_TARGET_TRIAL.md](CHUNK_17_TARGET_TRIAL.md) | Target-trial alignment: landmark + immortal-time `diagnose()` check + vignette. | 2, 10 |
 | 18 | ⬜ | [CHUNK_18_RECURRENT_MULTISTATE.md](CHUNK_18_RECURRENT_MULTISTATE.md) | Recurrent events + multi-state (illness-death) models. | 2, 3, 7 |
+| 19 | ⬜ | [CHUNK_19_IPW_TREATMENT_TYPES.md](CHUNK_19_IPW_TREATMENT_TYPES.md) | IPW extended treatment types: continuous (gaussian pushforward), categorical (k>2), count (Poisson/NB). Generalizes the chunk-5 binary weight closure. | 5 |
+| 20 | ⬜ | [CHUNK_20_IPSI_SURVIVAL.md](CHUNK_20_IPSI_SURVIVAL.md) | IPSI survival (Kennedy 2019 weight-path estimand; not an MSM plug-in). | 5 |
+| 21 | ⬜ | [CHUNK_21_IPW_TRANSPORT_WEIGHTS.md](CHUNK_21_IPW_TRANSPORT_WEIGHTS.md) | Survey / external-weight composition with IPW (transport); sampling-block sandwich. | 5 |
 
-Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18. Chunks 11–18 ratified in the
-2026-06 scope review.
+Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext = 19–21 (deferred IPW
+extensions, spun out of the chunk-5 scope review). Chunks 11–18 ratified in the
+2026-06 scope review; 19–21 added 2026-06-02.
 
 ## Architecture notes
 
@@ -312,3 +316,29 @@ notes" for the style).
   aggregation on top of `causatr:::prepare_model_if()` and never inverts a
   matrix itself; the only `solve()` / `ginv()` is causatr's guarded
   `bread_inv()`. A rank-deficiency guard belongs there, not in survatr.
+- **IPW survival uses a stabilized observed-treatment weight composed in
+  survatr, not in causatr.** causatr's point IPW is Hájek-on-`Y ~ 1` and
+  *rejects* univariate stabilization (`causatr_stabilize_univariate`), so it has
+  no point-treatment `f(A)/f(A|L)` function to reuse. survatr composes the
+  stabilized weight from two `causatr:::evaluate_density()` calls (full `A ~ L`
+  denominator + marginal `A ~ 1` numerator), winsorizes with
+  `causatr:::truncate_weights()`, broadcasts the per-id weight onto the PP rows,
+  and fits a weighted marginal MSM via the existing `fit_hazard_gcomp(~1)`. The
+  weight is intervention-free, so the chunk-2/3 contrast + sandwich machinery is
+  reused unchanged for the curve.
+- **The IPW sandwich is a two-stage stacked EE; the cross block carries exactly
+  one factor of `n_ids`.** The weighted-MSM coefficients depend on the estimated
+  propensity, so the survival IF gains a *subtracted* treatment-model correction
+  `-J̄(t)' B_bb⁻¹ A_ba B_aa⁻¹ ψ_α`. survatr builds `A_ba` by `numDeriv`-
+  differentiating the weighted hazard score wrt `alpha` (mirroring causatr's
+  `phi_bar` idiom) and gets the correction via
+  `causatr:::apply_model_correction(prep_trt, g)` with **`n_total = n_ids`** for
+  the treatment-model prep (fit on baseline rows). That single `n_ids` matches
+  the chunk-3 hazard block's `n_ids · B_inv · ψ`; the `n_fit` in `h_t =
+  n_fit · B_inv · J̄` cancels the `1/n_fit` in `phi_bar`. Pinned empirically:
+  the stacked sandwich SE matches the full two-stage bootstrap (resamples ids,
+  refits both models) and is *narrower* than the naive weights-as-known SE for
+  stabilized weights (Robins 1999; Hernán et al. 2000) — do not "fix" it to be
+  wider. The marginal numerator's estimation is omitted from the IF
+  (conservative). Block-lower-triangularity holds only because the weight is
+  intervention-free; a weight that depends on `beta` would break it.

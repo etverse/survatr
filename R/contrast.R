@@ -149,6 +149,31 @@ contrast.survatr_fit <- function(
   type <- match.arg(type)
 
   validate_interventions(interventions)
+  ## IPSI (`causatr::ipsi()`) is an IPW-only intervention that reweights the
+  ## propensity (Kennedy 2019) rather than plugging a fixed treatment value into
+  ## the MSM, so it does not fit the static / dynamic plug-in path the survival
+  ## curve is built on. Its weight-path survival estimand ships in a dedicated
+  ## chunk; reject it here with a clear, classed message rather than letting the
+  ## generic `apply_intervention()` abort surface.
+  if (identical(fit$estimator, "ipw")) {
+    iv_types <- vapply(
+      interventions,
+      function(iv) if (is.null(iv$type)) NA_character_ else iv$type,
+      character(1L)
+    )
+    if (any(iv_types == "ipsi", na.rm = TRUE)) {
+      rlang::abort(
+        c(
+          "`ipsi()` is not yet supported for IPW survival.",
+          i = paste0(
+            "Incremental propensity-score interventions use a weight-path ",
+            "estimand (not an MSM plug-in) and ship in a dedicated chunk."
+          )
+        ),
+        class = "survatr_ipw_ipsi_deferred"
+      )
+    }
+  }
   ## Pairwise contrast types need at least two interventions (a non-
   ## reference vs a reference). Reject the single-intervention case
   ## upfront with a clear signal rather than silently returning an empty
@@ -227,7 +252,8 @@ contrast.survatr_fit <- function(
         prep = shared$prep,
         fit_idx = shared$fit_idx,
         id_vec = shared$id_vec,
-        unique_ids = shared$unique_ids
+        unique_ids = shared$unique_ids,
+        ipw_corr = shared$ipw_corr
       )
     })
     names(if_list) <- names(interventions)

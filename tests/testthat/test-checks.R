@@ -18,6 +18,27 @@ test_that("check_weights errors carry the survatr_bad_weights class", {
   expect_error(check_weights(c(1, 2), 3L), class = "survatr_bad_weights")
 })
 
+test_that("check_trim accepts NULL and values in (0, 1]", {
+  expect_silent(check_trim(NULL))
+  expect_silent(check_trim(1))
+  expect_silent(check_trim(0.95))
+  expect_silent(check_trim(0.5))
+})
+
+test_that("check_trim rejects out-of-range / non-scalar / non-finite values", {
+  expect_snapshot(check_trim(0), error = TRUE)
+  expect_snapshot(check_trim(1.5), error = TRUE)
+  expect_snapshot(check_trim(-0.2), error = TRUE)
+  expect_snapshot(check_trim(c(0.9, 0.95)), error = TRUE)
+  expect_snapshot(check_trim(NA_real_), error = TRUE)
+  expect_snapshot(check_trim("0.9"), error = TRUE)
+})
+
+test_that("check_trim errors carry the survatr_bad_trim class", {
+  expect_error(check_trim(0), class = "survatr_bad_trim")
+  expect_error(check_trim(2), class = "survatr_bad_trim")
+})
+
 test_that("check_dots_na_action accepts na.omit / na.fail / absent", {
   expect_silent(check_dots_na_action())
   expect_silent(check_dots_na_action(na.action = stats::na.omit))

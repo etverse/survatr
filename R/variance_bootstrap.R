@@ -78,11 +78,16 @@ bootstrap_survival <- function(
     k_t = k_t
   )
 
-  ## Preserve per-id weights when the original fit was weighted. Chunk 4
-  ## does not add weight-aware resampling on top of what the user already
-  ## supplied -- the weight vector simply travels with the sampled id's
-  ## rows. Chunk 5 (IPW) will add density-ratio weights as a separate path.
-  orig_weights <- fit$weights
+  ## Weight handling depends on the estimator. For gcomp with external weights,
+  ## the weight vector simply travels with the sampled id's rows (no re-
+  ## estimation). For IPW the weights are a FITTED quantity (stabilized
+  ## density ratios), so they must be re-estimated inside `surv_fit()` on each
+  ## replicate -- that is exactly what makes the bootstrap a full two-stage
+  ## resample that propagates the treatment-model uncertainty. Carrying the
+  ## original IPW weights would freeze the propensity fit and undercount the
+  ## variance, so we do NOT travel them for IPW.
+  is_ipw <- identical(fit$estimator, "ipw")
+  orig_weights <- if (is_ipw) NULL else fit$weights
 
   ## `boot::boot()` passes (data, indices) to the statistic function. We
   ## do not use `data_arg` directly -- the id vector is closed over as
@@ -116,8 +121,14 @@ bootstrap_survival <- function(
         censoring = fit$censoring,
         time_formula = fit$time_formula,
         weights = boot_w,
-        estimator = "gcomp",
-        model_fn = fit$model_fn
+        estimator = fit$estimator,
+        model_fn = fit$model_fn,
+        propensity_model_fn = if (is_ipw) {
+          fit$propensity_model_fn
+        } else {
+          stats::glm
+        },
+        trim = fit$trim
       ),
       error = function(e) NULL
     )

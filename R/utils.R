@@ -26,6 +26,20 @@ SURVATR_INTERNAL_COLS <- c(".survatr_prev_event", ".survatr_prev_cens")
 #' @param n_fit,n_total Integers: number of rows used to fit vs total PP rows.
 #' @param competing Column name passed to `surv_fit()`'s `competing` argument,
 #'   or `NULL`. Reserved for the cause-specific hazards + CIF path.
+#' @param treatment_model The full `A ~ L` `causatr_treatment_model` under
+#'   `estimator = "ipw"`, or `NULL` (gcomp). Used by the IPW sandwich and
+#'   `diagnose()`.
+#' @param marginal_model The marginal `A ~ 1` numerator
+#'   `causatr_treatment_model` under `estimator = "ipw"`, or `NULL`.
+#' @param trim_threshold Numeric scalar: the fixed weight-winsorization cutoff
+#'   used in the IPW fit (so the sandwich clips at the same value), or
+#'   `NA_real_` when no truncation / not IPW.
+#' @param propensity_model_fn Fitting function used for the treatment model
+#'   under `estimator = "ipw"`, or `NULL`. Stored so the bootstrap can refit the
+#'   treatment model identically per replicate.
+#' @param trim The `trim` quantile level passed to `surv_fit()` (not the
+#'   resolved cutoff), or `NULL`. Stored so the bootstrap re-estimates the
+#'   winsorization per replicate.
 #' @param call The original `match.call()` of `surv_fit()`.
 #'
 #' @return A list of class `survatr_fit`.
@@ -49,7 +63,12 @@ new_survatr_fit <- function(
   n_fit,
   n_total,
   competing,
-  call
+  call,
+  treatment_model = NULL,
+  marginal_model = NULL,
+  trim_threshold = NA_real_,
+  propensity_model_fn = NULL,
+  trim = NULL
 ) {
   structure(
     list(
@@ -71,6 +90,11 @@ new_survatr_fit <- function(
       n_fit = n_fit,
       n_total = n_total,
       competing = competing,
+      treatment_model = treatment_model,
+      marginal_model = marginal_model,
+      trim_threshold = trim_threshold,
+      propensity_model_fn = propensity_model_fn,
+      trim = trim,
       call = call
     ),
     class = "survatr_fit"
