@@ -273,5 +273,23 @@ Single source of truth for per-chunk status is the table below. Keep
 
 ## Architecture notes
 
-[Populated over time as hard-won learnings accumulate. See causatr's CLAUDE.md
-§"Architecture notes" for the style.]
+Hard-won learnings, appended over time (see causatr's CLAUDE.md §"Architecture
+notes" for the style).
+
+- **GAM hazard models + sandwich variance go through the lpmatrix basis.**
+  When `model_fn = mgcv::gam`, the sandwich path builds the counterfactual
+  design via `causatr:::iv_design_matrix()` (which returns
+  `predict(type = "lpmatrix")` for a gam), not `model.matrix(terms(model))`.
+  The latter degrades a smooth `s(t)` term to a linear `t`, producing a design
+  with fewer columns than `coef` / `model$Vp` and a "non-conformable arrays"
+  error. Relatedly, `predict.gam()` returns a 1-D array (a vector with a `dim`
+  attribute) while `predict.glm()` returns a plain vector, so link / response
+  predictions are coerced with `as.numeric()` before row-scaling. The bread for
+  a penalized gam is `model$Vp` (Bayesian posterior covariance) — mgcv's
+  default, with near-nominal frequentist coverage (Marra & Wood 2012). The gam
+  sandwich SE matches the analytically-validated GLM sandwich SE to within ~2%
+  on a constant-hazard DGP.
+- **All bread inversion lives in causatr.** survatr layers the cross-time delta
+  aggregation on top of `causatr:::prepare_model_if()` and never inverts a
+  matrix itself; the only `solve()` / `ginv()` is causatr's guarded
+  `bread_inv()`. A rank-deficiency guard belongs there, not in survatr.

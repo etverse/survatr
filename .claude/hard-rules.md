@@ -140,6 +140,44 @@ and a regression test:
 - **`validate_times()` accepts numeric + Date + POSIXct + POSIXlt +
   difftime.** `is.numeric()` alone rejects all time-like classes.
 
+### Established invariants from 2026-06-02 round-2 critical review
+
+Do NOT flag these as bugs. Each has a regression test.
+
+- **GAM × sandwich is supported and uses the lpmatrix basis + `Vp` bread.**
+  The counterfactual design for an `mgcv::gam` fit MUST be the
+  `predict(type = "lpmatrix")` basis, obtained via
+  `causatr:::iv_design_matrix()` — NOT `model.matrix(terms(model))`, which
+  silently degrades a smooth `s(t)` term to a linear `t` (fewer columns) and
+  is non-conformable with `B_inv = model$Vp`. `predict.gam()` also returns a
+  1-D array (a vector carrying a `dim` attribute); coerce the link / response
+  predictions to plain numeric before the row-scale `X_pp * s_row` or it
+  aborts with "non-conformable arrays". The `Vp`-as-bread strategy is mgcv's
+  own default and is justified for frequentist coverage by Marra & Wood
+  (2012, Scand. J. Stat. 39:53-74). Do not re-mark GAM × sandwich as
+  unsupported.
+- **survatr performs NO matrix inversion of its own.** Every bread inversion
+  is causatr's `prepare_model_if()` / `bread_inv()` (already `MASS::ginv()`-
+  guarded, with `$Vp` for GAMs). survatr's variance code is pure matrix
+  multiplication plus a guarded risk-ratio division. Do not add a
+  singular-bread guard to survatr's delta chain — there is no `solve()` there.
+- **`forrest()` has two distinct `t_ref` failure classes:** off-grid /
+  malformed `t_ref` → `survatr_bad_t_ref`; a valid grid time with no pairwise
+  contrast rows (empty `contrasts`, e.g. a single intervention) →
+  `survatr_forrest_no_contrasts`.
+- **Symmetric Wald CIs are intentional.** `point ± z·se` for differences
+  (risk / RMST) can legitimately produce negative bounds — a difference is
+  not a probability. Risk-ratio CIs are built on the log scale and
+  exponentiated. A `survival` / `risk` probability CI falling outside [0, 1]
+  is a known property of Wald intervals, not a bug; a cloglog / logit
+  transform is a possible future enhancement, not a correctness fix.
+- **The three `causatr:::` internals are contract-pinned** by
+  `test-causatr-integration.R`: `apply_intervention(data, treatment, iv)`;
+  `prepare_model_if(model, fit_idx, n_total)` returning `X_fit` / `B_inv` /
+  `r_score`; `iv_design_matrix(model, newdata)` returning a coef-aligned
+  design. The causatr remote is unpinned `main`; hard-pinning is deferred to
+  release time.
+
 ### Implementation conventions
 
 - **causatr is the engine.** Import `prepare_model_if()`,

@@ -75,7 +75,7 @@ reflects **current** state, not planned scope. Planned scope lives in
 | Sandwich CI for `rmst` (trapezoidal quadratic form) | 🟢 | `test-sandwich-rmst.R` | SE is non-negative, monotone non-decreasing in `t` (by construction of the cumulative trapezoidal integral of a positive IF), CI bounds finite. |
 | Sandwich CI for `rmst_difference` | 🟢 | `test-sandwich-rmst.R` | CI at `t = 10` covers 0 on a no-effect DGP (n = 3000). |
 | `conf_level` in (0, 1) | 🟢 | `test-contrast-rejections.R` | Rejects values outside the open interval with `survatr_bad_conf_level`. |
-| `model_fn` ≠ `stats::glm` (e.g. `mgcv::gam`) | 🔴 | — | Sandwich code uses `causatr:::prepare_model_if()` which abort-early on `mgcv::gam` without `$Vp`. Bootstrap (below) is the user path for non-GLM fitters. |
+| `model_fn = mgcv::gam` (penalized `s(t)` baseline) × sandwich | 🟢 | `test-sandwich-gam.R` | Counterfactual design built on the gam `lpmatrix` basis via `causatr:::iv_design_matrix()` to match the `model$Vp` bread; `predict.gam` 1-D-array output coerced to plain numeric. GAM sandwich SE matches the analytically-anchored GLM sandwich SE within 2% on a constant-hazard DGP, and tracks the bootstrap SE identically to the GLM. `Vp`-as-bread justified for frequentist coverage by Marra & Wood (2012). A gam fit lacking `$Vp` still aborts in `causatr:::bread_inv()`. |
 
 ### Bootstrap variance (`ci_method = "bootstrap"`, resample individuals)
 
@@ -100,7 +100,8 @@ reflects **current** state, not planned scope. Planned scope lives in
 | `print()` | 🟢 | `test-surv_fit.R`, `test-contrast.R` | Snapshot-pinned. Shows type, reference, ci_method, time grid, head of contrasts (or estimates for curve-only). |
 | `tidy()` | 🟢 | `test-tidy-survatr_result.R` | Long `data.frame` with `intervention`, `contrast`, `time`, `estimand`, `estimate`, `se`, `ci_lower`, `ci_upper`. `which` in `{"all", "estimates", "contrasts"}`; `conf.int = FALSE` drops CI columns. S3 method on the `generics::tidy` generic (re-exported). |
 | `plot()` | 🟢 | `test-plot-survatr_result.R` | Base-R graphics: curves for `survival` / `risk` / `rmst`, contrasts with reference line at 0 / 1 for the three pairwise types. CI ribbons via `adjustcolor` when populated. Smoke-only (no `vdiffr`). |
-| `forrest()` | 🟢 | `test-forrest-survatr_result.R` | Forest plot at a user-chosen `t_ref`. Aborts on curve-only types (`survatr_forrest_wrong_type`) and on `t_ref` outside `time_grid` (`survatr_bad_t_ref`). |
+| `forrest()` | 🟢 | `test-forrest-survatr_result.R` | Forest plot at a user-chosen `t_ref`. Aborts on curve-only types (`survatr_forrest_wrong_type`), on `t_ref` outside `time_grid` (`survatr_bad_t_ref`), and on a valid grid time with no pairwise contrast rows (`survatr_forrest_no_contrasts`). |
+| causatr internal-API contract (`apply_intervention`, `prepare_model_if`, `iv_design_matrix`) | 🟢 | `test-causatr-integration.R` | Pins the formal names + return shape of the three `causatr:::` internals survatr depends on, so an upstream signature drift fails loudly in CI rather than as a cryptic runtime error. |
 ### Bootstrap + S3 polish — ships in chunk 4.
 ### IPW weighted MSM — ships in chunk 5.
 
