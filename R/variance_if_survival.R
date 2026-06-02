@@ -66,6 +66,16 @@ compute_survival_if_matrix <- function(
 ) {
   pp_cf <- apply_intervention_pp(fit$pp_data, fit$treatment, intervention)
 
+  ## Key by (id, time) up front so every row-aligned quantity below -- the
+  ## design matrix, predicted hazards, the within-id cumulative survival, and
+  ## the per-time row pulls -- is computed in one canonical order.
+  ## `apply_intervention()` preserves the key today (so this `setkeyv` is a
+  ## no-op), but keying before we compute `X_pp` / `h` keeps the alignment
+  ## correct even if a future reshape were to drop it.
+  id_col <- fit$id
+  time_col <- fit$time
+  data.table::setkeyv(pp_cf, c(id_col, time_col))
+
   ## Counterfactual design matrix, on the SAME basis as the bread (B_inv) and
   ## the score design (prep X_fit). This is load-bearing and basis-specific.
   ## For a GLM it is the terms-based design with the model's stored factor
@@ -101,9 +111,7 @@ compute_survival_if_matrix <- function(
   ## Within-id cumulative survival: at row (i, k), `.cf_surv = S_i(k)`.
   ## Within-id cumulative sensitivity: at row (i, k),
   ## `cum_SX[i, k, :] = sum_{l <= k} s_{i,l} * X_{i,l}`.
-  id_col <- fit$id
-  time_col <- fit$time
-  data.table::setkeyv(pp_cf, c(id_col, time_col))
+  ## (pp_cf is already keyed by (id, time) at the top of the function.)
   ## Attach the per-row hazard as a column so the cumulative product inside
   ## `by = id_col` sees the grouped subset of `h` rather than the full
   ## enclosing vector (data.table's non-standard evaluation only scopes
