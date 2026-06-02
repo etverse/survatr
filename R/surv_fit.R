@@ -1,5 +1,6 @@
 #' Fit a causal survival hazard model on person-period data
 #'
+#' @description
 #' Fit-only entry point for survatr. Builds the risk set and fits the
 #' pooled-logistic discrete-time hazard model
 #' `logit h(t | A, L) = alpha(t) + beta_A A + beta_L L` on the at-risk
@@ -65,6 +66,22 @@
 #'
 #' @seealso `causatr::to_person_period()` for reshaping wide data.
 #'
+#' @family survatr_fit functions
+#' @examples
+#' # Small rectangular person-period dataset: 30 ids over 4 periods.
+#' set.seed(1)
+#' n_id <- 30L
+#' K <- 4L
+#' pp <- data.frame(
+#'   id = rep(seq_len(n_id), each = K),
+#'   t = rep(seq_len(K), times = n_id),
+#'   A = rep(rbinom(n_id, 1L, 0.5), each = K),
+#'   Y = rbinom(n_id * K, 1L, 0.1)
+#' )
+#'
+#' # Pooled-logistic hazard with period dummies for the baseline hazard.
+#' fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
+#' fit
 #' @export
 surv_fit <- function(
   data,

@@ -1,5 +1,6 @@
 #' Print a `survatr_fit`
 #'
+#' @description
 #' Minimal banner summary for the fit object returned by `surv_fit()`.
 #' Reports the track, estimator, outcome / treatment / id / time columns,
 #' number of individuals, number of person-period rows used to fit, and the
@@ -10,6 +11,19 @@
 #' @param ... Unused.
 #'
 #' @return The fit object, invisibly.
+#' @family survatr_fit functions
+#' @examples
+#' set.seed(1)
+#' n_id <- 30L
+#' K <- 4L
+#' pp <- data.frame(
+#'   id = rep(seq_len(n_id), each = K),
+#'   t = rep(seq_len(K), times = n_id),
+#'   A = rep(rbinom(n_id, 1L, 0.5), each = K),
+#'   Y = rbinom(n_id * K, 1L, 0.1)
+#' )
+#' fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
+#' print(fit)
 #' @export
 print.survatr_fit <- function(x, ...) {
   n_id <- length(unique(x$pp_data[[x$id]]))
@@ -42,6 +56,7 @@ print.survatr_fit <- function(x, ...) {
 
 #' Print a `survatr_result`
 #'
+#' @description
 #' Minimal banner + head of the result's `contrasts` (or `estimates` for
 #' curve-only `type`s). A polished print + `plot` / `tidy` / `forrest`
 #' surface ships with the S3 polish in a later chunk.
@@ -52,6 +67,25 @@ print.survatr_fit <- function(x, ...) {
 #' @param ... Unused.
 #'
 #' @return The result object, invisibly.
+#' @family survatr_result methods
+#' @examples
+#' set.seed(2)
+#' n_id <- 40L
+#' K <- 5L
+#' pp <- data.frame(
+#'   id = rep(seq_len(n_id), each = K),
+#'   t = rep(seq_len(K), times = n_id),
+#'   A = rep(rbinom(n_id, 1L, 0.5), each = K),
+#'   Y = rbinom(n_id * K, 1L, 0.1)
+#' )
+#' fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
+#' res <- contrast(
+#'   fit,
+#'   interventions = list(a1 = causatr::static(1), a0 = causatr::static(0)),
+#'   times = 1:5,
+#'   type = "risk_difference"
+#' )
+#' print(res)
 #' @export
 print.survatr_result <- function(x, n = 10L, ...) {
   tg <- x$time_grid

@@ -1,5 +1,10 @@
 #' Trapezoidal cumulative RMST
 #'
+#' @description
+#' Restricted mean survival time as the area under the survival curve,
+#' approximated by the trapezoidal rule on the discrete period grid.
+#'
+#' @details
 #' Restricted mean survival time at t* is `RMST(t*) = int_0^{t*} S(u) du`.
 #' For Track A on discrete periods we approximate with the trapezoidal rule
 #' on `times`, prepending `t_0 = 0` with `S(0) = 1` so the integral starts
@@ -10,6 +15,10 @@
 #' with `t_0 = 0`, `S_0 = 1`. This returns RMST at **every** time in
 #' `times`, not just the last one -- users who want only `t* = max(times)`
 #' filter after the fact.
+#'
+#' Source: Hernán & Robins (2020), *Causal Inference: What If*, Ch. 17
+#' (restricted mean survival as the area under the standardized survival
+#' curve); see also `CHUNK_2_CONTRAST_A.md`.
 #'
 #' @param times Numeric vector, sorted ascending, first value > 0.
 #' @param s_hat Numeric vector of survival estimates at each `times` entry.
@@ -30,6 +39,12 @@ trapezoidal_rmst <- function(times, s_hat) {
 
 #' Trapezoidal weights on a time grid
 #'
+#' @description
+#' Linear map from the survival vector `S(t_1), ..., S(t_K)` to the
+#' cumulative RMST at each grid time, i.e. the Jacobian of
+#' `trapezoidal_rmst()` with respect to `s_hat`.
+#'
+#' @details
 #' Return the matrix `W` such that the cumulative RMST at `times` equals
 #' `W %*% s_hat + dt[1] / 2`, where the `dt[1] / 2` constant is the
 #' contribution from the prepended `(0, S(0) = 1)` point and does not
@@ -45,6 +60,10 @@ trapezoidal_rmst <- function(times, s_hat) {
 #' - `W[j, i] = (dt[i] + dt[i+1]) / 2` for `1 < i < j` (interior)
 #' - `W[j, j] = dt[j] / 2` for `j >= 2` (last point, half-interval)
 #' - `W[j, i] = 0` for `i > j` (future times do not enter RMST(t_j))
+#'
+#' Source: trapezoidal differentiation of the RMST integral in
+#' Hernán & Robins (2020), *Causal Inference: What If*, Ch. 17; the
+#' delta-method use of `W` is detailed in `CHUNK_3_SANDWICH_A.md`.
 #'
 #' @param times Numeric vector, sorted ascending, first value > 0.
 #'

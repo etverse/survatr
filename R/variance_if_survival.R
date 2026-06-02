@@ -1,5 +1,11 @@
 #' Compute the per-individual influence function matrix for S^a(t)
 #'
+#' @description
+#' Build the `n_ids x |times|` matrix of per-individual influence functions
+#' for the standardized counterfactual survival curve `S^a(t)`, used by the
+#' sandwich-variance path to form `crossprod(IF) / n_ids^2`.
+#'
+#' @details
 #' Implements the delta-method cross-time IF chain described in
 #' `CHUNK_3_SANDWICH_A.md`:
 #'
@@ -24,6 +30,10 @@
 #' `h(1 - h)` in `mu_eta`), but the code uses the general formula so a
 #' future chunk that swaps in a non-logit link does not need to revisit the
 #' derivation.
+#'
+#' Source: cumulative-product survival standardization in Hernán & Robins
+#' (2020), *Causal Inference: What If*, Ch. 17; the cross-time delta chain
+#' is derived in `CHUNK_3_SANDWICH_A.md`.
 #'
 #' @param fit A `survatr_fit`.
 #' @param intervention A single `causatr_intervention`.
@@ -77,8 +87,10 @@ compute_survival_if_matrix <- function(
   h <- as.numeric(stats::predict(fit$model, newdata = pp_cf, type = "response"))
   mu_eta <- fit$model$family$mu.eta(eta)
   ## Per-row sensitivity of log(1 - h) wrt beta is -(s_row * X). For the
-  ## logit link s_row simplifies to h itself; the general formula below
-  ## handles any family providing mu_eta() and variance().
+  ## logit link `mu.eta(eta) = dh/deta = h (1 - h)`, so the `(1 - h)` in the
+  ## denominator below cancels exactly and `s_row` collapses to `h` itself.
+  ## We keep the general `mu_eta / (1 - h)` form so any family providing
+  ## mu_eta() and variance() (e.g. a future non-logit link) works unchanged.
   s_row <- mu_eta / (1 - h)
 
   ## Within-id cumulative survival: at row (i, k), `.cf_surv = S_i(k)`.

@@ -82,9 +82,46 @@ the per-row hazard, cumulate within individual to get \code{S^a_i(t)}, and
 average across individuals to get the population survival curve
 \verb{S^a(t) = (1/n) sum_i S^a_i(t)}. Derive risk / risk-difference /
 risk-ratio / RMST / RMST-difference contrasts from there.
-}
-\details{
+
 \strong{No variance in this chunk.} All \code{se} / \verb{ci_*} columns come back as
 \code{NA_real_}; sandwich variance ships with chunk 3 (delta-method cross-time
 IF aggregation) and bootstrap with chunk 4.
 }
+\examples{
+# Small rectangular person-period dataset: 40 ids over 5 periods.
+set.seed(2)
+n_id <- 40L
+K <- 5L
+pp <- data.frame(
+  id = rep(seq_len(n_id), each = K),
+  t = rep(seq_len(K), times = n_id),
+  A = rep(rbinom(n_id, 1L, 0.5), each = K),
+  Y = rbinom(n_id * K, 1L, 0.1)
+)
+
+fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
+
+ivs <- list(a1 = causatr::static(1), a0 = causatr::static(0))
+
+# Point-estimate survival curves under each intervention.
+contrast(fit, interventions = ivs, times = 1:5, type = "survival")
+
+# Risk difference with delta-method sandwich CIs.
+contrast(
+  fit,
+  interventions = ivs,
+  times = 1:5,
+  type = "risk_difference",
+  ci_method = "sandwich"
+)
+}
+\seealso{
+Other survatr_result methods: 
+\code{\link{contrast}()},
+\code{\link{forrest}()},
+\code{\link{forrest.survatr_result}()},
+\code{\link{plot.survatr_result}()},
+\code{\link{print.survatr_result}()},
+\code{\link{tidy.survatr_result}()}
+}
+\concept{survatr_result methods}

@@ -1,9 +1,17 @@
 #' Fill sandwich variance into a `survatr_result`
 #'
-#' Takes the chunk-2 `estimates` / `contrasts` tables and the list of
-#' per-intervention IF matrices, computes pointwise SEs via
-#' `crossprod(IF) / n_ids^2`, Wald CIs at `conf_level`, and replaces the
-#' `NA_real_` columns. Handles the six contrast types:
+#' @description
+#' Take the chunk-2 `estimates` / `contrasts` tables plus the
+#' per-intervention IF matrices, aggregate them into pointwise SEs and Wald
+#' CIs at `conf_level`, and replace the `NA_real_` placeholder columns.
+#'
+#' @details
+#' Pointwise variance comes from the cross-time IF covariance
+#' `V = crossprod(IF) / n_ids^2` (per-individual IFs are stacked rows, so the
+#' empirical-mean variance carries the `1 / n_ids^2` scaling). SEs are the
+#' square root of its diagonal; Wald CIs are `point +/- z * se` with
+#' `z = qnorm(1 - (1 - conf_level) / 2)`. The six contrast types map onto
+#' this as:
 #'
 #' - `survival` / `risk`: SE on `s_hat` / `1 - s_hat` is the same
 #'   (`IF_risk = -IF_S`).
@@ -15,6 +23,11 @@
 #' - `risk_ratio`: log-RR IF built pointwise per time; CI computed on the
 #'   log scale and exponentiated so the reported `ci_lower` / `ci_upper`
 #'   are always strictly positive.
+#'
+#' Source: M-estimation sandwich aggregation of the cumulative-product
+#' survival IF, grounded in Hernán & Robins (2020), *Causal Inference: What
+#' If*, Ch. 17; the cross-time delta derivation lives in
+#' `CHUNK_3_SANDWICH_A.md`.
 #'
 #' @param estimates Per-intervention estimates `data.table` from chunk 2.
 #' @param contrasts Contrast `data.table` from chunk 2.

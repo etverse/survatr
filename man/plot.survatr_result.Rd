@@ -46,8 +46,6 @@ The \code{survatr_result}, invisibly.
 Base-R graphics rendering of survival / risk / RMST curves or of
 risk-difference / risk-ratio / RMST-difference contrasts. Dispatches
 on \code{x$type}:
-}
-\details{
 \itemize{
 \item \code{survival} / \code{risk} / \code{rmst}: one line per intervention (colored),
 CI ribbons when populated.
@@ -56,3 +54,32 @@ contrast (colored), CI ribbons when populated, and a reference line
 at 0 (for differences) or 1 (for ratios).
 }
 }
+\examples{
+set.seed(2)
+n_id <- 40L
+K <- 5L
+pp <- data.frame(
+  id = rep(seq_len(n_id), each = K),
+  t = rep(seq_len(K), times = n_id),
+  A = rep(rbinom(n_id, 1L, 0.5), each = K),
+  Y = rbinom(n_id * K, 1L, 0.1)
+)
+fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
+res <- contrast(
+  fit,
+  interventions = list(a1 = causatr::static(1), a0 = causatr::static(0)),
+  times = 1:5,
+  type = "survival"
+)
+plot(res)
+}
+\seealso{
+Other survatr_result methods: 
+\code{\link{contrast}()},
+\code{\link{contrast.survatr_fit}()},
+\code{\link{forrest}()},
+\code{\link{forrest.survatr_result}()},
+\code{\link{print.survatr_result}()},
+\code{\link{tidy.survatr_result}()}
+}
+\concept{survatr_result methods}

@@ -1,5 +1,6 @@
 #' Forest-plot generic
 #'
+#' @description
 #' S3 generic for forest-style plots at a user-chosen reference time.
 #' survatr ships `forrest.survatr_result()` which slices the result at a
 #' single `t_ref` and renders one row per pairwise contrast with a point
@@ -12,6 +13,25 @@
 #' @param ... Arguments passed to methods.
 #'
 #' @return Method-dependent.
+#' @family survatr_result methods
+#' @examples
+#' set.seed(2)
+#' n_id <- 40L
+#' K <- 5L
+#' pp <- data.frame(
+#'   id = rep(seq_len(n_id), each = K),
+#'   t = rep(seq_len(K), times = n_id),
+#'   A = rep(rbinom(n_id, 1L, 0.5), each = K),
+#'   Y = rbinom(n_id * K, 1L, 0.1)
+#' )
+#' fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
+#' res <- contrast(
+#'   fit,
+#'   interventions = list(a1 = causatr::static(1), a0 = causatr::static(0)),
+#'   times = 1:5,
+#'   type = "risk_difference"
+#' )
+#' forrest(res, t_ref = 5)
 #' @export
 forrest <- function(x, ...) {
   UseMethod("forrest")
@@ -19,6 +39,7 @@ forrest <- function(x, ...) {
 
 #' Forest plot of contrasts at a reference time
 #'
+#' @description
 #' Extract the row(s) of `x$contrasts` at `t_ref` and render a
 #' horizontal forest plot: one row per contrast, with point estimate,
 #' 95% CI (from `x$ci_method`), and a textual label. Only available for
@@ -34,6 +55,26 @@ forrest <- function(x, ...) {
 #' @param ... Passed to `plot.default()`.
 #'
 #' @return The `survatr_result`, invisibly.
+#' @family survatr_result methods
+#' @examples
+#' set.seed(2)
+#' n_id <- 40L
+#' K <- 5L
+#' pp <- data.frame(
+#'   id = rep(seq_len(n_id), each = K),
+#'   t = rep(seq_len(K), times = n_id),
+#'   A = rep(rbinom(n_id, 1L, 0.5), each = K),
+#'   Y = rbinom(n_id * K, 1L, 0.1)
+#' )
+#' fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
+#' res <- contrast(
+#'   fit,
+#'   interventions = list(a1 = causatr::static(1), a0 = causatr::static(0)),
+#'   times = 1:5,
+#'   type = "risk_difference",
+#'   ci_method = "sandwich"
+#' )
+#' forrest(res, t_ref = 5)
 #' @method forrest survatr_result
 #' @export
 forrest.survatr_result <- function(
