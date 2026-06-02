@@ -48,6 +48,11 @@ sandwich-vs-bootstrap gap, not GAM-specific). New tests in
 - `plot.survatr_result()` builds its per-group row mask in plain R instead of
   `tbl[get(group_col) == g]`, so a column literally named `g` can no longer
   shadow the grouping variable under data.table non-standard evaluation.
+- Added an integration test that pins the contract (formal names + return
+  shape) of the three unexported causatr functions survatr calls via `:::`
+  (`apply_intervention`, `prepare_model_if`, `iv_design_matrix`). Because the
+  causatr remote is an unpinned GitHub `main`, this turns an upstream
+  signature drift into a loud CI failure instead of a cryptic runtime error.
 
 ## 2026-04-22 — Round-1 critical review: 9 fixes across chunks 1–4
 
