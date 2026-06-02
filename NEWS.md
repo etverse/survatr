@@ -1,5 +1,35 @@
 # survatr (development version)
 
+## 2026-06-02 — GAM hazard models work with sandwich variance
+
+`contrast(..., ci_method = "sandwich")` aborted with "non-conformable
+arrays" for any hazard model fit with `mgcv::gam` — advertised as a
+supported `model_fn`. Two independent causes:
+
+- The counterfactual design matrix was built with the terms-based
+  `model.matrix()`, which silently degrades a smooth `s(t)` term to a
+  linear `t` (fewer columns than the penalized linear-predictor basis),
+  leaving it non-conformable with the `model$Vp` bread that
+  `causatr:::prepare_model_if()` correctly returns for a GAM. It is now
+  built via `causatr:::iv_design_matrix()`, which uses the
+  `predict(type = "lpmatrix")` basis for GAMs and a level-aware,
+  aliased-column-dropping `model.matrix()` for GLMs — the latter also
+  hardens single-level factor interventions and rank-deficient GLM
+  designs.
+- `predict.gam()` returns a 1-D array (carrying a `dim` attribute) where
+  `predict.glm()` returns a plain vector, so the per-row hazard
+  sensitivity scaling multiplied two arrays of different shape. The link
+  and response predictions are now coerced to plain numeric.
+
+The `Vp`-as-bread + lpmatrix strategy is mgcv's own default (`vcov.gam`)
+and is justified for frequentist coverage by Marra & Wood (2012, Scand.
+J. Stat. 39:53–74). Validated numerically: on a constant-hazard DGP the
+GAM sandwich SE matches the analytically-anchored GLM sandwich SE
+pointwise to under 2%, and tracks the bootstrap SE identically to the
+GLM (both ~4% below at n = 1000, R = 1000 — a generic finite-sample
+sandwich-vs-bootstrap gap, not GAM-specific). New tests in
+`test-sandwich-gam.R`.
+
 ## 2026-04-22 — Round-1 critical review: 9 fixes across chunks 1–4
 
 A full adversarial review of the 214-test chunk-1/2/3/4 surface produced

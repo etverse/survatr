@@ -51,14 +51,30 @@ compute_survival_if_matrix <- function(
 ) {
   pp_cf <- apply_intervention_pp(fit$pp_data, fit$treatment, intervention)
 
-  ## Design matrix under the intervention. We strip the response side of the
-  ## model's formula so model.matrix() accepts newdata even when the outcome
-  ## column has been intervened upon in some weird downstream use case.
-  tt <- stats::delete.response(stats::terms(fit$model))
-  X_pp <- stats::model.matrix(tt, data = pp_cf)
+  ## Counterfactual design matrix, on the SAME basis as the bread (B_inv) and
+  ## the score design (prep X_fit). This is load-bearing and basis-specific.
+  ## For a GLM it is the terms-based design with the model's stored factor
+  ## levels reused and aliased (collinear) columns dropped, so a single-level
+  ## factor intervention and rank-deficient designs still align with the
+  ## cleaned coefficient vector. For an mgcv GAM it is the penalized
+  ## linear-predictor "lpmatrix" basis, whose column count equals the
+  ## coefficient length and matches the Bayesian posterior covariance Vp used
+  ## as the bread. A terms-based design degrades a penalized smooth term on
+  ## time to a linear time effect (fewer columns than the lpmatrix), which is
+  ## non-conformable with the bread. We reuse causatr's design-matrix helper
+  ## rather than re-rolling the GLM/GAM split, per the "causatr is the engine;
+  ## do not reimplement the IF primitives" rule. The Vp-as-bread plus lpmatrix
+  ## strategy is mgcv's own default and is justified for frequentist coverage
+  ## by Marra & Wood (2012, Scand. J. Stat. 39:53-74).
+  X_pp <- causatr:::iv_design_matrix(fit$model, pp_cf)
 
-  eta <- stats::predict(fit$model, newdata = pp_cf, type = "link")
-  h <- stats::predict(fit$model, newdata = pp_cf, type = "response")
+  ## `predict.gam()` returns a 1-D array (a numeric vector carrying a `dim`
+  ## attribute), whereas `predict.glm()` returns a plain vector. The later
+  ## row-scaling `X_pp * s_row` would then multiply two arrays with
+  ## different dims and abort with "non-conformable arrays". Coerce to plain
+  ## numeric so the recycling row-scale behaves identically for GLM and GAM.
+  eta <- as.numeric(stats::predict(fit$model, newdata = pp_cf, type = "link"))
+  h <- as.numeric(stats::predict(fit$model, newdata = pp_cf, type = "response"))
   mu_eta <- fit$model$family$mu.eta(eta)
   ## Per-row sensitivity of log(1 - h) wrt beta is -(s_row * X). For the
   ## logit link s_row simplifies to h itself; the general formula below
