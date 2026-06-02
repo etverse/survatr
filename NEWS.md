@@ -33,9 +33,11 @@ treatment-model correction that propagates the propensity-score uncertainty
 through a numeric cross-derivative. For stabilized weights this *narrows*
 the SE relative to treating the weights as known (Robins 1999; Hernán et
 al. 2000); the stacked sandwich matches the full two-stage bootstrap (which
-re-estimates both models per replicate), validated to within 15%. The point
-estimate is validated against `lmtp::lmtp_tmle(outcome_type = "survival")`
-and, degenerately, against `causatr::causat(estimator = "ipw")`. All IPW
+re-estimates both models per replicate) to within 15%, and matches an
+**independent** `delicatessen` stacked-M-estimation sandwich (Python) to ~1e-4
+on shared data. The point estimate is validated against
+`lmtp::lmtp_tmle(outcome_type = "survival")` and, degenerately, against
+`causatr::causat(estimator = "ipw")`. All IPW
 weight, density, truncation, bread, and correction primitives are reused
 from `causatr`; survatr composes the stabilized weight and the cross-time
 delta on top.

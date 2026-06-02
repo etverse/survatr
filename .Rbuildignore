@@ -54,3 +54,4 @@
 ^vignettes/\.quarto$
 ^vignettes/.*\.html$
 ^vignettes/.*_files$
+^data-raw$

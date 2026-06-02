@@ -195,8 +195,10 @@ Do NOT flag these as bugs. Each has a regression test.
   `n_ids`.** It is built via `numDeriv` on the weighted-MSM `phi_bar` (÷ n_fit)
   and `causatr:::apply_model_correction(prep_trt, g)` with `prep_trt` at
   `n_total = n_ids`; the `n_fit` in `h_t = n_fit·B_inv·J̄` cancels `phi_bar`'s
-  `1/n_fit`. Validated: stacked sandwich SE ≈ full two-stage bootstrap. Do not
-  add or remove an `n_ids` factor without re-running the bootstrap pin.
+  `1/n_fit`. Validated two ways: stacked sandwich SE ≈ full two-stage bootstrap,
+  and ≈ an independent `delicatessen` stacked-EE sandwich to ~1e-4 on shared
+  data (`test-ipw-delicatessen.R`). Do not add or remove an `n_ids` factor
+  without re-running those pins.
 - **For stabilized weights the stacked SE is NARROWER than the naive
   weights-as-known SE.** The treatment-model correction is subtracted (it
   projects out the variance explained by the propensity score). Do not "fix"
