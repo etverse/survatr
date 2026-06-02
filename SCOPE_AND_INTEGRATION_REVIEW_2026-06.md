@@ -151,6 +151,27 @@ on bugs (honest outcome). Findings, de-noised:
 
 Full suite after all fixes: all pass, 1 pre-existing skip (lmtp oracle declines the toy DGP). New durable invariants recorded in `.claude/hard-rules.md` (§ round-2).
 
-### 3.2 Parked for the maintainer
+### 3.2 Scope decisions — RATIFIED 2026-06-02
 
-§2.4 (scope decisions: AIPW in/out, cheap estimand additions, unmentioned-method ratification) is **on hold pending a maintainer discussion** — to be resolved at the end of the session, then folded into `CLAUDE.md` scope + `SURVIVAL_PACKAGE_HANDOFF.md` §10 roadmap. Clear-cut items to apply once confirmed: assign IPCW its own chunk, ship a truncation-by-death caveat with chunk 7, leave survival/risk CIs as raw Wald for v1.
+§2.4 was resolved with the maintainer. Every item resolved toward inclusion;
+the roadmap grew by 8 chunks (11–18), folded into
+`SURVIVAL_PACKAGE_HANDOFF.md` §10 + the CLAUDE.md chunk table, each with its own
+`CHUNK_<n>_*.md` plan.
+
+| Decision | Outcome | Chunk |
+|---|---|---|
+| Doubly-robust (AIPW) survival | **In** — parametric only (ML/TMLE stays out → lmtp/concrete) | 15 |
+| IPCW (own chunk) | **In** (was "motivating" but unchunked) | 11 |
+| Survival quantiles / median | **In** | 12 |
+| RMTL + years-of-life-lost | **In** | 12 |
+| Cluster-robust SE | **In** | 13 |
+| Left-truncation / delayed entry | **In** | 14 |
+| Simultaneous confidence bands | **In** (v2) | 16 |
+| Target-trial / landmark / immortal-time | **In** (v2) | 17 |
+| Recurrent / multi-state events | **In** (v2; large lift) | 18 |
+
+Clear-cut items applied without a question: truncation-by-death caveat ships
+with chunk 7; survival/risk CIs stay raw Wald for v1 (cloglog transform
+deferred). **Phasing:** v1 = 1–10, v1.x = 11–15, v2 = 16–18. **Out of scope
+(ratified):** ML/TMLE survival (→ lmtp), forward-sim g-formula (→ gfoRmula),
+Fine–Gray subdistribution hazards, Cox-PH modelling, matching.

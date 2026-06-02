@@ -27,16 +27,18 @@ Project-specific rules that override / extend the etverse-wide rules at
 | Dimension | Values |
 |---|---|
 | **Track** | A (point treatment + pooled-logistic hazard), B (longitudinal ICE-hazards) |
-| **Estimator** | gcomp (pooled-logistic), ipw (weighted hazard MSM), ice (hazard pseudo-outcome). **Matching: hard-abort.** |
+| **Estimator** | gcomp (pooled-logistic), ipw (weighted hazard MSM), ice (hazard pseudo-outcome), aipw (parametric doubly-robust; ML/TMLE out). **Matching: hard-abort.** |
 | **Treatment timing** | point (Track A), longitudinal (Track B) |
 | **Treatment type** | binary, continuous, categorical (k>2), count (Poisson/NB, IPW only), multivariate (via causatr inheritance) |
 | **Outcome family** | binomial hazard (first-step / indicator), quasibinomial (pseudo-outcome / weighted fits) |
 | **Model class** | GLM (pooled logistic), GAM (via `mgcv::gam` with `s(t)` for baseline hazard) |
 | **Intervention** | static, shift, scale_by, threshold (gcomp only), dynamic, ipsi (IPW only), stochastic (pending) |
-| **Estimand** | survival S^a(t), risk 1 - S^a(t), risk difference, risk ratio, RMST up to t* |
+| **Estimand** | survival S^a(t), risk 1 - S^a(t), risk difference, risk ratio, RMST + RMTL up to t*, survival quantiles / median, per-cause years-of-life-lost |
 | **Contrast type** | difference, ratio |
-| **Variance method** | sandwich (delta-method cross-time IF), bootstrap (resample individuals), numeric Tier 1/2 fallback |
+| **Variance method** | sandwich (delta-method cross-time IF; pointwise + simultaneous bands; cluster-robust), bootstrap (resample individuals), numeric Tier 1/2 fallback |
 | **Weights** | none, survey/external, censoring row-filter, IPCW (cumulative, per-period) |
+| **Entry / truncation** | right-censoring, left-truncation / delayed entry |
+| **Event structure** | single terminal event, competing risks, recurrent events, multi-state / illness-death |
 | **Competing risks** | cause-specific hazards + CIF (first-class); Fine-Gray / subdistribution hazards out of scope |
 
 ## Hard rules (appended to the skill's generic rules)

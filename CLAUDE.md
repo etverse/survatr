@@ -149,12 +149,18 @@ Run this in the shell:
 survatr is a **causal survival analysis package** for time-to-event outcomes,
 built on top of causatr. It owns: pooled-logistic hazard g-computation (Track
 A), iterated-conditional-expectation hazards for longitudinal survival
-(Track B), IPW weighted hazard MSM, cause-specific hazards + CIF for
-competing risks, and sandwich variance via delta-method propagation through
-the cumulative product. It is NOT: a Cox-PH modelling package (use
-`survival`), a TMLE/ML survival package (use `lmtp`), a forward-simulation
-g-formula for survival (use `gfoRmula`), or a Fine–Gray subdistribution
-hazards package.
+(Track B), IPW weighted hazard MSM, built-in IPCW, **parametric** doubly-robust
+(AIPW) survival, cause-specific hazards + CIF for competing risks, recurrent-
+event and multi-state (illness-death) extensions, left-truncation, and a
+curve-valued estimand surface (survival, risk, RD, RR, RMST, RMTL, survival
+quantiles / median, years-of-life-lost) with sandwich variance (delta-method
+through the cumulative product; pointwise + simultaneous bands; cluster-robust)
+and bootstrap. The chunk table below is the phased roadmap (v1 = 1–10, v1.x =
+11–15, v2 = 16–18). It is NOT: a Cox-PH modelling package (use `survival`), an
+**ML / TMLE** survival package (use `lmtp` — survatr's AIPW is parametric /
+M-estimation only), a forward-simulation g-formula for survival (use
+`gfoRmula`), or a Fine–Gray subdistribution-hazards package (competing risks
+are cause-specific only).
 
 ### Why a separate package (see handoff §1)
 
@@ -201,14 +207,16 @@ quasibinomial at k < K.
 | Dimension | Values |
 |---|---|
 | **Track** | A (point-treatment pooled-logistic hazard), B (longitudinal ICE hazards) |
-| **Estimator** | gcomp, ipw, ice. **Matching: hard-reject.** |
+| **Estimator** | gcomp, ipw, ice, aipw (parametric doubly-robust; ML/TMLE out). **Matching: hard-reject.** |
 | **Treatment type** | binary, continuous, categorical k>2, count (Poisson/NB, IPW only), multivariate (via causatr inheritance) |
 | **Outcome** | binomial hazard (at K), quasibinomial pseudo-outcome (at k < K and weighted fits) |
 | **Interventions** | `static`, `shift`, `scale_by`, `threshold` (gcomp only), `dynamic`, `ipsi` (IPW only). All constructed via `causatr::` |
-| **Estimand** | survival S^a(t), risk 1 − S^a(t), risk difference, risk ratio, RMST up to t* |
-| **Variance** | sandwich (delta-method cross-time IF aggregation), bootstrap (resample individuals), numeric Tier 1/2 fallback |
+| **Estimand** | survival S^a(t), risk 1 − S^a(t), risk difference, risk ratio, RMST + RMTL up to t*, survival quantiles / median, per-cause years-of-life-lost |
+| **Variance** | sandwich (delta-method cross-time IF; pointwise + simultaneous bands; cluster-robust), bootstrap (resample individuals), numeric Tier 1/2 fallback |
+| **Event structure** | single terminal event, competing risks (cause-specific + CIF), recurrent events, multi-state / illness-death |
 | **Competing risks** | cause-specific hazards + CIF. Fine–Gray out of scope. |
-| **Weights** | none, survey/external (broadcast onto PP rows), censoring row-filter, IPCW (per-period cumulative — this is the *motivating* use case for IPCW) |
+| **Entry / censoring** | right-censoring (row filter + IPCW per-period cumulative — the *motivating* IPCW case), left-truncation / delayed entry |
+| **Weights** | none, survey/external (broadcast onto PP rows), censoring row-filter, IPCW (per-period cumulative) |
 
 ## Key design decisions
 
@@ -270,6 +278,17 @@ Single source of truth for per-chunk status is the table below. Keep
 | 8 | ⬜ | [CHUNK_8_MATCHING_REJECTION.md](CHUNK_8_MATCHING_REJECTION.md) | Matching rejection path + classed error. (Already partially wired in chunk 1's `surv_fit()`; chunk 8 expands to the full rejection surface with a regression test.) | — |
 | 9 | ⬜ | [CHUNK_9_NHEFS_REPLICATION.md](CHUNK_9_NHEFS_REPLICATION.md) | NHEFS Ch. 17 replication test + `survival` vignette. | 2–7 |
 | 10 | ⬜ | [CHUNK_10_DIAGNOSE.md](CHUNK_10_DIAGNOSE.md) | Survival-aware `diagnose()`: per-period hazard positivity, cross-time balance, competing-risks decomposition. | 2, 7 |
+| 11 | ⬜ | [CHUNK_11_IPCW.md](CHUNK_11_IPCW.md) | Built-in IPCW: per-period cumulative censoring weights → weighted hazard MSM; stacked EE with censoring-model blocks. | 5 |
+| 12 | ⬜ | [CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md](CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md) | Estimands: survival quantiles / median, RMTL, per-cause years-of-life-lost. | 2, 3, 7 |
+| 13 | ⬜ | [CHUNK_13_CLUSTER_ROBUST_SE.md](CHUNK_13_CLUSTER_ROBUST_SE.md) | Cluster-robust sandwich (`cluster=` IF aggregation). | 3 |
+| 14 | ⬜ | [CHUNK_14_LEFT_TRUNCATION.md](CHUNK_14_LEFT_TRUNCATION.md) | Left-truncation / delayed entry (delayed risk-set start). | 1, 2 |
+| 15 | ⬜ | [CHUNK_15_AIPW.md](CHUNK_15_AIPW.md) | Parametric doubly-robust (AIPW) survival; stacked-EE sandwich. ML/TMLE out. | 5, 7, 11 |
+| 16 | ⬜ | [CHUNK_16_SIMULTANEOUS_BANDS.md](CHUNK_16_SIMULTANEOUS_BANDS.md) | Simultaneous / uniform confidence bands (multiplier bootstrap on the IF matrix). | 3 |
+| 17 | ⬜ | [CHUNK_17_TARGET_TRIAL.md](CHUNK_17_TARGET_TRIAL.md) | Target-trial alignment: landmark + immortal-time `diagnose()` check + vignette. | 2, 10 |
+| 18 | ⬜ | [CHUNK_18_RECURRENT_MULTISTATE.md](CHUNK_18_RECURRENT_MULTISTATE.md) | Recurrent events + multi-state (illness-death) models. | 2, 3, 7 |
+
+Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18. Chunks 11–18 ratified in the
+2026-06 scope review (`SCOPE_AND_INTEGRATION_REVIEW_2026-06.md`).
 
 ## Architecture notes
 

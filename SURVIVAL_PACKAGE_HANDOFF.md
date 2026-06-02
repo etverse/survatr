@@ -441,6 +441,23 @@ Status legend: ✅ done (commit pinned) · 🚧 in progress · ⬜ not started.
 | 8 | ⬜ | [CHUNK_8_MATCHING_REJECTION.md](CHUNK_8_MATCHING_REJECTION.md) | Matching rejection path + classed error. | — |
 | 9 | ⬜ | [CHUNK_9_NHEFS_REPLICATION.md](CHUNK_9_NHEFS_REPLICATION.md) | NHEFS Ch. 17 replication test + `survival` vignette. | 2–7 |
 | 10 | ⬜ | [CHUNK_10_DIAGNOSE.md](CHUNK_10_DIAGNOSE.md) | Survival-aware `diagnose()` (per-period hazard positivity, cross-time balance, competing-risks decomposition). | 2, 7 |
+| 11 | ⬜ | [CHUNK_11_IPCW.md](CHUNK_11_IPCW.md) | Built-in IPCW: per-period cumulative censoring weights → weighted hazard MSM; stacked EE with censoring-model blocks. | 5 |
+| 12 | ⬜ | [CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md](CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md) | Estimand additions: survival quantiles / median, RMTL, per-cause years-of-life-lost. | 2, 3, 7 |
+| 13 | ⬜ | [CHUNK_13_CLUSTER_ROBUST_SE.md](CHUNK_13_CLUSTER_ROBUST_SE.md) | Cluster-robust sandwich: `cluster=` IF aggregation before `crossprod`. | 3 |
+| 14 | ⬜ | [CHUNK_14_LEFT_TRUNCATION.md](CHUNK_14_LEFT_TRUNCATION.md) | Left-truncation / delayed entry: delayed risk-set start; relax rectangular-PP. | 1, 2 |
+| 15 | ⬜ | [CHUNK_15_AIPW.md](CHUNK_15_AIPW.md) | Parametric doubly-robust (AIPW) survival; stacked-EE sandwich. ML/TMLE out. | 5, 7, 11 |
+| 16 | ⬜ | [CHUNK_16_SIMULTANEOUS_BANDS.md](CHUNK_16_SIMULTANEOUS_BANDS.md) | Simultaneous / uniform confidence bands via multiplier bootstrap on the IF matrix. | 3 |
+| 17 | ⬜ | [CHUNK_17_TARGET_TRIAL.md](CHUNK_17_TARGET_TRIAL.md) | Target-trial alignment: landmark analysis + immortal-time `diagnose()` check + vignette. | 2, 10 |
+| 18 | ⬜ | [CHUNK_18_RECURRENT_MULTISTATE.md](CHUNK_18_RECURRENT_MULTISTATE.md) | Recurrent events + multi-state (illness-death) models. | 2, 3, 7 |
+
+**Phasing.** v1 = chunks 1–10 (Track A gcomp/IPW/sandwich/bootstrap/S3, Track B
+ICE, competing risks, matching rejection, NHEFS, `diagnose()`). v1.x = chunks
+11–15 (IPCW, quantile/RMTL/YLL estimands, cluster-robust SE, left-truncation,
+parametric AIPW). v2 = chunks 16–18 (simultaneous bands, target-trial/landmark
+tooling, recurrent + multi-state). Chunks 11–18 were ratified in the 2026-06
+scope review (see `SCOPE_AND_INTEGRATION_REVIEW_2026-06.md`); they extend the
+inherited scope toward the causal-survival field (parity with
+`riskRegression::ate`, `adjustedCurves`, `stdReg2`).
 
 ## 11. Package naming / placement
 
