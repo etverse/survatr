@@ -20,8 +20,12 @@
 #'   `causatr::to_person_period()`.
 #' @param outcome Character scalar. Column name of the event indicator
 #'   (`1` = event at this period, `0` = no event). Must be in `data`.
-#' @param treatment Character scalar. Column name of the (baseline, point)
-#'   treatment. For Track A the treatment is constant within `id`.
+#' @param treatment Character scalar. Column name of the treatment. For Track A
+#'   the treatment is constant within `id`. Under `estimator = "ice"` (Track B)
+#'   the treatment may vary within `id` and must be **numeric** (binary, or a
+#'   numeric dose entered linearly); factor / categorical (k > 2) treatments are
+#'   rejected with class `survatr_ice_treatment_unsupported` (a treatment-design
+#'   formula path ships in a later chunk).
 #' @param confounders A one-sided formula (e.g. `~ L1 + L2`) describing the
 #'   **baseline** (time-invariant) covariate adjustment set. Under
 #'   `estimator = "ice"` (Track B), time-varying covariates go in

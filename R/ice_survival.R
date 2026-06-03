@@ -38,6 +38,32 @@ fit_ice_survival <- function(
   model_fn = stats::glm,
   ...
 ) {
+  ## Track B models the treatment as a numeric main effect (binary is the
+  ## special case; a numeric dose enters linearly, the user's modelling
+  ## choice). A factor / character treatment is NOT supported here: the
+  ## intervention sets a numeric counterfactual value, which collides with a
+  ## factor column (a cryptic data.table error), and nominal categories need a
+  ## `treatment_form = ~ factor(A)` design that Track B does not yet thread.
+  ## Reject with a classed error pointing at the future extended-types chunk.
+  ## Issue #2, 2026-06-03 critical review (/tmp/survatr_repro_cat.R).
+  if (!is.numeric(data[[treatment]])) {
+    rlang::abort(
+      c(
+        paste0(
+          "`estimator = \"ice\"` requires a numeric `treatment` (binary or a ",
+          "numeric dose modelled linearly); got a ",
+          class(data[[treatment]])[1L],
+          "."
+        ),
+        i = paste0(
+          "Categorical (k > 2) treatments via `factor()` / a treatment design ",
+          "formula ship in a later chunk; recode to a numeric column for now."
+        )
+      ),
+      class = "survatr_ice_treatment_unsupported"
+    )
+  }
+
   if (!treatment_is_time_varying(data, treatment, id)) {
     rlang::inform(
       c(

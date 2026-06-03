@@ -315,6 +315,30 @@ test_that("time-varying treatment with Track A warns, pointing to ice", {
   )
 })
 
+test_that("Track B rejects a non-numeric (factor) treatment", {
+  ## Regression for the 2026-06-03 critical review Issue #2
+  ## (/tmp/survatr_repro_cat.R): a factor treatment previously produced a
+  ## cryptic data.table error (the intervention assigns a numeric value to a
+  ## factor column); a numeric-coded categorical was silently modelled linearly.
+  ## Track B now requires a numeric treatment and rejects factors with a clear
+  ## classed error.
+  dat <- sim_ice_feedback(n = 200L, K = 3L, seed = 5L)
+  dat[, A := factor(A)]
+  expect_error(
+    surv_fit(
+      dat,
+      "Y",
+      "A",
+      ~1,
+      "id",
+      "t",
+      estimator = "ice",
+      confounders_tv = ~L
+    ),
+    class = "survatr_ice_treatment_unsupported"
+  )
+})
+
 test_that("Track B rejects external weights and stochastic interventions", {
   dat <- sim_ice_feedback(n = 150L, K = 4L, seed = 5L)
   expect_error(

@@ -38,8 +38,12 @@ multi-period study) must be reshaped with
 \item{outcome}{Character scalar. Column name of the event indicator
 (\code{1} = event at this period, \code{0} = no event). Must be in \code{data}.}
 
-\item{treatment}{Character scalar. Column name of the (baseline, point)
-treatment. For Track A the treatment is constant within \code{id}.}
+\item{treatment}{Character scalar. Column name of the treatment. For Track A
+the treatment is constant within \code{id}. Under \code{estimator = "ice"} (Track B)
+the treatment may vary within \code{id} and must be \strong{numeric} (binary, or a
+numeric dose entered linearly); factor / categorical (k > 2) treatments are
+rejected with class \code{survatr_ice_treatment_unsupported} (a treatment-design
+formula path ships in a later chunk).}
 
 \item{confounders}{A one-sided formula (e.g. \code{~ L1 + L2}) describing the
 \strong{baseline} (time-invariant) covariate adjustment set. Under

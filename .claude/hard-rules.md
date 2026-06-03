@@ -277,6 +277,12 @@ Do NOT flag these as bugs. Each has a regression test.
   `estimator="ice"` informs (`survatr_ice_static_treatment`) but proceeds; a
   time-varying treatment under Track A warns
   (`survatr_tv_treatment_track_a`). These are deliberate scoping, not bugs.
+- **Track B requires a NUMERIC treatment** (binary, or a numeric dose modelled
+  linearly). Factor / categorical (k > 2) treatments are rejected with
+  `survatr_ice_treatment_unsupported` (the intervention sets a numeric value,
+  which collides with a factor column; a `treatment_form` design path ships
+  later). A numeric-coded multi-level treatment is modelled linearly by design
+  — that is the user's modelling choice, not a bug to "fix".
 
 ### Implementation conventions
 
