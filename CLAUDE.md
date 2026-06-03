@@ -323,29 +323,16 @@ notes" for the style).
   aggregation on top of `causatr:::prepare_model_if()` and never inverts a
   matrix itself; the only `solve()` / `ginv()` is causatr's guarded
   `bread_inv()`. A rank-deficiency guard belongs there, not in survatr.
-- **IPW survival uses a stabilized observed-treatment weight composed in
-  survatr, not in causatr.** causatr's point IPW is Hájek-on-`Y ~ 1` and
-  *rejects* univariate stabilization (`causatr_stabilize_univariate`), so it has
-  no point-treatment `f(A)/f(A|L)` function to reuse. survatr composes the
-  stabilized weight from two `causatr:::evaluate_density()` calls (full `A ~ L`
-  denominator + marginal `A ~ 1` numerator), winsorizes with
-  `causatr:::truncate_weights()`, broadcasts the per-id weight onto the PP rows,
-  and fits a weighted marginal MSM via the existing `fit_hazard_gcomp(~1)`. The
-  weight is intervention-free, so the chunk-2/3 contrast + sandwich machinery is
-  reused unchanged for the curve.
-- **The IPW sandwich is a two-stage stacked EE; the cross block carries exactly
-  one factor of `n_ids`.** The weighted-MSM coefficients depend on the estimated
-  propensity, so the survival IF gains a *subtracted* treatment-model correction
-  `-J̄(t)' B_bb⁻¹ A_ba B_aa⁻¹ ψ_α`. survatr builds `A_ba` by `numDeriv`-
-  differentiating the weighted hazard score wrt `alpha` (mirroring causatr's
-  `phi_bar` idiom) and gets the correction via
-  `causatr:::apply_model_correction(prep_trt, g)` with **`n_total = n_ids`** for
-  the treatment-model prep (fit on baseline rows). That single `n_ids` matches
-  the chunk-3 hazard block's `n_ids · B_inv · ψ`; the `n_fit` in `h_t =
-  n_fit · B_inv · J̄` cancels the `1/n_fit` in `phi_bar`. Pinned empirically:
-  the stacked sandwich SE matches the full two-stage bootstrap (resamples ids,
-  refits both models) and is *narrower* than the naive weights-as-known SE for
-  stabilized weights (Robins 1999; Hernán et al. 2000) — do not "fix" it to be
-  wider. The marginal numerator's estimation is omitted from the IF
-  (conservative). Block-lower-triangularity holds only because the weight is
-  intervention-free; a weight that depends on `beta` would break it.
+- **IPW survival (chunk 5): stabilized weight composed in survatr; two-stage
+  stacked-EE sandwich with a single `n_ids` factor.** causatr's point IPW is
+  Hájek-on-`Y ~ 1` and rejects univariate stabilization, so survatr composes
+  `f(A)/f(A|L)` from two `causatr:::evaluate_density()` calls +
+  `truncate_weights()`, broadcasts the per-id weight onto PP rows, and fits a
+  weighted marginal MSM via `fit_hazard_gcomp(~1)` (intervention-free → chunk-2/3
+  curve + sandwich reused). The sandwich adds a *subtracted* treatment-model
+  correction via `causatr:::apply_model_correction(prep_trt, g)` at
+  `n_total = n_ids` with a `numDeriv` cross-derivative; it is *narrower* than the
+  naive weights-as-known SE for stabilized weights — do not "fix" it wider.
+  Validated to ~1e-4 against a delicatessen M-estimation oracle. Full derivation
+  + the "do-not-re-flag" invariants live in `.claude/hard-rules.md` (round-3) and
+  `CHUNK_5_IPW_A.md`.
