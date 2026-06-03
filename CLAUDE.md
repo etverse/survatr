@@ -272,7 +272,7 @@ Single source of truth for per-chunk status is the table below. Keep
 | 2 | ✅ `2525707` | [CHUNK_2_CONTRAST_A.md](CHUNK_2_CONTRAST_A.md) | Track A contrast path: per-individual hazards → survival curve → risk / RMST contrasts. **No variance yet.** Time-indexed `data.table` result shape. | 1 |
 | 3 | ✅ `a3f79cb` | [CHUNK_3_SANDWICH_A.md](CHUNK_3_SANDWICH_A.md) | Track A sandwich variance: delta-method cross-time IF aggregation on `causatr:::prepare_model_if()` / `apply_model_correction()`. | 2 |
 | 4 | ✅ `8a26904` | [CHUNK_4_BOOTSTRAP_S3.md](CHUNK_4_BOOTSTRAP_S3.md) | Track A bootstrap + S3 methods (`print` / `plot` / `tidy` / `forrest` for survival curves). | 2 |
-| 5 | ✅ `e995e7e` | [CHUNK_5_IPW_A.md](CHUNK_5_IPW_A.md) | Track A under IPW (binary; `static` / `dynamic`): baseline stabilized density-ratio weights composed from causatr primitives, broadcast onto PP rows, weighted marginal hazard MSM, two-stage stacked sandwich + dual-refit bootstrap. Extended treatment types / `ipsi()` / external-weight transport deferred to chunks 19–21. | 2, causatr IPW |
+| 5 | ✅ `e995e7e` | [CHUNK_5_IPW_A.md](CHUNK_5_IPW_A.md) | Track A under IPW (binary; `static` / `dynamic`): baseline stabilized density-ratio weights composed from causatr primitives, broadcast onto PP rows, weighted marginal hazard MSM, two-stage stacked sandwich + dual-refit bootstrap. Extended types / `ipsi()` / transport / time-varying treatment deferred to chunks 19–22. | 2, causatr IPW |
 | 6 | ⬜ | [CHUNK_6_ICE_B.md](CHUNK_6_ICE_B.md) | Track B (ICE hazards): per-step hazard target + survival-tail pseudo-outcome, reuse causatr's `ice_iterate()` + `variance_if_ice()` via internal imports. | 3, causatr ICE |
 | 7 | ⬜ | [CHUNK_7_COMPETING_RISKS.md](CHUNK_7_COMPETING_RISKS.md) | Competing risks: parallel cause-specific hazards + CIF contrast + sandwich via stacked EE across cause-specific models. | 2, 3 |
 | 8 | ⬜ | [CHUNK_8_MATCHING_REJECTION.md](CHUNK_8_MATCHING_REJECTION.md) | Matching rejection path + classed error. (Already partially wired in chunk 1's `surv_fit()`; chunk 8 expands to the full rejection surface with a regression test.) | — |
@@ -292,14 +292,14 @@ Single source of truth for per-chunk status is the table below. Keep
 | 22 | ⬜ | [CHUNK_22_LONGITUDINAL_IPW.md](CHUNK_22_LONGITUDINAL_IPW.md) | Longitudinal IPW survival (time-varying treatment MSM): per-period cumulative density-ratio weights, weighted MSM, per-period stacked-EE blocks. Home for the `survatr_ipw_time_varying_treatment` rejection. | 5, 11 |
 | 23 | ⬜ | [CHUNK_23_MULTIVARIATE_IPW.md](CHUNK_23_MULTIVARIATE_IPW.md) | Multivariate-treatment IPW survival: joint chain-rule density, product weight, block-diagonal propensity sandwich. | 5 |
 | 24 | ⬜ | [CHUNK_24_STOCHASTIC.md](CHUNK_24_STOCHASTIC.md) | Stochastic interventions + survival: MC draws averaged at the cumulative-product level (Jensen-safe). | 2, 3 |
+| 25 | ⬜ | [CHUNK_25_MISSING_DATA_MI.md](CHUNK_25_MISSING_DATA_MI.md) | Missing data / multiple imputation for survival (research-first): congenial MI on person-period data, Rubin's-rules pooling of the curve estimand + cross-time variance. | 1, 2 |
 
-Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext = 19–24 (deferred IPW /
-intervention work, spun out of the chunk-5 scope review). Chunks 11–18 ratified
-2026-06; 19–21 added 2026-06-02; 22–24 (longitudinal IPW, multivariate IPW,
-stochastic interventions) added 2026-06-03 — previously described only in the
-handoff §6 architecture notes, now chunked so the roadmap is complete against
-the described scope. Open *research* (not yet a feature chunk): missing-data /
-multiple-imputation for survival — see handoff §"Open research questions".
+Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext = 19–25 (deferred IPW /
+intervention work + missing-data MI, spun out of the chunk-5 scope review).
+Chunks 11–18 ratified 2026-06; 19–21 added 2026-06-02; 22–25 (longitudinal IPW,
+multivariate IPW, stochastic interventions, missing-data MI) added 2026-06-03 —
+previously described only in the handoff §6 architecture / research notes, now
+chunked so the roadmap is complete against the described scope.
 
 ## Architecture notes
 
