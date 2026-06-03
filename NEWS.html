@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -39,10 +39,10 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-872663216cd7a7676973267d6168b1f4.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-b9c91b1e117c879de662b9ae260051b4.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -247,6 +247,35 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="survatr-development-version" class="level1">
 <h1>survatr (development version)</h1>
+<section id="risk_ratio-sandwich-se-now-reported-on-the-natural-scale" class="level2">
+<h2 class="anchored" data-anchor-id="risk_ratio-sandwich-se-now-reported-on-the-natural-scale">2026-06-02 — <code>risk_ratio</code> sandwich <code>se</code> now reported on the natural scale</h2>
+<p>The <code>se</code> column for <code>type = "risk_ratio"</code> under <code>ci_method = "sandwich"</code> was the SE of <code>log(RR)</code> (the natural delta-method quantity), while the bootstrap path reported the SD of the RR replicates — so the two methods printed different <code>se</code> numbers (off by roughly a factor of <code>RR</code>) for the same estimand. The confidence intervals were correct in both paths (the sandwich builds the interval on the log scale and exponentiates). The sandwich now reports <code>se</code> on the natural RR scale (<code>RR * se(log RR)</code>) so the column always means “SE of the reported estimand” and matches the bootstrap; the CI is still log-based (strictly positive, not <code>se</code>-symmetric). Surfaced by the IPW work but pre-existing in the gcomp sandwich.</p>
+</section>
+<section id="ipw-weighted-hazard-msm-track-a-estimator-ipw" class="level2">
+<h2 class="anchored" data-anchor-id="ipw-weighted-hazard-msm-track-a-estimator-ipw">2026-06-02 — IPW weighted hazard MSM (Track A, <code>estimator = "ipw"</code>)</h2>
+<p><code>surv_fit(estimator = "ipw")</code> adds inverse-probability weighting as a second, methodologically-distinct estimator of the counterfactual survival curve (binary point treatment; <code>static</code> / <code>dynamic</code> interventions). It fits a baseline treatment model on the original-row data, forms <strong>stabilized</strong> density-ratio weights <code>w_i = f(A_i) / f(A_i | L_i)</code> at the observed treatment, broadcasts the per-id weight onto every person-period row, and fits a weighted marginal hazard MSM <code>logit h(t | A) = α(t) + β_A·A</code> (<code>quasibinomial</code>). Confounding is handled by the weights, so the hazard model carries <code>A</code> only. The <code>contrast()</code> curve / risk / RMST machinery is reused unchanged. New arguments: <code>propensity_model_fn</code> (treatment-model fitter) and <code>trim</code> (optional weight winsorization at a quantile).</p>
+<p>The sandwich variance is a two-stage stacked estimating equation: the chunk-3 cross-time delta on the weighted hazard MSM, plus a <strong>subtracted</strong> treatment-model correction that propagates the propensity-score uncertainty through a numeric cross-derivative. For stabilized weights this <em>narrows</em> the SE relative to treating the weights as known (Robins 1999; Hernán et al.&nbsp;2000); the stacked sandwich matches the full two-stage bootstrap (which re-estimates both models per replicate) to within 15%, and matches an <strong>independent</strong> <code>delicatessen</code> stacked-M-estimation sandwich (Python) to ~1e-4 on shared data. The point estimate is validated against <code>lmtp::lmtp_tmle(outcome_type = "survival")</code> and, degenerately, against <code>causatr::causat(estimator = "ipw")</code>. All IPW weight, density, truncation, bread, and correction primitives are reused from <code>causatr</code>; survatr composes the stabilized weight and the cross-time delta on top.</p>
+<p>Continuous / categorical / count treatment types and <code>ipsi()</code> are deferred to dedicated follow-up chunks (19 / 20) and abort with clear classed errors. A constant treatment (no positivity contrast) aborts with <code>survatr_ipw_no_treatment_variation</code>, and external weights with <code>survatr_ipw_external_weights</code> (transport is chunk 21). Missing data is rejected upfront by <code>check_no_na_in_predictors()</code> for the treatment-model predictors too — survatr does not delegate NA handling to causatr’s row-dropping, so the influence-function row alignment is preserved.</p>
+</section>
+<section id="gam-hazard-models-work-with-sandwich-variance" class="level2">
+<h2 class="anchored" data-anchor-id="gam-hazard-models-work-with-sandwich-variance">2026-06-02 — GAM hazard models work with sandwich variance</h2>
+<p><code>contrast(..., ci_method = "sandwich")</code> aborted with “non-conformable arrays” for any hazard model fit with <code>mgcv::gam</code> — advertised as a supported <code>model_fn</code>. Two independent causes:</p>
+<ul>
+<li>The counterfactual design matrix was built with the terms-based <code>model.matrix()</code>, which silently degrades a smooth <code>s(t)</code> term to a linear <code>t</code> (fewer columns than the penalized linear-predictor basis), leaving it non-conformable with the <code>model$Vp</code> bread that <code>causatr:::prepare_model_if()</code> correctly returns for a GAM. It is now built via <code>causatr:::iv_design_matrix()</code>, which uses the <code>predict(type = "lpmatrix")</code> basis for GAMs and a level-aware, aliased-column-dropping <code>model.matrix()</code> for GLMs — the latter also hardens single-level factor interventions and rank-deficient GLM designs.</li>
+<li><code>predict.gam()</code> returns a 1-D array (carrying a <code>dim</code> attribute) where <code>predict.glm()</code> returns a plain vector, so the per-row hazard sensitivity scaling multiplied two arrays of different shape. The link and response predictions are now coerced to plain numeric.</li>
+</ul>
+<p>The <code>Vp</code>-as-bread + lpmatrix strategy is mgcv’s own default (<code>vcov.gam</code>) and is justified for frequentist coverage by Marra &amp; Wood (2012, Scand. J. Stat. 39:53–74). Validated numerically: on a constant-hazard DGP the GAM sandwich SE matches the analytically-anchored GLM sandwich SE pointwise to under 2%, and tracks the bootstrap SE identically to the GLM (both ~4% below at n = 1000, R = 1000 — a generic finite-sample sandwich-vs-bootstrap gap, not GAM-specific). New tests in <code>test-sandwich-gam.R</code>.</p>
+</section>
+<section id="smaller-correctness-and-robustness-fixes" class="level2">
+<h2 class="anchored" data-anchor-id="smaller-correctness-and-robustness-fixes">2026-06-02 — Smaller correctness and robustness fixes</h2>
+<ul>
+<li><code>forrest()</code> raised the same <code>survatr_bad_t_ref</code> class for two distinct failures: a malformed / off-grid <code>t_ref</code>, and a valid grid time with no pairwise contrast rows (the empty <code>contrasts</code> table a single-intervention result produces). The latter now aborts with <code>survatr_forrest_no_contrasts</code> so callers can tell the two apart.</li>
+<li><code>compute_survival_curve()</code> now aborts (<code>survatr_hazard_misaligned</code>) when the per-row hazard vector does not align 1:1 with the person-period rows, rather than letting <code>:=</code> silently recycle a short vector into a corrupted cumulative product.</li>
+<li>The sandwich assembly asserts each influence-function matrix is <code>n_ids x |times|</code> (<code>survatr_if_failed</code>) before forming <code>crossprod(IF) / n_ids^2</code>, so a malformed IF surfaces as a clear error rather than a silently wrong covariance.</li>
+<li><code>plot.survatr_result()</code> builds its per-group row mask in plain R instead of <code>tbl[get(group_col) == g]</code>, so a column literally named <code>g</code> can no longer shadow the grouping variable under data.table non-standard evaluation.</li>
+<li>Added an integration test that pins the contract (formal names + return shape) of the three unexported causatr functions survatr calls via <code>:::</code> (<code>apply_intervention</code>, <code>prepare_model_if</code>, <code>iv_design_matrix</code>). Because the causatr remote is an unpinned GitHub <code>main</code>, this turns an upstream signature drift into a loud CI failure instead of a cryptic runtime error.</li>
+</ul>
+</section>
 <section id="round-1-critical-review-9-fixes-across-chunks-14" class="level2">
 <h2 class="anchored" data-anchor-id="round-1-critical-review-9-fixes-across-chunks-14">2026-04-22 — Round-1 critical review: 9 fixes across chunks 1–4</h2>
 <p>A full adversarial review of the 214-test chunk-1/2/3/4 surface produced four blocking correctness bugs, three required fixes, and two suggestions. Each reproduced numerically against a focused script under <code>/tmp/survatr_repro_*.R</code> before a fix landed; each has a classed regression test colocated with the affected area.</p>

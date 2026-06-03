@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -23,6 +23,41 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -39,10 +74,10 @@ ul.task-list li input[type="checkbox"] {
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-872663216cd7a7676973267d6168b1f4.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-b9c91b1e117c879de662b9ae260051b4.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -250,6 +285,7 @@ ul.task-list li input[type="checkbox"] {
 <section id="description" class="level3">
 <h3 class="anchored" data-anchor-id="description">Description</h3>
 <p>Given a <code>survatr_fit</code> (chunk 1) and a named list of interventions, build the counterfactual person-period data under each intervention, predict the per-row hazard, cumulate within individual to get <code>S^a_i(t)</code>, and average across individuals to get the population survival curve <code style="white-space: pre;">S^a(t) = (1/n) sum_i S^a_i(t)</code>. Derive risk / risk-difference / risk-ratio / RMST / RMST-difference contrasts from there.</p>
+<p><strong>No variance in this chunk.</strong> All <code>se</code> / <code style="white-space: pre;">ci_*</code> columns come back as <code>NA_real_</code>; sandwich variance ships with chunk 3 (delta-method cross-time IF aggregation) and bootstrap with chunk 4.</p>
 </section>
 <section id="usage" class="level3">
 <h3 class="anchored" data-anchor-id="usage">Usage</h3>
@@ -381,13 +417,84 @@ Unused; reserved for future chunks.
 </tr>
 </tbody></table>
 </section>
-<section id="details" class="level3">
-<h3 class="anchored" data-anchor-id="details">Details</h3>
-<p><strong>No variance in this chunk.</strong> All <code>se</code> / <code style="white-space: pre;">ci_*</code> columns come back as <code>NA_real_</code>; sandwich variance ships with chunk 3 (delta-method cross-time IF aggregation) and bootstrap with chunk 4.</p>
-</section>
 <section id="value" class="level3">
 <h3 class="anchored" data-anchor-id="value">Value</h3>
 <p>A <code>survatr_result</code> list with <code>estimates</code>, <code>contrasts</code>, <code>time_grid</code>, <code>type</code>, <code>reference</code>, <code>ci_method</code>, and <code>call</code> components.</p>
+</section>
+<section id="see-also" class="level3">
+<h3 class="anchored" data-anchor-id="see-also">See Also</h3>
+<p>Other survatr_result methods: <code>contrast()</code>, <code>forrest()</code>, <code>forrest.survatr_result()</code>, <code>plot.survatr_result()</code>, <code>print.survatr_result()</code>, <code>tidy.survatr_result()</code></p>
+</section>
+<section id="examples" class="level3">
+<h3 class="anchored" data-anchor-id="examples">Examples</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"survatr"</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Small rectangular person-period dataset: 40 ids over 5 periods.</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>n_id <span class="ot">&lt;-</span> <span class="dv">40</span>L</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>K <span class="ot">&lt;-</span> <span class="dv">5</span>L</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>pp <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">id =</span> <span class="fu">rep</span>(<span class="fu">seq_len</span>(n_id), <span class="at">each =</span> K),</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">t =</span> <span class="fu">rep</span>(<span class="fu">seq_len</span>(K), <span class="at">times =</span> n_id),</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">A =</span> <span class="fu">rep</span>(<span class="fu">rbinom</span>(n_id, <span class="dv">1</span>L, <span class="fl">0.5</span>), <span class="at">each =</span> K),</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">Y =</span> <span class="fu">rbinom</span>(n_id <span class="sc">*</span> K, <span class="dv">1</span>L, <span class="fl">0.1</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">surv_fit</span>(pp, <span class="st">"Y"</span>, <span class="st">"A"</span>, <span class="sc">~</span><span class="dv">1</span>, <span class="st">"id"</span>, <span class="st">"t"</span>, <span class="at">time_formula =</span> <span class="sc">~</span> <span class="fu">factor</span>(t))</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>ivs <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">a1 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">1</span>), <span class="at">a0 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">0</span>))</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Point-estimate survival curves under each intervention.</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="fu">contrast</span>(fit, <span class="at">interventions =</span> ivs, <span class="at">times =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>, <span class="at">type =</span> <span class="st">"survival"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;survatr_result&gt;
+  Type:        survival
+  Reference:   (none)
+  CI method:   none
+  Time grid:   [1, 5] (5 unique times)
+  Estimates:   10 rows
+  Contrasts:   0 rows
+
+    intervention  time     s_hat   risk_hat    se ci_lower ci_upper     n
+          &lt;char&gt; &lt;int&gt;     &lt;num&gt;      &lt;num&gt; &lt;num&gt;    &lt;num&gt;    &lt;num&gt; &lt;int&gt;
+ 1:           a1     1 0.8353902 0.16460980    NA       NA       NA    40
+ 2:           a1     2 0.6472768 0.35272325    NA       NA       NA    40
+ 3:           a1     3 0.4723363 0.52766373    NA       NA       NA    40
+ 4:           a1     4 0.3893941 0.61060590    NA       NA       NA    40
+ 5:           a1     5 0.3893941 0.61060591    NA       NA       NA    40
+ 6:           a0     1 0.9108374 0.08916256    NA       NA       NA    40
+ 7:           a0     2 0.7959226 0.20407739    NA       NA       NA    40
+ 8:           a0     3 0.6722328 0.32776724    NA       NA       NA    40
+ 9:           a0     4 0.6079052 0.39209483    NA       NA       NA    40
+10:           a0     5 0.6079052 0.39209484    NA       NA       NA    40</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Risk difference with delta-method sandwich CIs.</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">contrast</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  fit,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">interventions =</span> ivs,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">times =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">"risk_difference"</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci_method =</span> <span class="st">"sandwich"</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;survatr_result&gt;
+  Type:        risk_difference
+  Reference:   a1
+  CI method:   sandwich
+  Time grid:   [1, 5] (5 unique times)
+  Estimates:   10 rows
+  Contrasts:   5 rows
+
+   contrast  time    estimate         se   ci_lower   ci_upper
+     &lt;char&gt; &lt;int&gt;       &lt;num&gt;      &lt;num&gt;      &lt;num&gt;      &lt;num&gt;
+1: a0 vs a1     1 -0.07544723 0.05763982 -0.1884192 0.03752474
+2: a0 vs a1     2 -0.14864586 0.10318090 -0.3508767 0.05358499
+3: a0 vs a1     3 -0.19989649 0.13641365 -0.4672623 0.06746935
+4: a0 vs a1     4 -0.21851107 0.15016893 -0.5128368 0.07581461
+5: a0 vs a1     5 -0.21851107 0.15016893 -0.5128368 0.07581461</code></pre>
+</div>
+</div>
 
 
 </section>
