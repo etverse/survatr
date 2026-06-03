@@ -191,7 +191,15 @@ contrast_track_b <- function(
     ## `causatr:::variance_if_ice_one()`; the resulting n x |times| IF matrix
     ## drops straight into the shared `fill_sandwich_ses()`.
     min_fit <- build_min_causatr_fit_b(fit, details, base$data_lag)
-    target <- rep(TRUE, n_ids)
+    ## Target = the at-risk-at-baseline standardisation population (entry-
+    ## censored ids carry NA `pseudo_final` and must be excluded from Channel-1,
+    ## else `mu_hat` is NA). Aligned to the first-period id order `ice_if_setup`
+    ## uses. `n_ids` stays the FULL count: `ice_if_setup` scales Channel 1 by
+    ## `n / n_target`, so `crossprod(IF) / n_ids^2` is the correct mean variance.
+    ## Issue #1, 2026-06-03 critical review.
+    first_t <- details$time_points[1]
+    first_mask <- base$data_lag[[fit$time]] == first_t
+    target <- base$fit_rows[first_mask]
     ## Per-period event indicators feed the chain's `(1 - D_k)` survival
     ## failure carry-forward factor.
     event_by_step <- build_event_by_step(
@@ -670,7 +678,17 @@ compute_ice_survival_curve <- function(
     cols$time
   )
 
-  n_ids <- length(unique(as.character(base$data_lag[[cols$id]])))
+  ## Standardisation population = individuals AT RISK at the first period.
+  ## Individuals censored at entry (period 1) are never in the period-1 risk
+  ## set, never receive a period-1 prediction, and so carry `NA` in
+  ## `pseudo_final`. Under (MCAR) entry censoring they drop from the ICE
+  ## standardisation -- the consistent g-formula behaviour -- so the mean is
+  ## taken with `na.rm` over the at-risk-at-baseline ids. (Without a censoring
+  ## column every first-period id is at risk, so `n_eff == n_ids` and this is a
+  ## no-op.) Issue #1, 2026-06-03 critical review (/tmp/survatr_repro_cens.R).
+  first_t <- details$time_points[1]
+  first_mask <- base$data_lag[[cols$time]] == first_t
+  n_eff <- sum(base$fit_rows[first_mask])
 
   ice_results <- vector("list", length(times))
   risk <- numeric(length(times))
@@ -686,7 +704,7 @@ compute_ice_survival_curve <- function(
       intervention = intervention
     )
     ice_results[[j]] <- res
-    risk[j] <- mean(res$pseudo_final)
+    risk[j] <- mean(res$pseudo_final, na.rm = TRUE)
   }
 
   estimates <- data.table::data.table(
@@ -697,7 +715,7 @@ compute_ice_survival_curve <- function(
     se = NA_real_,
     ci_lower = NA_real_,
     ci_upper = NA_real_,
-    n = n_ids
+    n = n_eff
   )
 
   list(estimates = estimates, ice_results = ice_results)

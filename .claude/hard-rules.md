@@ -261,6 +261,16 @@ Do NOT flag these as bugs. Each has a regression test.
   full). Both Track-B-only; `time_formula` is NOT part of the ICE per-step
   formula. The minimal `causatr_fit` for the IF is hand-built via
   `causatr:::new_causatr_fit()`, never `fit_ice()`.
+- **Track B standardises over the AT-RISK-AT-BASELINE population; the means use
+  `na.rm` and the IF `target` is the at-risk-at-baseline mask.** Individuals
+  censored at entry (period 1) are never in the period-1 risk set, so they carry
+  `NA` in `pseudo_final`. They drop from the ICE standardisation (consistent
+  under MCAR entry censoring). `n_ids` passed to `fill_sandwich_ses` stays the
+  FULL first-period count — `ice_if_setup` scales Channel 1 by `n / n_target`,
+  so `crossprod(IF) / n_ids^2` is the correct mean variance. Do NOT "fix" this
+  to drop the `na.rm` or set `target = rep(TRUE, n)` (that re-introduces the
+  all-`NA`-curve bug, Issue #1 of the 2026-06-03 review) and do NOT rescale by
+  `n_target` (double-counts the `n/n_target` factor already in the IF).
 - **Track B v1 rejects external/IPCW weights (`survatr_ice_external_weights`)
   and `ipsi()` / stochastic interventions
   (`survatr_ice_intervention_deferred`).** A constant-within-id treatment under

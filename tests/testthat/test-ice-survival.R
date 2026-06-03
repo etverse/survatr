@@ -240,6 +240,53 @@ test_that("Track B sandwich SEs agree with the empirical bootstrap", {
   expect_lt(max(rel), 0.20)
 })
 
+test_that("Track B handles (MCAR) entry censoring without NA-ing the curve", {
+  ## Regression for the 2026-06-03 critical review Issue #1
+  ## (/tmp/survatr_repro_cens.R): individuals censored at the FIRST period are
+  ## never in the period-1 risk set, so they carry NA pseudo-outcomes. Before
+  ## the fix, `mean()` without `na.rm` plus a `target` of all ids turned the
+  ## entire Track B curve / SE into NA. The fix restricts the standardisation
+  ## population to the at-risk-at-baseline ids (the consistent ICE behaviour
+  ## under MCAR entry censoring), so the curve stays finite and unbiased.
+  set.seed(3)
+  dat <- sim_ice_feedback(n = 3000L, K = 3L, seed = 5L)
+  dat[, C := 0L]
+  cens_ids <- sample(unique(dat$id), 450L) # ~15% censored at entry (MCAR)
+  dat[get("id") %in% cens_ids & get("t") == 1L, C := 1L]
+
+  fit <- surv_fit(
+    dat,
+    "Y",
+    "A",
+    ~1,
+    "id",
+    "t",
+    censoring = "C",
+    estimator = "ice",
+    confounders_tv = ~L
+  )
+  res <- contrast(
+    fit,
+    interventions = list(a1 = causatr::static(1), a0 = causatr::static(0)),
+    times = 2:3,
+    type = "survival",
+    ci_method = "sandwich"
+  )
+  est <- res$estimates
+  ## Finite (not NA) curve + SEs.
+  expect_true(all(is.finite(est$s_hat)))
+  expect_true(all(is.finite(est$se) & est$se > 0))
+  ## Standardisation population is the at-risk-at-baseline count, not all ids.
+  expect_true(all(est$n == 3000L - 450L))
+
+  ## Truth-based: MCAR entry censoring is unbiased, so the curve still matches
+  ## the forward-sim g-formula truth (within sampling + parametric-ICE bias).
+  s1 <- est[get("intervention") == "a1"][order(get("time"))]$s_hat
+  s0 <- est[get("intervention") == "a0"][order(get("time"))]$s_hat
+  expect_equal(s1, true_ice_survival(1, 2:3, K = 3L), tolerance = 0.03)
+  expect_equal(s0, true_ice_survival(0, 2:3, K = 3L), tolerance = 0.03)
+})
+
 test_that("ICE on a constant-within-id treatment informs but works", {
   ## A point (baseline-constant) treatment is valid for ICE; we inform that
   ## Track A is cheaper but do not abort.

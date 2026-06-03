@@ -1,5 +1,23 @@
 # survatr (development version)
 
+## 2026-06-03 — Track B: longitudinal survival via ICE hazards (`estimator = "ice"`)
+
+`surv_fit(estimator = "ice")` adds longitudinal causal survival estimation for
+a time-varying treatment via backward iterated conditional expectations on the
+discrete-time hazard, with a survival-tail pseudo-outcome
+`Ỹ_k = D_k + (1 − D_k) q_{k+1}`. New Track-B arguments split baseline
+confounders (`confounders`, never lagged) from time-varying ones
+(`confounders_tv`, lag-expanded) and set the Markov lag order (`history`). The
+curve, contrasts (risk / RR / RD / RMST), and the stacked-EE sandwich reuse the
+existing `contrast()` surface. The survival influence-function chain reuses
+causatr's single-model primitives but injects a `(1 − D_k)` failure
+carry-forward factor that causatr's terminal-outcome chain omits; it is
+validated to ~1e-5 against an independent `delicatessen` stacked-EE M-estimator,
+and the point estimates against a forward-simulation g-formula truth, `lmtp`,
+and `gfoRmula`. Entry (period-1) censoring is handled by standardising over the
+at-risk-at-baseline population (consistent under MCAR), rather than returning an
+all-`NA` curve.
+
 ## 2026-06-02 — `risk_ratio` sandwich `se` now reported on the natural scale
 
 The `se` column for `type = "risk_ratio"` under `ci_method = "sandwich"` was

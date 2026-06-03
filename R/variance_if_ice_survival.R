@@ -285,9 +285,11 @@ compute_ice_survival_if_matrix <- function(
   for (j in seq_len(n_t)) {
     res <- ice_results[[j]]
     if_risk <- survatr_ice_surv_if_one(min_fit, res, target, event_by_step)
-    ## Survival scale: S = 1 - R, so the IF flips sign.
+    ## Survival scale: S = 1 - R, so the IF flips sign. `na.rm` excludes
+    ## entry-censored ids (NA pseudo) from the standardisation mean, matching
+    ## the `target` restriction in Channel 1 (Issue #1, 2026-06-03 review).
     IF_mat[, j] <- -if_risk
-    s_hat[j] <- 1 - mean(res$pseudo_final)
+    s_hat[j] <- 1 - mean(res$pseudo_final, na.rm = TRUE)
   }
 
   list(s_hat = s_hat, IF_mat = IF_mat)
