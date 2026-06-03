@@ -53,7 +53,7 @@ reflects **current** state, not planned scope. Planned scope lives in
 | `type = "risk_ratio"` | 🟢 | `test-contrast.R` | DGP with no treatment effect: RR ≈ 1, tolerance 0.15. |
 | `type = "rmst"` | 🟢 | `test-rmst.R`, `test-contrast.R` | Closed-form trapezoidal integral of `(1-h)^t` matched to 1e-12; curve-only shape verified. |
 | `type = "rmst_difference"` | 🟢 | `test-contrast.R` | DGP with no effect: RMST-diff ≈ 0, tolerance 0.1. |
-| Oracle cross-check vs `lmtp::lmtp_tmle(outcome_type = "survival")` | 🟡 | `test-contrast-lmtp-oracle.R` | Point-estimate smoke test skipped on CRAN and skipped when the lmtp call can't fit the toy DGP. Kept to catch regressions on larger DGPs. |
+| Oracle cross-check vs `lmtp::lmtp_tmle(outcome_type = "survival")` | 🟢 | `test-contrast-lmtp-oracle.R` | gcomp `S^a(t)` (a1 and a0) on a confounded DGP (n = 2000) matches lmtp's TMLE survival within 0.05 at t ∈ {3, 5}. lmtp 1.5.3: one fit per horizon, `ife@x` estimate (the prior `folds`/`$theta` form silently skipped). |
 | Per-individual cumulative product (Jensen-safe) | 🟢 | `test-survival_curve.R` | Cumulative product within id before averaging across ids; monotone non-increasing in t on random DGPs. |
 | RMST trapezoidal quadrature (closed form) | 🟢 | `test-rmst.R` | Explicit sum of `(S(t_i) + S(t_{i+1}))/2 * (t_{i+1} - t_i)` reproduced to 1e-12. |
 | `fit$pp_data` mutation safety | 🟢 | `test-contrast.R` | Names / nrow / treatment column identical pre- and post- `contrast()`. |
