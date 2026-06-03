@@ -289,10 +289,17 @@ Single source of truth for per-chunk status is the table below. Keep
 | 19 | ⬜ | [CHUNK_19_IPW_TREATMENT_TYPES.md](CHUNK_19_IPW_TREATMENT_TYPES.md) | IPW extended treatment types: continuous (gaussian pushforward), categorical (k>2), count (Poisson/NB). Generalizes the chunk-5 binary weight closure. | 5 |
 | 20 | ⬜ | [CHUNK_20_IPSI_SURVIVAL.md](CHUNK_20_IPSI_SURVIVAL.md) | IPSI survival (Kennedy 2019 weight-path estimand; not an MSM plug-in). | 5 |
 | 21 | ⬜ | [CHUNK_21_IPW_TRANSPORT_WEIGHTS.md](CHUNK_21_IPW_TRANSPORT_WEIGHTS.md) | Survey / external-weight composition with IPW (transport); sampling-block sandwich. | 5 |
+| 22 | ⬜ | [CHUNK_22_LONGITUDINAL_IPW.md](CHUNK_22_LONGITUDINAL_IPW.md) | Longitudinal IPW survival (time-varying treatment MSM): per-period cumulative density-ratio weights, weighted MSM, per-period stacked-EE blocks. Home for the `survatr_ipw_time_varying_treatment` rejection. | 5, 11 |
+| 23 | ⬜ | [CHUNK_23_MULTIVARIATE_IPW.md](CHUNK_23_MULTIVARIATE_IPW.md) | Multivariate-treatment IPW survival: joint chain-rule density, product weight, block-diagonal propensity sandwich. | 5 |
+| 24 | ⬜ | [CHUNK_24_STOCHASTIC.md](CHUNK_24_STOCHASTIC.md) | Stochastic interventions + survival: MC draws averaged at the cumulative-product level (Jensen-safe). | 2, 3 |
 
-Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext = 19–21 (deferred IPW
-extensions, spun out of the chunk-5 scope review). Chunks 11–18 ratified in the
-2026-06 scope review; 19–21 added 2026-06-02.
+Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext = 19–24 (deferred IPW /
+intervention work, spun out of the chunk-5 scope review). Chunks 11–18 ratified
+2026-06; 19–21 added 2026-06-02; 22–24 (longitudinal IPW, multivariate IPW,
+stochastic interventions) added 2026-06-03 — previously described only in the
+handoff §6 architecture notes, now chunked so the roadmap is complete against
+the described scope. Open *research* (not yet a feature chunk): missing-data /
+multiple-imputation for survival — see handoff §"Open research questions".
 
 ## Architecture notes
 

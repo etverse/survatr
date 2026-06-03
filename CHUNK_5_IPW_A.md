@@ -122,12 +122,15 @@ result <- contrast(fit, interventions = list(a1 = causatr::static(1),
 - IPSI (`ipsi()`) is an IPW-only intervention: route it through the weight path,
   never through `apply_intervention_pp()` (which aborts on `ipsi`).
 
-## Non-goals (deferred)
-- **Longitudinal IPW** (per-period cumulative weights) — composes with Chunk 6.
-- **IPCW** (censoring weights) — sibling of this chunk; **pending scope
-  ratification** as its own chunk (handoff §7 calls it the motivating IPCW
-  case). Do not fold silently into the treatment-weight path.
-- AIPW (doubly-robust) — pending scope ratification.
+## Non-goals (deferred — each tracked as a chunk)
+- **Continuous / categorical / count treatment types** → chunk 19.
+- **IPSI** (`ipsi()`) → chunk 20.
+- **Survey / external-weight transport** → chunk 21.
+- **Longitudinal IPW** (per-period cumulative weights, time-varying treatment)
+  → chunk 22. (The `survatr_ipw_time_varying_treatment` rejection routes here.)
+- **IPCW** (censoring weights) — sibling of this chunk → chunk 11. Do not fold
+  silently into the treatment-weight path.
+- **AIPW** (doubly-robust) → chunk 15.
 
 ## Dependencies & composition
 - causatr: treatment-model + density-ratio IF (the point-IPW internals),

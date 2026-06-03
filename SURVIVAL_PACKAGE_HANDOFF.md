@@ -452,6 +452,9 @@ Status legend: ✅ done (commit pinned) · 🚧 in progress · ⬜ not started.
 | 19 | ⬜ | [CHUNK_19_IPW_TREATMENT_TYPES.md](CHUNK_19_IPW_TREATMENT_TYPES.md) | IPW extended treatment types for survival: continuous (gaussian shift / scale_by pushforward weights), categorical (k>2, multinomial propensity), count (Poisson/NB). Generalizes the chunk-5 binary weight closure + family-specific density ratios. | 5 |
 | 20 | ⬜ | [CHUNK_20_IPSI_SURVIVAL.md](CHUNK_20_IPSI_SURVIVAL.md) | IPSI (incremental propensity-score) survival: Kennedy (2019) weight-path estimand and its survival curve / sandwich. Not an MSM plug-in — reweights the propensity. | 5 |
 | 21 | ⬜ | [CHUNK_21_IPW_TRANSPORT_WEIGHTS.md](CHUNK_21_IPW_TRANSPORT_WEIGHTS.md) | Survey / external-weight composition with IPW (transport): multiply design weights by the stabilized IPW weight, broadcast, weighted MSM; sampling-block sandwich. | 5 |
+| 22 | ⬜ | [CHUNK_22_LONGITUDINAL_IPW.md](CHUNK_22_LONGITUDINAL_IPW.md) | Longitudinal IPW survival (time-varying treatment MSM): per-period cumulative density-ratio weights (not baseline-broadcast), weighted hazard MSM, per-period stacked-EE blocks. Home for the `survatr_ipw_time_varying_treatment` rejection. | 5, 11 |
+| 23 | ⬜ | [CHUNK_23_MULTIVARIATE_IPW.md](CHUNK_23_MULTIVARIATE_IPW.md) | Multivariate-treatment IPW survival: joint chain-rule density, product density-ratio weight, block-diagonal propensity sandwich. | 5 |
+| 24 | ⬜ | [CHUNK_24_STOCHASTIC.md](CHUNK_24_STOCHASTIC.md) | Stochastic interventions + survival: MC draws averaged at the cumulative-product level (Jensen-safe), sandwich/bootstrap variance. | 2, 3 |
 
 **Phasing.** v1 = chunks 1–10 (Track A gcomp/IPW/sandwich/bootstrap/S3, Track B
 ICE, competing risks, matching rejection, NHEFS, `diagnose()`). v1.x = chunks
@@ -460,10 +463,23 @@ parametric AIPW). v2 = chunks 16–18 (simultaneous bands, target-trial/landmark
 tooling, recurrent + multi-state). Chunks 11–18 were ratified in the 2026-06
 scope review; they extend the
 inherited scope toward the causal-survival field (parity with
-`riskRegression::ate`, `adjustedCurves`, `stdReg2`). ext = chunks 19–21
-(IPW extended treatment types, IPSI survival, survey/external-weight transport)
-— spun out of the chunk-5 scope review (2026-06-02) so the deferred IPW
-extensions are tracked rather than dropped.
+`riskRegression::ate`, `adjustedCurves`, `stdReg2`). ext = chunks 19–22
+(IPW extended treatment types, IPSI survival, survey/external-weight transport,
+longitudinal IPW) — spun out of the chunk-5 scope review (2026-06-02/03) so the
+deferred IPW work is tracked rather than dropped. Chunks 22–24 (longitudinal
+IPW, multivariate-treatment IPW, stochastic interventions) were added 2026-06-03
+— previously described only in the §6 architecture notes, now chunked so the
+roadmap is complete against the described scope.
+
+### Open research questions (not yet ratified as chunks)
+
+- **Missing data / multiple imputation for survival.** survatr currently
+  *rejects* NA in predictor columns upfront (`survatr_na_in_predictors`). A
+  principled missing-data path — multiple imputation (MICE / substantive-model-
+  compatible imputation, SMC-FCS), congeniality with g-computation / IPW on
+  person-period data, Rubin's-rules pooling of survival curves and their
+  sandwich variance — needs a literature review before it can be scoped as a
+  chunk. Tracked here so it is not lost (raised 2026-06-03).
 
 ## 11. Package naming / placement
 
