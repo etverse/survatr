@@ -23,7 +23,9 @@
 #' @param treatment Character scalar. Column name of the (baseline, point)
 #'   treatment. For Track A the treatment is constant within `id`.
 #' @param confounders A one-sided formula (e.g. `~ L1 + L2`) describing the
-#'   covariate adjustment set.
+#'   **baseline** (time-invariant) covariate adjustment set. Under
+#'   `estimator = "ice"` (Track B), time-varying covariates go in
+#'   `confounders_tv` instead; baseline terms here are never lagged.
 #' @param id Character scalar. Column name of the individual identifier.
 #' @param time Character scalar. Column name of the discrete period index
 #'   (integer-valued; sorted within `id`).
@@ -47,9 +49,10 @@
 #'   warning). The variance engine in later chunks reads the family from
 #'   `fit$family` to pick the right dispersion.
 #' @param estimator Character scalar. `"gcomp"` (pooled-logistic
-#'   standardization) or `"ipw"` (weighted marginal hazard MSM with stabilized
-#'   density-ratio weights). `"ice"` ships in a later track and is rejected
-#'   here. Matching is a hard reject with class `survatr_matching_rejected`
+#'   standardization), `"ipw"` (weighted marginal hazard MSM with stabilized
+#'   density-ratio weights), or `"ice"` (Track B: longitudinal
+#'   iterated-conditional-expectation hazards for a time-varying treatment).
+#'   Matching is a hard reject with class `survatr_matching_rejected`
 #'   pointing to `survival::coxph(..., weights = , cluster = )`.
 #' @param model_fn Fitting function for the hazard model. Defaults to
 #'   `stats::glm`. Accepts any function matching the `stats::glm` interface
@@ -65,6 +68,14 @@
 #'   `trim`-th quantile (Cole & Hernán 2008) before being broadcast onto the
 #'   person-period rows. `NULL` / `1` means no truncation. The resolved fixed
 #'   cutoff is reused by the sandwich variance.
+#' @param confounders_tv A one-sided formula of **time-varying** confounders
+#'   for Track B (`estimator = "ice"`), lag-expanded at each backward step
+#'   (e.g. `~ L` builds `L + lag1_L + ...`). `NULL` (the default) means no
+#'   time-varying confounders. Ignored by Track A (`gcomp` / `ipw`).
+#' @param history Markov lag order for Track B. `Inf` (the default) uses the
+#'   full available history (capped at `n_times - 1`); an integer restricts
+#'   the lag structure (e.g. `history = 1` for first-order Markov). Ignored by
+#'   Track A.
 #' @param ... Forwarded to `model_fn`. `na.action = na.exclude` is rejected
 #'   with class `survatr_bad_na_action` -- `na.exclude` pads working
 #'   residuals with `NA`s while `model.matrix()` drops them, which silently
@@ -108,6 +119,8 @@ surv_fit <- function(
   model_fn = stats::glm,
   propensity_model_fn = stats::glm,
   trim = NULL,
+  confounders_tv = NULL,
+  history = Inf,
   ...
 ) {
   ## Estimator gating. Matching is structurally invalid for survival (see
@@ -127,7 +140,7 @@ surv_fit <- function(
       class = "survatr_matching_rejected"
     )
   }
-  valid_estimators <- c("gcomp", "ipw")
+  valid_estimators <- c("gcomp", "ipw", "ice")
   if (!isTRUE(estimator %in% valid_estimators)) {
     rlang::abort(
       paste0(
@@ -177,13 +190,20 @@ surv_fit <- function(
   ## Reject NA in any column that feeds into the hazard-model formula
   ## or the counterfactual prediction. `censoring` is excluded because
   ## NA there carries "uncensored" semantics via `is_uncensored()`.
+  ## Track B (ice) adds the time-varying confounders to the predictor set
+  ## (Track A ignores `confounders_tv`); `time_formula` is a Track-A baseline-
+  ## hazard spec and is not part of the ICE per-step formula.
   predictor_cols <- unique(c(
     outcome,
     treatment,
     id,
     time,
     all.vars(confounders),
-    all.vars(time_formula)
+    if (identical(estimator, "ice")) {
+      all.vars(confounders_tv)
+    } else {
+      all.vars(time_formula)
+    }
   ))
   check_no_na_in_predictors(data, predictor_cols)
 
@@ -217,6 +237,23 @@ surv_fit <- function(
     )
   }
 
+  ## External / IPCW weights with Track B (ice) need the per-step weight
+  ## propagation + censoring-model stacked-EE blocks of the built-in IPCW
+  ## path; that ships in a later chunk. Reject upfront rather than fit an
+  ## unweighted ICE chain that silently ignores the weights.
+  if (identical(estimator, "ice") && !is.null(weights)) {
+    rlang::abort(
+      c(
+        "External `weights` are not yet supported with `estimator = \"ice\"`.",
+        i = paste0(
+          "Weighted / IPCW longitudinal survival (per-step weight ",
+          "propagation) ships in a later chunk."
+        )
+      ),
+      class = "survatr_ice_external_weights"
+    )
+  }
+
   fit_rows <- build_risk_set(
     data = data,
     outcome = outcome,
@@ -226,36 +263,84 @@ surv_fit <- function(
 
   ## Estimator dispatch. gcomp fits the pooled-logistic hazard on the at-risk
   ## rows directly; ipw fits a baseline treatment model, forms stabilized
-  ## weights, and fits a weighted marginal hazard MSM (alpha(t) + A). Both
-  ## return `model` / `family_name` / `n_fit`; ipw additionally returns the
-  ## treatment models, the broadcast weights, and the resolved trim cutoff.
-  if (identical(estimator, "ipw")) {
-    fit <- fit_ipw_survival(
+  ## weights, and fits a weighted marginal hazard MSM (alpha(t) + A); ice
+  ## (Track B) fits no model here -- the per-step models are fit lazily per
+  ## (intervention, horizon) inside contrast() -- and only assembles the
+  ## per-step metadata (terms, families, lag order). gcomp / ipw return
+  ## `model` / `family_name` / `n_fit`; ipw additionally returns the treatment
+  ## models, broadcast weights, and resolved trim cutoff; ice returns
+  ## `ice_details` (and `model = NULL`).
+  if (identical(estimator, "ice")) {
+    fit <- fit_ice_survival(
       data = data,
       fit_rows = fit_rows,
       outcome = outcome,
       treatment = treatment,
       confounders = confounders,
+      confounders_tv = confounders_tv,
       id = id,
       time = time,
-      time_formula = time_formula,
-      propensity_model_fn = propensity_model_fn,
-      trim = trim,
+      history = history,
       model_fn = model_fn,
       ...
     )
+    track <- "B"
   } else {
-    fit <- fit_hazard_gcomp(
-      data = data,
-      fit_rows = fit_rows,
-      outcome = outcome,
-      treatment = treatment,
-      confounders = confounders,
-      time_formula = time_formula,
-      weights = weights,
-      model_fn = model_fn,
-      ...
-    )
+    ## Track A gcomp. A treatment that varies within id cannot be represented
+    ## by the single `beta_A` of a pooled-logistic hazard MSM; warn
+    ## (non-blocking) and point to the ICE estimator. Some users intentionally
+    ## model a time-updated A via their own lag terms, so this is a warning, not
+    ## an abort. (IPW has its own hard `survatr_ipw_time_varying_treatment`
+    ## rejection downstream, so we do not also warn there.)
+    if (
+      identical(estimator, "gcomp") &&
+        treatment_is_time_varying(data, treatment, id)
+    ) {
+      rlang::warn(
+        c(
+          paste0(
+            "Treatment `",
+            treatment,
+            "` varies within `",
+            id,
+            "`, but `estimator = \"",
+            estimator,
+            "\"` (Track A) fits a single point-treatment hazard."
+          ),
+          i = "Use `estimator = \"ice\"` for a time-varying treatment."
+        ),
+        class = "survatr_tv_treatment_track_a"
+      )
+    }
+    if (identical(estimator, "ipw")) {
+      fit <- fit_ipw_survival(
+        data = data,
+        fit_rows = fit_rows,
+        outcome = outcome,
+        treatment = treatment,
+        confounders = confounders,
+        id = id,
+        time = time,
+        time_formula = time_formula,
+        propensity_model_fn = propensity_model_fn,
+        trim = trim,
+        model_fn = model_fn,
+        ...
+      )
+    } else {
+      fit <- fit_hazard_gcomp(
+        data = data,
+        fit_rows = fit_rows,
+        outcome = outcome,
+        treatment = treatment,
+        confounders = confounders,
+        time_formula = time_formula,
+        weights = weights,
+        model_fn = model_fn,
+        ...
+      )
+    }
+    track <- "A"
   }
 
   ## Strip internal bookkeeping before returning. Downstream code
@@ -276,7 +361,7 @@ surv_fit <- function(
     time = time,
     censoring = censoring,
     time_grid = sort(unique(data[[time]])),
-    track = "A",
+    track = track,
     estimator = estimator,
     family = fit$family_name,
     model_fn = model_fn,
@@ -300,6 +385,11 @@ surv_fit <- function(
       NULL
     },
     trim = trim,
+    ## Track B (ice) metadata; NULL for Track A so the constructor defaults
+    ## are unchanged.
+    confounders_tv = if (identical(estimator, "ice")) confounders_tv else NULL,
+    history = if (identical(estimator, "ice")) history else NULL,
+    ice_details = fit$ice_details,
     call = match.call()
   )
 }

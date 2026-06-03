@@ -268,7 +268,8 @@ quasibinomial at k < K.
 chunk has a `CHUNK_<N>_*.md` doc at the repo root. Status legend: ✅ done
 (commit pinned) · 🚧 in progress · ⬜ not started.
 
-At a glance: **done = 1–5** (Track A gcomp + IPW); **next = 6** (Track B ICE).
+At a glance: **done = 1–6** (Track A gcomp + IPW; Track B ICE); **next = 7**
+(competing risks).
 Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext = 19–25 (deferred IPW /
 intervention work + missing-data MI). When a chunk flips status, update the
 handoff §10 table (the only copy).
@@ -308,3 +309,28 @@ notes" for the style).
   Validated to ~1e-4 against a delicatessen M-estimation oracle. Full derivation
   + the "do-not-re-flag" invariants live in `.claude/hard-rules.md` (round-3) and
   `CHUNK_5_IPW_A.md`.
+- **Track B ICE (chunk 6): causatr's plain ICE chain is NOT reusable for
+  survival; survatr owns the backward loop + the cross-step IF cascade.**
+  causatr's `ice_iterate()` / `variance_if_ice_one()` are built for a single
+  terminal `Y`: the backward step regresses the raw next-step prediction
+  `q_{k+1}`, with no failure carry-forward. survatr's survival pseudo-outcome is
+  `Ỹ_k = D_k + (1−D_k)q_{k+1}` (NA-safe `ifelse(D_k==1, 1, q_{k+1})`), so
+  `run_ice_survival_horizon()` reimplements the backward sweep (one pass per
+  horizon; final step binomial on the observed event, earlier steps
+  quasibinomial on the tail). The variance reuses causatr's **single-model**
+  primitives (`ice_if_setup()` for Channel 1, `correct_model()` /
+  `iv_design_matrix()` / `coef_clean()` per step) but the cross-step cascade is
+  survatr's (`survatr_ice_surv_chain()`): the survival derivative
+  `dỸ_k/dβ_{k+1} = (1−D_k) dq_{k+1}/dβ_{k+1}` carries a `(1−D_k)` factor that is
+  **not** absorbed by the at-risk fit set (which includes failed-at-`k`
+  individuals), so the chain multiplies each prev-step contribution by
+  `(1 − D_{k−1})` from per-period event indicators. Reusing causatr's chain
+  verbatim over-covers, growing with horizon — caught by the sandwich-vs-
+  bootstrap test, fixed, and pinned to ~1e-5 by an independent delicatessen
+  stacked-EE oracle (`data-raw/delicatessen_ice_survival.py`). Confounders split
+  into `confounders` (baseline) + `confounders_tv` (lagged) with a `history`
+  Markov order; lags built by `causatr:::create_lag_vars()`. The minimal
+  `causatr_fit` for the IF is hand-built via `causatr:::new_causatr_fit()`, never
+  `fit_ice()`. Stochastic / `ipsi()` interventions and external/IPCW weights are
+  rejected (later chunks). Full invariants in `.claude/hard-rules.md` and
+  `CHUNK_6_ICE_B.md`.

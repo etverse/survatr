@@ -19,6 +19,8 @@ surv_fit(
   model_fn = stats::glm,
   propensity_model_fn = stats::glm,
   trim = NULL,
+  confounders_tv = NULL,
+  history = Inf,
   ...
 )
 }
@@ -40,7 +42,9 @@ multi-period study) must be reshaped with
 treatment. For Track A the treatment is constant within \code{id}.}
 
 \item{confounders}{A one-sided formula (e.g. \code{~ L1 + L2}) describing the
-covariate adjustment set.}
+\strong{baseline} (time-invariant) covariate adjustment set. Under
+\code{estimator = "ice"} (Track B), time-varying covariates go in
+\code{confounders_tv} instead; baseline terms here are never lagged.}
 
 \item{id}{Character scalar. Column name of the individual identifier.}
 
@@ -71,9 +75,10 @@ warning). The variance engine in later chunks reads the family from
 \code{fit$family} to pick the right dispersion.}
 
 \item{estimator}{Character scalar. \code{"gcomp"} (pooled-logistic
-standardization) or \code{"ipw"} (weighted marginal hazard MSM with stabilized
-density-ratio weights). \code{"ice"} ships in a later track and is rejected
-here. Matching is a hard reject with class \code{survatr_matching_rejected}
+standardization), \code{"ipw"} (weighted marginal hazard MSM with stabilized
+density-ratio weights), or \code{"ice"} (Track B: longitudinal
+iterated-conditional-expectation hazards for a time-varying treatment).
+Matching is a hard reject with class \code{survatr_matching_rejected}
 pointing to \code{survival::coxph(..., weights = , cluster = )}.}
 
 \item{model_fn}{Fitting function for the hazard model. Defaults to
@@ -92,6 +97,16 @@ the hazard MSM then uses \code{A} only.}
 \code{trim}-th quantile (Cole & Hernán 2008) before being broadcast onto the
 person-period rows. \code{NULL} / \code{1} means no truncation. The resolved fixed
 cutoff is reused by the sandwich variance.}
+
+\item{confounders_tv}{A one-sided formula of \strong{time-varying} confounders
+for Track B (\code{estimator = "ice"}), lag-expanded at each backward step
+(e.g. \code{~ L} builds \code{L + lag1_L + ...}). \code{NULL} (the default) means no
+time-varying confounders. Ignored by Track A (\code{gcomp} / \code{ipw}).}
+
+\item{history}{Markov lag order for Track B. \code{Inf} (the default) uses the
+full available history (capped at \code{n_times - 1}); an integer restricts
+the lag structure (e.g. \code{history = 1} for first-order Markov). Ignored by
+Track A.}
 
 \item{...}{Forwarded to \code{model_fn}. \code{na.action = na.exclude} is rejected
 with class \code{survatr_bad_na_action} -- \code{na.exclude} pads working

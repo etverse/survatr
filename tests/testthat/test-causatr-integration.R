@@ -89,6 +89,94 @@ test_that("causatr:::truncate_weights + apply_model_correction signatures", {
   expect_equal(length(res$correction), 100L)
 })
 
+test_that("causatr ICE internals reused by Track B keep their signatures", {
+  ns <- asNamespace("causatr")
+  ## Per-step fit / predict / formula primitives.
+  expect_identical(
+    names(formals(causatr:::ice_fit_step)),
+    c(
+      "model_fn",
+      "formula",
+      "fit_data",
+      "family",
+      "weights",
+      "dots",
+      "stratified"
+    )
+  )
+  expect_identical(
+    names(formals(causatr:::ice_predict_step)),
+    c("models_k", "newdata", "stratified")
+  )
+  expect_identical(
+    names(formals(causatr:::ice_build_formula)),
+    c(
+      "response",
+      "treatment",
+      "baseline_terms",
+      "tv_vars",
+      "tv_terms",
+      "time_idx",
+      "max_lag",
+      "data_at_time",
+      "em_info",
+      "treatment_terms"
+    )
+  )
+  expect_identical(
+    names(formals(causatr:::ice_apply_intervention_long)),
+    c("data", "treatment", "intervention", "id_col", "time_col")
+  )
+  expect_identical(
+    names(formals(causatr:::create_lag_vars)),
+    c("data", "treatment", "tv_vars", "id", "time", "history")
+  )
+  ## Variance-chain primitives (survatr drives its own survival chain but reuses
+  ## these single-model pieces + Channel-1 setup).
+  expect_identical(
+    names(formals(causatr:::ice_if_setup)),
+    c("fit", "ice_result", "target")
+  )
+  expect_identical(
+    names(formals(causatr:::correct_model)),
+    c("model", "gradient", "fit_idx", "n_total")
+  )
+  for (fn in c(
+    "coef_clean",
+    "parse_effect_mod",
+    "has_stochastic_component",
+    "new_causatr_fit"
+  )) {
+    expect_true(exists(fn, where = ns), info = fn)
+  }
+})
+
+test_that("causatr:::new_causatr_fit accepts the fields the Track B fit sets", {
+  ## survatr hand-builds a minimal longitudinal causatr_fit for the ICE
+  ## sandwich; pin the constructor args it relies on.
+  fmls <- names(formals(causatr:::new_causatr_fit))
+  expect_true(all(
+    c(
+      "model",
+      "data",
+      "treatment",
+      "outcome",
+      "confounders",
+      "confounders_tv",
+      "family",
+      "estimator",
+      "type",
+      "estimand",
+      "id",
+      "time",
+      "censoring",
+      "history",
+      "details"
+    ) %in%
+      fmls
+  ))
+})
+
 test_that("causatr:::iv_design_matrix signature + coef-aligned columns", {
   expect_identical(
     names(formals(causatr:::iv_design_matrix)),

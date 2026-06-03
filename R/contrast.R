@@ -202,6 +202,30 @@ contrast.survatr_fit <- function(
   validate_boot_ci(boot_ci)
   validate_parallel(parallel, ncpus)
 
+  ## Track B (longitudinal ICE-hazard survival). The curve is built by a
+  ## per-(intervention, horizon) backward sequential regression on the
+  ## survival-tail pseudo-outcome rather than the Track A predict-hazard /
+  ## cumulative-product path, so it takes a dedicated branch and returns early.
+  ## The estimand shape, contrast assembly, RMST integral, and CI fillers are
+  ## all reused -- only the curve + influence-function construction differ.
+  if (identical(fit$track, "B")) {
+    return(contrast_track_b(
+      fit = fit,
+      interventions = interventions,
+      times = times,
+      type = type,
+      reference = reference,
+      ci_method = ci_method,
+      conf_level = conf_level,
+      n_boot = n_boot,
+      boot_ci = boot_ci,
+      parallel = parallel,
+      ncpus = ncpus,
+      seed = seed,
+      call = match.call()
+    ))
+  }
+
   ## Per-intervention survival curves. Build the counterfactual PP data,
   ## predict hazards on every row (at-risk rows are irrelevant for the
   ## prediction -- the cumulative product over k <= t needs the predicted

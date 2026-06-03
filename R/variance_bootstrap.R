@@ -128,7 +128,11 @@ bootstrap_survival <- function(
         } else {
           stats::glm
         },
-        trim = fit$trim
+        trim = fit$trim,
+        ## Track B (ice) needs the time-varying confounders + lag order; both
+        ## are NULL for Track A, where `surv_fit()` ignores them.
+        confounders_tv = fit$confounders_tv,
+        history = if (is.null(fit$history)) Inf else fit$history
       ),
       error = function(e) NULL
     )
