@@ -1,5 +1,11 @@
 #' Compute the per-individual influence function matrix for S^a(t)
 #'
+#' @description
+#' Build the `n_ids x |times|` matrix of per-individual influence functions
+#' for the standardized counterfactual survival curve `S^a(t)`, used by the
+#' sandwich-variance path to form `crossprod(IF) / n_ids^2`.
+#'
+#' @details
 #' Implements the delta-method cross-time IF chain described in
 #' `CHUNK_3_SANDWICH_A.md`:
 #'
@@ -25,6 +31,10 @@
 #' future chunk that swaps in a non-logit link does not need to revisit the
 #' derivation.
 #'
+#' Source: cumulative-product survival standardization in Hernán & Robins
+#' (2020), *Causal Inference: What If*, Ch. 17; the cross-time delta chain
+#' is derived in `CHUNK_3_SANDWICH_A.md`.
+#'
 #' @param fit A `survatr_fit`.
 #' @param intervention A single `causatr_intervention`.
 #' @param times User-supplied time grid (sorted unique, validated upstream).
@@ -36,6 +46,10 @@
 #'   same order as `fit$pp_data`.
 #' @param unique_ids Vector of unique id values (in the order they first
 #'   appear in `fit$pp_data`).
+#' @param ipw_corr Output of `prepare_ipw_correction()` under
+#'   `estimator = "ipw"`, or `NULL` (gcomp). When non-`NULL`, the
+#'   treatment-model correction (stacked-EE cross block) is added to the IF
+#'   matrix so the sandwich accounts for the estimated weights.
 #'
 #' @return A list with `s_hat` (length `|times|`) and `IF_mat`
 #'   (`n_ids x |times|` matrix of per-individual IFs on `S^a(t)`).
@@ -47,30 +61,57 @@ compute_survival_if_matrix <- function(
   prep,
   fit_idx,
   id_vec,
-  unique_ids
+  unique_ids,
+  ipw_corr = NULL
 ) {
   pp_cf <- apply_intervention_pp(fit$pp_data, fit$treatment, intervention)
 
-  ## Design matrix under the intervention. We strip the response side of the
-  ## model's formula so model.matrix() accepts newdata even when the outcome
-  ## column has been intervened upon in some weird downstream use case.
-  tt <- stats::delete.response(stats::terms(fit$model))
-  X_pp <- stats::model.matrix(tt, data = pp_cf)
+  ## Key by (id, time) up front so every row-aligned quantity below -- the
+  ## design matrix, predicted hazards, the within-id cumulative survival, and
+  ## the per-time row pulls -- is computed in one canonical order.
+  ## `apply_intervention()` preserves the key today (so this `setkeyv` is a
+  ## no-op), but keying before we compute `X_pp` / `h` keeps the alignment
+  ## correct even if a future reshape were to drop it.
+  id_col <- fit$id
+  time_col <- fit$time
+  data.table::setkeyv(pp_cf, c(id_col, time_col))
 
-  eta <- stats::predict(fit$model, newdata = pp_cf, type = "link")
-  h <- stats::predict(fit$model, newdata = pp_cf, type = "response")
+  ## Counterfactual design matrix, on the SAME basis as the bread (B_inv) and
+  ## the score design (prep X_fit). This is load-bearing and basis-specific.
+  ## For a GLM it is the terms-based design with the model's stored factor
+  ## levels reused and aliased (collinear) columns dropped, so a single-level
+  ## factor intervention and rank-deficient designs still align with the
+  ## cleaned coefficient vector. For an mgcv GAM it is the penalized
+  ## linear-predictor "lpmatrix" basis, whose column count equals the
+  ## coefficient length and matches the Bayesian posterior covariance Vp used
+  ## as the bread. A terms-based design degrades a penalized smooth term on
+  ## time to a linear time effect (fewer columns than the lpmatrix), which is
+  ## non-conformable with the bread. We reuse causatr's design-matrix helper
+  ## rather than re-rolling the GLM/GAM split, per the "causatr is the engine;
+  ## do not reimplement the IF primitives" rule. The Vp-as-bread plus lpmatrix
+  ## strategy is mgcv's own default and is justified for frequentist coverage
+  ## by Marra & Wood (2012, Scand. J. Stat. 39:53-74).
+  X_pp <- causatr:::iv_design_matrix(fit$model, pp_cf)
+
+  ## `predict.gam()` returns a 1-D array (a numeric vector carrying a `dim`
+  ## attribute), whereas `predict.glm()` returns a plain vector. The later
+  ## row-scaling `X_pp * s_row` would then multiply two arrays with
+  ## different dims and abort with "non-conformable arrays". Coerce to plain
+  ## numeric so the recycling row-scale behaves identically for GLM and GAM.
+  eta <- as.numeric(stats::predict(fit$model, newdata = pp_cf, type = "link"))
+  h <- as.numeric(stats::predict(fit$model, newdata = pp_cf, type = "response"))
   mu_eta <- fit$model$family$mu.eta(eta)
   ## Per-row sensitivity of log(1 - h) wrt beta is -(s_row * X). For the
-  ## logit link s_row simplifies to h itself; the general formula below
-  ## handles any family providing mu_eta() and variance().
+  ## logit link `mu.eta(eta) = dh/deta = h (1 - h)`, so the `(1 - h)` in the
+  ## denominator below cancels exactly and `s_row` collapses to `h` itself.
+  ## We keep the general `mu_eta / (1 - h)` form so any family providing
+  ## mu_eta() and variance() (e.g. a future non-logit link) works unchanged.
   s_row <- mu_eta / (1 - h)
 
   ## Within-id cumulative survival: at row (i, k), `.cf_surv = S_i(k)`.
   ## Within-id cumulative sensitivity: at row (i, k),
   ## `cum_SX[i, k, :] = sum_{l <= k} s_{i,l} * X_{i,l}`.
-  id_col <- fit$id
-  time_col <- fit$time
-  data.table::setkeyv(pp_cf, c(id_col, time_col))
+  ## (pp_cf is already keyed by (id, time) at the top of the function.)
   ## Attach the per-row hazard as a column so the cumulative product inside
   ## `by = id_col` sees the grouped subset of `h` rather than the full
   ## enclosing vector (data.table's non-standard evaluation only scopes
@@ -152,6 +193,24 @@ compute_survival_if_matrix <- function(
   Ch2_mat <- IF_beta_per_id %*% J_bar_mat ## n_ids x n_t
   IF_mat <- Ch1_mat + Ch2_mat
 
+  ## IPW: add the stacked-EE treatment-model correction. The weighted hazard
+  ## MSM's coefficients depend on the estimated propensity, so the survival IF
+  ## gains a (subtracted) term propagating the treatment-model score through the
+  ## cross-derivative and the cross-time delta. Ignoring it treats the weights
+  ## as known, which is conservative for stabilized weights (Robins 1999;
+  ## Hernán et al. 2000) -- but we propagate it so the sandwich matches the full
+  ## two-stage bootstrap rather than over-covering.
+  if (!is.null(ipw_corr)) {
+    TC <- compute_treatment_correction(
+      J_bar_mat = J_bar_mat,
+      B_inv = prep$B_inv,
+      n_fit = nrow(prep$X_fit),
+      ipw_corr = ipw_corr,
+      n_ids = n_ids
+    )
+    IF_mat <- IF_mat + TC
+  }
+
   list(s_hat = s_hat, IF_mat = IF_mat)
 }
 
@@ -206,10 +265,25 @@ prepare_sandwich_shared <- function(fit) {
   id_vec <- pp_work[[fit$id]]
   unique_ids <- unique(id_vec)
 
+  ## Under IPW, also build the intervention-independent treatment-model
+  ## correction pieces (cross-derivative + treatment-model bread/score) once,
+  ## shared across interventions like `prep`.
+  ipw_corr <- NULL
+  if (identical(fit$estimator, "ipw")) {
+    ipw_corr <- prepare_ipw_correction(
+      fit = fit,
+      prep = prep,
+      fit_idx = fit_idx,
+      id_vec = id_vec,
+      pp_work = pp_work
+    )
+  }
+
   list(
     prep = prep,
     fit_idx = fit_idx,
     id_vec = id_vec,
-    unique_ids = unique_ids
+    unique_ids = unique_ids,
+    ipw_corr = ipw_corr
   )
 }

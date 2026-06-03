@@ -33,6 +33,82 @@ sim_constant_hazard <- function(n = 2000L, K = 10L, h = 0.05, seed = 1L) {
   data.table::rbindlist(rows)
 }
 
+## Confounded point-treatment survival DGP on a rectangular person-period grid.
+## Used by the IPW tests: the treatment depends on a baseline confounder `L`
+## that also drives the hazard, so a naive (unweighted) curve is biased and the
+## IPW / gcomp adjusted curves should agree (and match the lmtp oracle).
+##
+## - n individuals, K periods (1..K).
+## - Baseline confounder L ~ N(0, 1).
+## - Treatment A ~ Bernoulli(plogis(gamma * L)) -- when `gamma = 0` the
+##   treatment is independent of L (unconfounded), the stabilized weights
+##   collapse to ~1, and the IPW curve matches the gcomp curve.
+## - Discrete hazard logit h_{i,k} = alpha0 + alpha_t(k) + beta_A * A_i +
+##   beta_L * L_i, with `alpha_t` small per-period offsets.
+## - First-event truncation + rectangular padding (Y = 0 after the first event).
+## - No censoring (keeps the lmtp oracle reshape simple).
+sim_confounded_survival <- function(
+  n = 2000L,
+  K = 5L,
+  seed = 1L,
+  gamma = 0.8,
+  alpha0 = -2.0,
+  beta_A = -0.6,
+  beta_L = 0.7
+) {
+  set.seed(seed)
+  L <- stats::rnorm(n)
+  A <- stats::rbinom(n, 1L, stats::plogis(gamma * L))
+  ## Small deterministic per-period offsets so the baseline hazard is not flat.
+  alpha_t <- seq(0, 0.3, length.out = K)
+  rows <- vector("list", n)
+  for (i in seq_len(n)) {
+    eta <- alpha0 + alpha_t + beta_A * A[i] + beta_L * L[i]
+    h <- stats::plogis(eta)
+    Y <- stats::rbinom(K, 1L, h)
+    first <- which(Y == 1L)[1L]
+    if (!is.na(first) && first < K) {
+      Y[(first + 1L):K] <- 0L
+    }
+    rows[[i]] <- data.table::data.table(
+      id = i,
+      t = seq_len(K),
+      A = A[i],
+      L = L[i],
+      Y = Y
+    )
+  }
+  data.table::rbindlist(rows)
+}
+
+## Analytical-ish truth for the confounded-survival DGP: the true marginal
+## counterfactual survival S^a(t) = E_L[ prod_{k<=t} (1 - h_{k}(a, L)) ], obtained
+## by Monte Carlo integration over L ~ N(0, 1) on a large fixed grid. The
+## hazard form must match `sim_confounded_survival()`. Used to score sandwich CI
+## coverage for the IPW estimator.
+true_marginal_survival <- function(
+  a,
+  times,
+  K = 5L,
+  alpha0 = -2.0,
+  beta_A = -0.6,
+  beta_L = 0.7,
+  n_int = 400000L,
+  seed = 999L
+) {
+  set.seed(seed)
+  L <- stats::rnorm(n_int)
+  alpha_t <- seq(0, 0.3, length.out = K)
+  ## h_mat[, k] = hazard at period k for each integration draw under A = a.
+  h_mat <- vapply(
+    seq_len(K),
+    function(k) stats::plogis(alpha0 + alpha_t[k] + beta_A * a + beta_L * L),
+    numeric(n_int)
+  )
+  surv_mat <- t(apply(1 - h_mat, 1L, cumprod)) # n_int x K cumulative product
+  vapply(times, function(t) mean(surv_mat[, t]), numeric(1L))
+}
+
 ## Minimal three-period, five-id PP fixture used for row-level structural
 ## checks (risk-set construction, reserved-col guard, data-shape validation).
 ## id 1: event at t=2  -> at-risk rows: (1,1), (1,2). (1,3) dropped.

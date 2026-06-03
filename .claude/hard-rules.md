@@ -27,16 +27,18 @@ Project-specific rules that override / extend the etverse-wide rules at
 | Dimension | Values |
 |---|---|
 | **Track** | A (point treatment + pooled-logistic hazard), B (longitudinal ICE-hazards) |
-| **Estimator** | gcomp (pooled-logistic), ipw (weighted hazard MSM), ice (hazard pseudo-outcome). **Matching: hard-abort.** |
+| **Estimator** | gcomp (pooled-logistic), ipw (weighted hazard MSM), ice (hazard pseudo-outcome), aipw (parametric doubly-robust; ML/TMLE out). **Matching: hard-abort.** |
 | **Treatment timing** | point (Track A), longitudinal (Track B) |
 | **Treatment type** | binary, continuous, categorical (k>2), count (Poisson/NB, IPW only), multivariate (via causatr inheritance) |
 | **Outcome family** | binomial hazard (first-step / indicator), quasibinomial (pseudo-outcome / weighted fits) |
 | **Model class** | GLM (pooled logistic), GAM (via `mgcv::gam` with `s(t)` for baseline hazard) |
 | **Intervention** | static, shift, scale_by, threshold (gcomp only), dynamic, ipsi (IPW only), stochastic (pending) |
-| **Estimand** | survival S^a(t), risk 1 - S^a(t), risk difference, risk ratio, RMST up to t* |
+| **Estimand** | survival S^a(t), risk 1 - S^a(t), risk difference, risk ratio, RMST + RMTL up to t*, survival quantiles / median, per-cause years-of-life-lost |
 | **Contrast type** | difference, ratio |
-| **Variance method** | sandwich (delta-method cross-time IF), bootstrap (resample individuals), numeric Tier 1/2 fallback |
+| **Variance method** | sandwich (delta-method cross-time IF; pointwise + simultaneous bands; cluster-robust), bootstrap (resample individuals), numeric Tier 1/2 fallback |
 | **Weights** | none, survey/external, censoring row-filter, IPCW (cumulative, per-period) |
+| **Entry / truncation** | right-censoring, left-truncation / delayed entry |
+| **Event structure** | single terminal event, competing risks, recurrent events, multi-state / illness-death |
 | **Competing risks** | cause-specific hazards + CIF (first-class); Fine-Gray / subdistribution hazards out of scope |
 
 ## Hard rules (appended to the skill's generic rules)
@@ -139,6 +141,85 @@ and a regression test:
   on internal copies but are still guarded at the boundary.
 - **`validate_times()` accepts numeric + Date + POSIXct + POSIXlt +
   difftime.** `is.numeric()` alone rejects all time-like classes.
+
+### Established invariants from 2026-06-02 round-2 critical review
+
+Do NOT flag these as bugs. Each has a regression test.
+
+- **GAM × sandwich is supported and uses the lpmatrix basis + `Vp` bread.**
+  The counterfactual design for an `mgcv::gam` fit MUST be the
+  `predict(type = "lpmatrix")` basis, obtained via
+  `causatr:::iv_design_matrix()` — NOT `model.matrix(terms(model))`, which
+  silently degrades a smooth `s(t)` term to a linear `t` (fewer columns) and
+  is non-conformable with `B_inv = model$Vp`. `predict.gam()` also returns a
+  1-D array (a vector carrying a `dim` attribute); coerce the link / response
+  predictions to plain numeric before the row-scale `X_pp * s_row` or it
+  aborts with "non-conformable arrays". The `Vp`-as-bread strategy is mgcv's
+  own default and is justified for frequentist coverage by Marra & Wood
+  (2012, Scand. J. Stat. 39:53-74). Do not re-mark GAM × sandwich as
+  unsupported.
+- **survatr performs NO matrix inversion of its own.** Every bread inversion
+  is causatr's `prepare_model_if()` / `bread_inv()` (already `MASS::ginv()`-
+  guarded, with `$Vp` for GAMs). survatr's variance code is pure matrix
+  multiplication plus a guarded risk-ratio division. Do not add a
+  singular-bread guard to survatr's delta chain — there is no `solve()` there.
+- **`forrest()` has two distinct `t_ref` failure classes:** off-grid /
+  malformed `t_ref` → `survatr_bad_t_ref`; a valid grid time with no pairwise
+  contrast rows (empty `contrasts`, e.g. a single intervention) →
+  `survatr_forrest_no_contrasts`.
+- **Symmetric Wald CIs are intentional.** `point ± z·se` for differences
+  (risk / RMST) can legitimately produce negative bounds — a difference is
+  not a probability. Risk-ratio CIs are built on the log scale and
+  exponentiated. A `survival` / `risk` probability CI falling outside [0, 1]
+  is a known property of Wald intervals, not a bug; a cloglog / logit
+  transform is a possible future enhancement, not a correctness fix.
+- **The three `causatr:::` internals are contract-pinned** by
+  `test-causatr-integration.R`: `apply_intervention(data, treatment, iv)`;
+  `prepare_model_if(model, fit_idx, n_total)` returning `X_fit` / `B_inv` /
+  `r_score`; `iv_design_matrix(model, newdata)` returning a coef-aligned
+  design. The causatr remote is unpinned `main`; hard-pinning is deferred to
+  release time.
+
+### Established invariants from 2026-06-02 round-3 critical review (IPW, chunk 5)
+
+Do NOT flag these as bugs. Each has a regression test.
+
+- **IPW stabilized weights are composed in survatr, not causatr.** causatr's
+  point IPW is Hájek-on-`Y~1` and rejects univariate stabilization
+  (`causatr_stabilize_univariate`), so it exposes no point-treatment
+  `f(A)/f(A|L)` weight. survatr composes it from two
+  `causatr:::evaluate_density()` calls (full `A~L` + marginal `A~1`) and
+  `causatr:::truncate_weights()`. This is composition of primitives, not
+  reimplementation — do not "move it into causatr".
+- **The IPW sandwich treatment-correction carries exactly ONE factor of
+  `n_ids`.** It is built via `numDeriv` on the weighted-MSM `phi_bar` (÷ n_fit)
+  and `causatr:::apply_model_correction(prep_trt, g)` with `prep_trt` at
+  `n_total = n_ids`; the `n_fit` in `h_t = n_fit·B_inv·J̄` cancels `phi_bar`'s
+  `1/n_fit`. Validated two ways: stacked sandwich SE ≈ full two-stage bootstrap,
+  and ≈ an independent `delicatessen` stacked-EE sandwich to ~1e-4 on shared
+  data (`test-ipw-delicatessen.R`). Do not add or remove an `n_ids` factor
+  without re-running those pins.
+- **For stabilized weights the stacked SE is NARROWER than the naive
+  weights-as-known SE.** The treatment-model correction is subtracted (it
+  projects out the variance explained by the propensity score). Do not "fix"
+  the sandwich to be wider than the naive hazard-only SE — that direction is
+  correct (Robins 1999; Hernán, Brumback & Robins 2000; Kostouraki 2024). The
+  marginal-numerator (`A~1`) estimation is intentionally omitted from the IF
+  (conservative).
+- **`risk_ratio` `se` is reported on the NATURAL scale** (`RR · se(log RR)`)
+  in both the sandwich and bootstrap paths, while the CI is built on the log
+  scale and exponentiated. The `se` column is therefore intentionally NOT
+  consistent with `point ± z·se` for ratios — the log-based CI is the correct
+  interval, and `se` is the natural-scale SE of the estimand. Do not flag the
+  `se`-vs-CI asymmetry as a bug.
+- **Missing data is rejected upfront for IPW too.** The IPW treatment-model
+  predictors (`all.vars(confounders)`) flow through
+  `check_no_na_in_predictors()` before dispatch, so NA is rejected
+  (`survatr_na_in_predictors`) rather than silently row-dropped by causatr's
+  treatment-model fit — this preserves the influence-function row alignment.
+- **A constant treatment aborts with `survatr_ipw_no_treatment_variation`**
+  (positivity), guarded before `fit_treatment_model()` so causatr's family
+  auto-detection cannot misclassify a degenerate binary column as "gaussian".
 
 ### Implementation conventions
 

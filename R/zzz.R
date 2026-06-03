@@ -1,5 +1,6 @@
 ## Quiet R CMD check about data.table NSE column references.
 utils::globalVariables(c(
+  ".I",
   ".survatr_prev_event",
   ".survatr_prev_cens",
   ".cf_hazard",

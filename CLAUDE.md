@@ -149,12 +149,19 @@ Run this in the shell:
 survatr is a **causal survival analysis package** for time-to-event outcomes,
 built on top of causatr. It owns: pooled-logistic hazard g-computation (Track
 A), iterated-conditional-expectation hazards for longitudinal survival
-(Track B), IPW weighted hazard MSM, cause-specific hazards + CIF for
-competing risks, and sandwich variance via delta-method propagation through
-the cumulative product. It is NOT: a Cox-PH modelling package (use
-`survival`), a TMLE/ML survival package (use `lmtp`), a forward-simulation
-g-formula for survival (use `gfoRmula`), or a Fine–Gray subdistribution
-hazards package.
+(Track B), IPW weighted hazard MSM, built-in IPCW, **parametric** doubly-robust
+(AIPW) survival, cause-specific hazards + CIF for competing risks, recurrent-
+event and multi-state (illness-death) extensions, left-truncation, and a
+curve-valued estimand surface (survival, risk, RD, RR, RMST, RMTL, survival
+quantiles / median, years-of-life-lost) with sandwich variance (delta-method
+through the cumulative product; pointwise + simultaneous bands; cluster-robust)
+and bootstrap. The phased roadmap (v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext =
+19–25) lives in [SURVIVAL_PACKAGE_HANDOFF.md §10](SURVIVAL_PACKAGE_HANDOFF.md).
+It is NOT: a Cox-PH modelling package (use `survival`), an
+**ML / TMLE** survival package (use `lmtp` — survatr's AIPW is parametric /
+M-estimation only), a forward-simulation g-formula for survival (use
+`gfoRmula`), or a Fine–Gray subdistribution-hazards package (competing risks
+are cause-specific only).
 
 ### Why a separate package (see handoff §1)
 
@@ -201,14 +208,16 @@ quasibinomial at k < K.
 | Dimension | Values |
 |---|---|
 | **Track** | A (point-treatment pooled-logistic hazard), B (longitudinal ICE hazards) |
-| **Estimator** | gcomp, ipw, ice. **Matching: hard-reject.** |
+| **Estimator** | gcomp, ipw, ice, aipw (parametric doubly-robust; ML/TMLE out). **Matching: hard-reject.** |
 | **Treatment type** | binary, continuous, categorical k>2, count (Poisson/NB, IPW only), multivariate (via causatr inheritance) |
 | **Outcome** | binomial hazard (at K), quasibinomial pseudo-outcome (at k < K and weighted fits) |
 | **Interventions** | `static`, `shift`, `scale_by`, `threshold` (gcomp only), `dynamic`, `ipsi` (IPW only). All constructed via `causatr::` |
-| **Estimand** | survival S^a(t), risk 1 − S^a(t), risk difference, risk ratio, RMST up to t* |
-| **Variance** | sandwich (delta-method cross-time IF aggregation), bootstrap (resample individuals), numeric Tier 1/2 fallback |
+| **Estimand** | survival S^a(t), risk 1 − S^a(t), risk difference, risk ratio, RMST + RMTL up to t*, survival quantiles / median, per-cause years-of-life-lost |
+| **Variance** | sandwich (delta-method cross-time IF; pointwise + simultaneous bands; cluster-robust), bootstrap (resample individuals), numeric Tier 1/2 fallback |
+| **Event structure** | single terminal event, competing risks (cause-specific + CIF), recurrent events, multi-state / illness-death |
 | **Competing risks** | cause-specific hazards + CIF. Fine–Gray out of scope. |
-| **Weights** | none, survey/external (broadcast onto PP rows), censoring row-filter, IPCW (per-period cumulative — this is the *motivating* use case for IPCW) |
+| **Entry / censoring** | right-censoring (row filter + IPCW per-period cumulative — the *motivating* IPCW case), left-truncation / delayed entry |
+| **Weights** | none, survey/external (broadcast onto PP rows), censoring row-filter, IPCW (per-period cumulative) |
 
 ## Key design decisions
 
@@ -252,26 +261,50 @@ quasibinomial at k < K.
   risk-set construction. `check_reserved_cols()` guards against user
   collisions upfront.
 
-## Implementation chunks (from handoff §10)
+## Implementation chunks
 
-Status legend: ✅ done (commit pinned) · 🚧 in progress · ⬜ not started.
-Single source of truth for per-chunk status is the table below. Keep
-[SURVIVAL_PACKAGE_HANDOFF.md](SURVIVAL_PACKAGE_HANDOFF.md) §10 in sync.
+**Canonical roadmap + per-chunk status + commit pins:**
+[SURVIVAL_PACKAGE_HANDOFF.md §10](SURVIVAL_PACKAGE_HANDOFF.md) (25 chunks). Each
+chunk has a `CHUNK_<N>_*.md` doc at the repo root. Status legend: ✅ done
+(commit pinned) · 🚧 in progress · ⬜ not started.
 
-| # | Status | Chunk doc | Scope | Depends |
-|---|---|---|---|---|
-| 1 | ✅ `6e911d3` | [CHUNK_1_SKELETON.md](CHUNK_1_SKELETON.md) | Package skeleton + Track A fit path: `surv_fit()`, risk-set builder, copied `check_*` / `is_uncensored()` helpers, `survatr_fit` S3, full classed-error surface. | — |
-| 2 | ✅ `2525707` | [CHUNK_2_CONTRAST_A.md](CHUNK_2_CONTRAST_A.md) | Track A contrast path: per-individual hazards → survival curve → risk / RMST contrasts. **No variance yet.** Time-indexed `data.table` result shape. | 1 |
-| 3 | ✅ `a3f79cb` | [CHUNK_3_SANDWICH_A.md](CHUNK_3_SANDWICH_A.md) | Track A sandwich variance: delta-method cross-time IF aggregation on `causatr:::prepare_model_if()` / `apply_model_correction()`. | 2 |
-| 4 | ✅ `8a26904` | [CHUNK_4_BOOTSTRAP_S3.md](CHUNK_4_BOOTSTRAP_S3.md) | Track A bootstrap + S3 methods (`print` / `plot` / `tidy` / `forrest` for survival curves). | 2 |
-| 5 | ⬜ | — | Track A under IPW: baseline density-ratio weights from causatr, broadcast onto PP rows, weighted hazard MSM. | 2, causatr IPW |
-| 6 | ⬜ | — | Track B (ICE hazards): per-step hazard target + survival-tail pseudo-outcome, reuse causatr's `ice_iterate()` + `variance_if_ice()` via internal imports. | 3, causatr ICE |
-| 7 | ⬜ | — | Competing risks: parallel cause-specific hazards + CIF contrast + sandwich via stacked EE across cause-specific models. | 2, 3 |
-| 8 | ⬜ | — | Matching rejection path + classed error. (Already partially wired in chunk 1's `surv_fit()`; chunk 8 expands to the full rejection surface with a regression test.) | — |
-| 9 | ⬜ | — | NHEFS Ch. 17 replication test + `survival` vignette. | 2–7 |
-| 10 | ⬜ | — | Survival-aware `diagnose()`: per-period hazard positivity, cross-time balance, competing-risks decomposition. | 2, 7 |
+At a glance: **done = 1–5** (Track A gcomp + IPW); **next = 6** (Track B ICE).
+Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext = 19–25 (deferred IPW /
+intervention work + missing-data MI). When a chunk flips status, update the
+handoff §10 table (the only copy).
 
 ## Architecture notes
 
-[Populated over time as hard-won learnings accumulate. See causatr's CLAUDE.md
-§"Architecture notes" for the style.]
+Hard-won learnings, appended over time (see causatr's CLAUDE.md §"Architecture
+notes" for the style).
+
+- **GAM hazard models + sandwich variance go through the lpmatrix basis.**
+  When `model_fn = mgcv::gam`, the sandwich path builds the counterfactual
+  design via `causatr:::iv_design_matrix()` (which returns
+  `predict(type = "lpmatrix")` for a gam), not `model.matrix(terms(model))`.
+  The latter degrades a smooth `s(t)` term to a linear `t`, producing a design
+  with fewer columns than `coef` / `model$Vp` and a "non-conformable arrays"
+  error. Relatedly, `predict.gam()` returns a 1-D array (a vector with a `dim`
+  attribute) while `predict.glm()` returns a plain vector, so link / response
+  predictions are coerced with `as.numeric()` before row-scaling. The bread for
+  a penalized gam is `model$Vp` (Bayesian posterior covariance) — mgcv's
+  default, with near-nominal frequentist coverage (Marra & Wood 2012). The gam
+  sandwich SE matches the analytically-validated GLM sandwich SE to within ~2%
+  on a constant-hazard DGP.
+- **All bread inversion lives in causatr.** survatr layers the cross-time delta
+  aggregation on top of `causatr:::prepare_model_if()` and never inverts a
+  matrix itself; the only `solve()` / `ginv()` is causatr's guarded
+  `bread_inv()`. A rank-deficiency guard belongs there, not in survatr.
+- **IPW survival (chunk 5): stabilized weight composed in survatr; two-stage
+  stacked-EE sandwich with a single `n_ids` factor.** causatr's point IPW is
+  Hájek-on-`Y ~ 1` and rejects univariate stabilization, so survatr composes
+  `f(A)/f(A|L)` from two `causatr:::evaluate_density()` calls +
+  `truncate_weights()`, broadcasts the per-id weight onto PP rows, and fits a
+  weighted marginal MSM via `fit_hazard_gcomp(~1)` (intervention-free → chunk-2/3
+  curve + sandwich reused). The sandwich adds a *subtracted* treatment-model
+  correction via `causatr:::apply_model_correction(prep_trt, g)` at
+  `n_total = n_ids` with a `numDeriv` cross-derivative; it is *narrower* than the
+  naive weights-as-known SE for stabilized weights — do not "fix" it wider.
+  Validated to ~1e-4 against a delicatessen M-estimation oracle. Full derivation
+  + the "do-not-re-flag" invariants live in `.claude/hard-rules.md` (round-3) and
+  `CHUNK_5_IPW_A.md`.

@@ -46,6 +46,60 @@
       Error:
       ! `weights` must be non-negative.
 
+# check_trim rejects out-of-range / non-scalar / non-finite values
+
+    Code
+      check_trim(0)
+    Condition
+      Error:
+      ! `trim` must be `NULL` or a single number in (0, 1].
+      i `trim` is the upper quantile at which to winsorize IPW weights; 1 means no truncation.
+
+---
+
+    Code
+      check_trim(1.5)
+    Condition
+      Error:
+      ! `trim` must be `NULL` or a single number in (0, 1].
+      i `trim` is the upper quantile at which to winsorize IPW weights; 1 means no truncation.
+
+---
+
+    Code
+      check_trim(-0.2)
+    Condition
+      Error:
+      ! `trim` must be `NULL` or a single number in (0, 1].
+      i `trim` is the upper quantile at which to winsorize IPW weights; 1 means no truncation.
+
+---
+
+    Code
+      check_trim(c(0.9, 0.95))
+    Condition
+      Error:
+      ! `trim` must be `NULL` or a single number in (0, 1].
+      i `trim` is the upper quantile at which to winsorize IPW weights; 1 means no truncation.
+
+---
+
+    Code
+      check_trim(NA_real_)
+    Condition
+      Error:
+      ! `trim` must be `NULL` or a single number in (0, 1].
+      i `trim` is the upper quantile at which to winsorize IPW weights; 1 means no truncation.
+
+---
+
+    Code
+      check_trim("0.9")
+    Condition
+      Error:
+      ! `trim` must be `NULL` or a single number in (0, 1].
+      i `trim` is the upper quantile at which to winsorize IPW weights; 1 means no truncation.
+
 # check_dots_na_action rejects na.exclude (function and string)
 
     Code

@@ -1,5 +1,110 @@
 # survatr (development version)
 
+## 2026-06-02 — `risk_ratio` sandwich `se` now reported on the natural scale
+
+The `se` column for `type = "risk_ratio"` under `ci_method = "sandwich"` was
+the SE of `log(RR)` (the natural delta-method quantity), while the bootstrap
+path reported the SD of the RR replicates — so the two methods printed
+different `se` numbers (off by roughly a factor of `RR`) for the same
+estimand. The confidence intervals were correct in both paths (the sandwich
+builds the interval on the log scale and exponentiates). The sandwich now
+reports `se` on the natural RR scale (`RR * se(log RR)`) so the column always
+means "SE of the reported estimand" and matches the bootstrap; the CI is
+still log-based (strictly positive, not `se`-symmetric). Surfaced by the IPW
+work but pre-existing in the gcomp sandwich.
+
+## 2026-06-02 — IPW weighted hazard MSM (Track A, `estimator = "ipw"`)
+
+`surv_fit(estimator = "ipw")` adds inverse-probability weighting as a
+second, methodologically-distinct estimator of the counterfactual survival
+curve (binary point treatment; `static` / `dynamic` interventions). It fits
+a baseline treatment model on the original-row data, forms **stabilized**
+density-ratio weights `w_i = f(A_i) / f(A_i | L_i)` at the observed
+treatment, broadcasts the per-id weight onto every person-period row, and
+fits a weighted marginal hazard MSM `logit h(t | A) = α(t) + β_A·A`
+(`quasibinomial`). Confounding is handled by the weights, so the hazard
+model carries `A` only. The `contrast()` curve / risk / RMST machinery is
+reused unchanged. New arguments: `propensity_model_fn` (treatment-model
+fitter) and `trim` (optional weight winsorization at a quantile).
+
+The sandwich variance is a two-stage stacked estimating equation: the
+chunk-3 cross-time delta on the weighted hazard MSM, plus a **subtracted**
+treatment-model correction that propagates the propensity-score uncertainty
+through a numeric cross-derivative. For stabilized weights this *narrows*
+the SE relative to treating the weights as known (Robins 1999; Hernán et
+al. 2000); the stacked sandwich matches the full two-stage bootstrap (which
+re-estimates both models per replicate) to within 15%, and matches an
+**independent** `delicatessen` stacked-M-estimation sandwich (Python) to ~1e-4
+on shared data. The point estimate is validated against
+`lmtp::lmtp_tmle(outcome_type = "survival")` and, degenerately, against
+`causatr::causat(estimator = "ipw")`. All IPW
+weight, density, truncation, bread, and correction primitives are reused
+from `causatr`; survatr composes the stabilized weight and the cross-time
+delta on top.
+
+Continuous / categorical / count treatment types and `ipsi()` are deferred
+to dedicated follow-up chunks (19 / 20) and abort with clear classed errors.
+A constant treatment (no positivity contrast) aborts with
+`survatr_ipw_no_treatment_variation`, and external weights with
+`survatr_ipw_external_weights` (transport is chunk 21). Missing data is
+rejected upfront by `check_no_na_in_predictors()` for the treatment-model
+predictors too — survatr does not delegate NA handling to causatr's
+row-dropping, so the influence-function row alignment is preserved.
+
+## 2026-06-02 — GAM hazard models work with sandwich variance
+
+`contrast(..., ci_method = "sandwich")` aborted with "non-conformable
+arrays" for any hazard model fit with `mgcv::gam` — advertised as a
+supported `model_fn`. Two independent causes:
+
+- The counterfactual design matrix was built with the terms-based
+  `model.matrix()`, which silently degrades a smooth `s(t)` term to a
+  linear `t` (fewer columns than the penalized linear-predictor basis),
+  leaving it non-conformable with the `model$Vp` bread that
+  `causatr:::prepare_model_if()` correctly returns for a GAM. It is now
+  built via `causatr:::iv_design_matrix()`, which uses the
+  `predict(type = "lpmatrix")` basis for GAMs and a level-aware,
+  aliased-column-dropping `model.matrix()` for GLMs — the latter also
+  hardens single-level factor interventions and rank-deficient GLM
+  designs.
+- `predict.gam()` returns a 1-D array (carrying a `dim` attribute) where
+  `predict.glm()` returns a plain vector, so the per-row hazard
+  sensitivity scaling multiplied two arrays of different shape. The link
+  and response predictions are now coerced to plain numeric.
+
+The `Vp`-as-bread + lpmatrix strategy is mgcv's own default (`vcov.gam`)
+and is justified for frequentist coverage by Marra & Wood (2012, Scand.
+J. Stat. 39:53–74). Validated numerically: on a constant-hazard DGP the
+GAM sandwich SE matches the analytically-anchored GLM sandwich SE
+pointwise to under 2%, and tracks the bootstrap SE identically to the
+GLM (both ~4% below at n = 1000, R = 1000 — a generic finite-sample
+sandwich-vs-bootstrap gap, not GAM-specific). New tests in
+`test-sandwich-gam.R`.
+
+## 2026-06-02 — Smaller correctness and robustness fixes
+
+- `forrest()` raised the same `survatr_bad_t_ref` class for two distinct
+  failures: a malformed / off-grid `t_ref`, and a valid grid time with no
+  pairwise contrast rows (the empty `contrasts` table a single-intervention
+  result produces). The latter now aborts with
+  `survatr_forrest_no_contrasts` so callers can tell the two apart.
+- `compute_survival_curve()` now aborts (`survatr_hazard_misaligned`) when
+  the per-row hazard vector does not align 1:1 with the person-period rows,
+  rather than letting `:=` silently recycle a short vector into a corrupted
+  cumulative product.
+- The sandwich assembly asserts each influence-function matrix is
+  `n_ids x |times|` (`survatr_if_failed`) before forming
+  `crossprod(IF) / n_ids^2`, so a malformed IF surfaces as a clear error
+  rather than a silently wrong covariance.
+- `plot.survatr_result()` builds its per-group row mask in plain R instead of
+  `tbl[get(group_col) == g]`, so a column literally named `g` can no longer
+  shadow the grouping variable under data.table non-standard evaluation.
+- Added an integration test that pins the contract (formal names + return
+  shape) of the three unexported causatr functions survatr calls via `:::`
+  (`apply_intervention`, `prepare_model_if`, `iv_design_matrix`). Because the
+  causatr remote is an unpinned GitHub `main`, this turns an upstream
+  signature drift into a loud CI failure instead of a cryptic runtime error.
+
 ## 2026-04-22 — Round-1 critical review: 9 fixes across chunks 1–4
 
 A full adversarial review of the 214-test chunk-1/2/3/4 surface produced

@@ -28,6 +28,7 @@ SURVATR_RESERVED_COLS <- c(
 #' @param call Enclosing frame for the error signal; passed to `rlang::abort()`.
 #'
 #' @return Invisibly `NULL`. Called for its side effect (error or pass-through).
+#' @family checks
 #' @noRd
 check_weights <- function(weights, n, call = rlang::caller_env()) {
   if (is.null(weights)) {
@@ -82,6 +83,44 @@ check_weights <- function(weights, n, call = rlang::caller_env()) {
   invisible(NULL)
 }
 
+#' Validate the IPW weight-truncation argument
+#'
+#' Accepts `NULL` (no truncation) or a numeric scalar in `(0, 1]`. The `trim`
+#' value is the quantile at which the per-id stabilized weights are winsorized
+#' (Cole & Hernán 2008); `1` means no truncation. Out-of-range, non-numeric,
+#' non-finite, or non-scalar values are rejected upfront.
+#'
+#' @param trim Numeric scalar in `(0, 1]`, or `NULL`.
+#' @param call Enclosing frame for the error signal.
+#'
+#' @returns Invisibly `NULL`. Called for its side effect (error or pass-through).
+#' @family checks
+#' @noRd
+check_trim <- function(trim, call = rlang::caller_env()) {
+  if (is.null(trim)) {
+    return(invisible(NULL))
+  }
+  ok <- is.numeric(trim) &&
+    length(trim) == 1L &&
+    is.finite(trim) &&
+    trim > 0 &&
+    trim <= 1
+  if (!ok) {
+    rlang::abort(
+      c(
+        "`trim` must be `NULL` or a single number in (0, 1].",
+        i = paste0(
+          "`trim` is the upper quantile at which to winsorize IPW ",
+          "weights; 1 means no truncation."
+        )
+      ),
+      class = "survatr_bad_trim",
+      call = call
+    )
+  }
+  invisible(NULL)
+}
+
 #' Reject `na.action = na.exclude` in `...`
 #'
 #' Copy-adapted from `causatr:::check_dots_na_action`. Under `na.exclude`,
@@ -94,6 +133,7 @@ check_weights <- function(weights, n, call = rlang::caller_env()) {
 #' @param call Enclosing frame for the error signal.
 #'
 #' @return Invisibly `NULL`. Called for its side effect.
+#' @family checks
 #' @noRd
 check_dots_na_action <- function(..., call = rlang::caller_env()) {
   dots <- list(...)
@@ -155,6 +195,7 @@ check_dots_na_action <- function(..., call = rlang::caller_env()) {
 #' @param call Caller frame.
 #'
 #' @return Invisibly `NULL`.
+#' @family checks
 #' @noRd
 check_indicator_col <- function(
   data,
@@ -223,6 +264,7 @@ check_indicator_col <- function(
 #' @param call Caller frame.
 #'
 #' @return Invisibly `NULL`.
+#' @family checks
 #' @noRd
 check_no_na_in_predictors <- function(data, cols, call = rlang::caller_env()) {
   cols <- intersect(cols, names(data))
@@ -270,6 +312,7 @@ check_no_na_in_predictors <- function(data, cols, call = rlang::caller_env()) {
 #' @param call Enclosing frame for the error signal.
 #'
 #' @return Invisibly `NULL`. Called for its side effect.
+#' @family checks
 #' @noRd
 check_reserved_cols <- function(
   data,

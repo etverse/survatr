@@ -17,6 +17,8 @@ surv_fit(
   weights = NULL,
   estimator = "gcomp",
   model_fn = stats::glm,
+  propensity_model_fn = stats::glm,
+  trim = NULL,
   ...
 )
 }
@@ -68,16 +70,28 @@ equations, free dispersion -- drops the "non-integer #successes"
 warning). The variance engine in later chunks reads the family from
 \code{fit$family} to pick the right dispersion.}
 
-\item{estimator}{Character scalar. Currently \code{"gcomp"} (pooled-logistic
-standardization). \code{"ipw"} and \code{"ice"} ship in later tracks and are
-rejected here. Matching is a hard reject with class
-\code{survatr_matching_rejected} pointing to
-\code{survival::coxph(..., weights = , cluster = )}.}
+\item{estimator}{Character scalar. \code{"gcomp"} (pooled-logistic
+standardization) or \code{"ipw"} (weighted marginal hazard MSM with stabilized
+density-ratio weights). \code{"ice"} ships in a later track and is rejected
+here. Matching is a hard reject with class \code{survatr_matching_rejected}
+pointing to \code{survival::coxph(..., weights = , cluster = )}.}
 
 \item{model_fn}{Fitting function for the hazard model. Defaults to
 \code{stats::glm}. Accepts any function matching the \code{stats::glm} interface
 (formula, data, family, weights, ...), e.g. \code{mgcv::gam} with an
 \code{s(time)} term in \code{time_formula}.}
+
+\item{propensity_model_fn}{Fitting function for the \strong{treatment} model
+under \code{estimator = "ipw"} (ignored otherwise). Same \code{stats::glm}-style
+interface as \code{model_fn}. Defaults to \code{stats::glm}. The treatment model is
+fit on the baseline rows (one per id) with \code{confounders} as predictors;
+the hazard MSM then uses \code{A} only.}
+
+\item{trim}{Numeric scalar in \verb{(0, 1]} or \code{NULL} (the default). Under
+\code{estimator = "ipw"}, the per-id stabilized weights are winsorized at the
+\code{trim}-th quantile (Cole & Hernán 2008) before being broadcast onto the
+person-period rows. \code{NULL} / \code{1} means no truncation. The resolved fixed
+cutoff is reused by the sandwich variance.}
 
 \item{...}{Forwarded to \code{model_fn}. \code{na.action = na.exclude} is rejected
 with class \code{survatr_bad_na_action} -- \code{na.exclude} pads working
@@ -98,6 +112,26 @@ live in \code{contrast()} (time-indexed curve-shaped result). This two-step
 split lets the user fit the hazard model once and cheaply contrast many
 interventions on top.
 }
+\examples{
+# Small rectangular person-period dataset: 30 ids over 4 periods.
+set.seed(1)
+n_id <- 30L
+K <- 4L
+pp <- data.frame(
+  id = rep(seq_len(n_id), each = K),
+  t = rep(seq_len(K), times = n_id),
+  A = rep(rbinom(n_id, 1L, 0.5), each = K),
+  Y = rbinom(n_id * K, 1L, 0.1)
+)
+
+# Pooled-logistic hazard with period dummies for the baseline hazard.
+fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
+fit
+}
 \seealso{
 \code{causatr::to_person_period()} for reshaping wide data.
+
+Other survatr_fit functions: 
+\code{\link{print.survatr_fit}()}
 }
+\concept{survatr_fit functions}

@@ -78,12 +78,10 @@ test_that("surv_fit rejects matching estimator with pointer error", {
   )
 })
 
-test_that("surv_fit rejects ipw / ice / unknown estimators", {
+test_that("surv_fit rejects ice / unknown estimators (ipw now supported)", {
   dt <- fixture_small_pp()
-  expect_error(
-    surv_fit(dt, "Y", "A", ~L, "id", "t", estimator = "ipw"),
-    class = "survatr_bad_estimator"
-  )
+  # `ipw` is supported as of chunk 5 (see test-ipw-survival.R). `ice`
+  # (Track B) and any unknown estimator remain rejected.
   expect_error(
     surv_fit(dt, "Y", "A", ~L, "id", "t", estimator = "ice"),
     class = "survatr_bad_estimator"

@@ -42,32 +42,6 @@ Keeping all of this inside `causatr` would either bloat the API
 scalar-shaped class, new S3 methods everywhere) or stall progress on
 scalar estimators that are better served by a focused package.
 
-## 2. What already exists in causatr (pre-removal baseline)
-
-Before removal, causatr shipped a **scaffolded** Phase 7 with:
-
-- `causat_survival(data, outcome, treatment, confounders, id, time, censoring, competing, time_formula, weights, ...)`
-  — fit-only. Converts to person-period if needed, builds the risk set
-  (drops rows at/after first event per id, drops rows at/after first
-  censor per id), fits a pooled logistic regression
-  $\text{logit}\,h(t \mid A, L) = \alpha(t) + \beta_A A + \beta_L L$
-  on at-risk rows. Returns a `causatr_fit` with `type = "survival"`.
-- `to_person_period(data, id, time_varying, time_invariant, time_name)`
-  — wide→long reshape (kept in causatr, general-purpose).
-- `contrast()` on a survival fit aborts with "not implemented".
-- `causat_survival(competing = ...)` aborts: the argument was reserved
-  but would have silently fit a biased cause-deleted hazard.
-- Risk-set bookkeeping used `.causatr_prev_event` / `.causatr_prev_cens`
-  within-id lagged cumsum columns.
-- `T6`: weighted fits switch to `quasibinomial()` (same score equations,
-  free dispersion, drops the "non-integer #successes" warning).
-- `T9`: internal columns stripped from `fit$data` before return.
-- Smoke tests pinned fit-time behaviour.
-
-**That entire surface is being removed from causatr.** Section 6
-summarises what ports over to the new package and what needs to be
-written fresh.
-
 ## 3. Target scope for the new package
 
 ### Two tracks + competing risks
@@ -427,7 +401,8 @@ NHEFS.
 ## 10. Implementation chunks (proposed)
 
 Status legend: ✅ done (commit pinned) · 🚧 in progress · ⬜ not started.
-[CLAUDE.md](CLAUDE.md) mirrors this table — update both when a chunk flips.
+**This is the canonical chunk roadmap** (single source of truth for per-chunk
+status); `CLAUDE.md` carries only a one-line pointer + a done/next summary.
 
 | # | Status | Chunk doc | Scope | Depends |
 |---|---|---|---|---|
@@ -435,57 +410,47 @@ Status legend: ✅ done (commit pinned) · 🚧 in progress · ⬜ not started.
 | 2 | ✅ `2525707` | [CHUNK_2_CONTRAST_A.md](CHUNK_2_CONTRAST_A.md) | Track A contrast path: per-individual hazards → survival curve → risk/RMST contrasts, **no variance yet**. Time-indexed `data.table` result shape. | 1 |
 | 3 | ✅ `a3f79cb` | [CHUNK_3_SANDWICH_A.md](CHUNK_3_SANDWICH_A.md) | Track A sandwich variance: delta-method cross-time IF aggregation. Depends on `causatr::prepare_model_if()` / `apply_model_correction()` — import or re-export as `@keywords internal`. | 2 |
 | 4 | ✅ `8a26904` | [CHUNK_4_BOOTSTRAP_S3.md](CHUNK_4_BOOTSTRAP_S3.md) | Track A bootstrap + S3 methods (`print` / `plot` / `tidy` / `forrest` for survival curves). | 2 |
-| 5 | ⬜ | — | Track A under IPW: baseline density-ratio weights from `causatr::fit_ipw()`-style treatment model, **broadcast** onto person-period rows, weighted hazard MSM. | 2, causatr IPW |
-| 6 | ⬜ | — | Track B (ICE-hazards): per-step hazard target + survival-tail pseudo-outcome, **reuse** causatr's `ice_iterate()` and `variance_if_ice()` via internal imports. | 3, causatr ICE |
-| 7 | ⬜ | — | Competing risks: parallel cause-specific hazards + CIF contrast + sandwich via stacked EE across cause-specific models. | 2, 3 |
-| 8 | ⬜ | — | Matching rejection path + classed error. | — |
-| 9 | ⬜ | — | NHEFS Ch. 17 replication test + `survival` vignette. | 2–7 |
-| 10 | ⬜ | — | Survival-aware `diagnose()` (per-period hazard positivity, cross-time balance, competing-risks decomposition). | 2, 7 |
+| 5 | ✅ `e995e7e` | [CHUNK_5_IPW_A.md](CHUNK_5_IPW_A.md) | Track A under IPW (binary; `static` / `dynamic`): baseline stabilized density-ratio weights composed from causatr primitives, **broadcast** onto person-period rows, weighted marginal hazard MSM, two-stage stacked sandwich + dual-refit bootstrap. Extended types / `ipsi()` / transport / time-varying treatment deferred to chunks 19–22. | 2, causatr IPW |
+| 6 | ⬜ | [CHUNK_6_ICE_B.md](CHUNK_6_ICE_B.md) | Track B (ICE-hazards): per-step hazard target + survival-tail pseudo-outcome, **reuse** causatr's `ice_iterate()` and `variance_if_ice()` via internal imports. | 3, causatr ICE |
+| 7 | ⬜ | [CHUNK_7_COMPETING_RISKS.md](CHUNK_7_COMPETING_RISKS.md) | Competing risks: parallel cause-specific hazards + CIF contrast + sandwich via stacked EE across cause-specific models. | 2, 3 |
+| 8 | ⬜ | [CHUNK_8_MATCHING_REJECTION.md](CHUNK_8_MATCHING_REJECTION.md) | Matching rejection path + classed error. | — |
+| 9 | ⬜ | [CHUNK_9_NHEFS_REPLICATION.md](CHUNK_9_NHEFS_REPLICATION.md) | NHEFS Ch. 17 replication test + `survival` vignette. | 2–7 |
+| 10 | ⬜ | [CHUNK_10_DIAGNOSE.md](CHUNK_10_DIAGNOSE.md) | Survival-aware `diagnose()` (per-period hazard positivity, cross-time balance, competing-risks decomposition). | 2, 7 |
+| 11 | ⬜ | [CHUNK_11_IPCW.md](CHUNK_11_IPCW.md) | Built-in IPCW: per-period cumulative censoring weights → weighted hazard MSM; stacked EE with censoring-model blocks. | 5 |
+| 12 | ⬜ | [CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md](CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md) | Estimand additions: survival quantiles / median, RMTL, per-cause years-of-life-lost. | 2, 3, 7 |
+| 13 | ⬜ | [CHUNK_13_CLUSTER_ROBUST_SE.md](CHUNK_13_CLUSTER_ROBUST_SE.md) | Cluster-robust sandwich: `cluster=` IF aggregation before `crossprod`. | 3 |
+| 14 | ⬜ | [CHUNK_14_LEFT_TRUNCATION.md](CHUNK_14_LEFT_TRUNCATION.md) | Left-truncation / delayed entry: delayed risk-set start; relax rectangular-PP. | 1, 2 |
+| 15 | ⬜ | [CHUNK_15_AIPW.md](CHUNK_15_AIPW.md) | Parametric doubly-robust (AIPW) survival; stacked-EE sandwich. ML/TMLE out. | 5, 7, 11 |
+| 16 | ⬜ | [CHUNK_16_SIMULTANEOUS_BANDS.md](CHUNK_16_SIMULTANEOUS_BANDS.md) | Simultaneous / uniform confidence bands via multiplier bootstrap on the IF matrix. | 3 |
+| 17 | ⬜ | [CHUNK_17_TARGET_TRIAL.md](CHUNK_17_TARGET_TRIAL.md) | Target-trial alignment: landmark analysis + immortal-time `diagnose()` check + vignette. | 2, 10 |
+| 18 | ⬜ | [CHUNK_18_RECURRENT_MULTISTATE.md](CHUNK_18_RECURRENT_MULTISTATE.md) | Recurrent events + multi-state (illness-death) models. | 2, 3, 7 |
+| 19 | ⬜ | [CHUNK_19_IPW_TREATMENT_TYPES.md](CHUNK_19_IPW_TREATMENT_TYPES.md) | IPW extended treatment types for survival: continuous (gaussian shift / scale_by pushforward weights), categorical (k>2, multinomial propensity), count (Poisson/NB). Generalizes the chunk-5 binary weight closure + family-specific density ratios. | 5 |
+| 20 | ⬜ | [CHUNK_20_IPSI_SURVIVAL.md](CHUNK_20_IPSI_SURVIVAL.md) | IPSI (incremental propensity-score) survival: Kennedy (2019) weight-path estimand and its survival curve / sandwich. Not an MSM plug-in — reweights the propensity. | 5 |
+| 21 | ⬜ | [CHUNK_21_IPW_TRANSPORT_WEIGHTS.md](CHUNK_21_IPW_TRANSPORT_WEIGHTS.md) | Survey / external-weight composition with IPW (transport): multiply design weights by the stabilized IPW weight, broadcast, weighted MSM; sampling-block sandwich. | 5 |
+| 22 | ⬜ | [CHUNK_22_LONGITUDINAL_IPW.md](CHUNK_22_LONGITUDINAL_IPW.md) | Longitudinal IPW survival (time-varying treatment MSM): per-period cumulative density-ratio weights (not baseline-broadcast), weighted hazard MSM, per-period stacked-EE blocks. Home for the `survatr_ipw_time_varying_treatment` rejection. | 5, 11 |
+| 23 | ⬜ | [CHUNK_23_MULTIVARIATE_IPW.md](CHUNK_23_MULTIVARIATE_IPW.md) | Multivariate-treatment IPW survival: joint chain-rule density, product density-ratio weight, block-diagonal propensity sandwich. | 5 |
+| 24 | ⬜ | [CHUNK_24_STOCHASTIC.md](CHUNK_24_STOCHASTIC.md) | Stochastic interventions + survival: MC draws averaged at the cumulative-product level (Jensen-safe), sandwich/bootstrap variance. | 2, 3 |
+| 25 | ⬜ | [CHUNK_25_MISSING_DATA_MI.md](CHUNK_25_MISSING_DATA_MI.md) | Missing data / multiple imputation for survival (research-first): congenial MI on person-period data, Rubin's-rules pooling of the curve-valued estimand + cross-time variance. Replaces the upfront NA rejection with an optional MI path. | 1, 2 |
 
-## 11. Package naming / placement
+**Phasing.** v1 = chunks 1–10 (Track A gcomp/IPW/sandwich/bootstrap/S3, Track B
+ICE, competing risks, matching rejection, NHEFS, `diagnose()`). v1.x = chunks
+11–15 (IPCW, quantile/RMTL/YLL estimands, cluster-robust SE, left-truncation,
+parametric AIPW). v2 = chunks 16–18 (simultaneous bands, target-trial/landmark
+tooling, recurrent + multi-state). Chunks 11–18 were ratified in the 2026-06
+scope review; they extend the
+inherited scope toward the causal-survival field (parity with
+`riskRegression::ate`, `adjustedCurves`, `stdReg2`). ext = chunks 19–22
+(IPW extended treatment types, IPSI survival, survey/external-weight transport,
+longitudinal IPW) — spun out of the chunk-5 scope review (2026-06-02/03) so the
+deferred IPW work is tracked rather than dropped. Chunks 22–24 (longitudinal
+IPW, multivariate-treatment IPW, stochastic interventions) were added 2026-06-03
+— previously described only in the §6 architecture notes, now chunked so the
+roadmap is complete against the described scope. Chunk 25 (missing data /
+multiple imputation) was added 2026-06-03 — promoted from an open research
+question to a research-first chunk; it begins with a literature review before
+implementation.
 
-- **Repo:** already created under `etverse/` (user-confirmed — name TBD
-  by the user on first commit).
-- **Suggested package name:** something short + mnemonic in the
-  etverse style (e.g. `survcausatr`, `causurvtr`, `causatr.surv`).
-  Not prescribed here.
-- **Dependencies (`Imports`):** `causatr`, `data.table`, `rlang`,
-  `stats`, `sandwich`, `numDeriv`, `boot`.
-- **Dependencies (`Suggests`):** `survival`, `lmtp`, `gfoRmula`,
-  `MatchIt` (for the rejection path test), `mgcv`, `splines`,
-  `testthat`, `quarto` (vignettes).
-
-## 12. What was removed from causatr (for reference)
-
-The following files and symbols were removed from causatr in the
-same commit that introduced this handoff:
-
-- `R/causat_survival.R` (entire file)
-- `CAUSATR_SURVIVAL_INTERNAL_COLS` constant in `R/utils.R`
-- `.causatr_prev_event` / `.causatr_prev_cens` from
-  `CAUSATR_RESERVED_COLS`
-- Survival branch in `R/contrast.R::compute_contrast()`
-- Export of `causat_survival` from `NAMESPACE`
-- `man/causat_survival.Rd`
-- `vignettes/survival.qmd` and built artifacts
-- `PHASE_7_SURVIVAL.md`
-- Survival row / sections in `FEATURE_COVERAGE_MATRIX.md`
-- Phase 7 line in `CLAUDE.md` and `DESCRIPTION`
-- Survival-composition subsections in `PHASE_8`, `PHASE_10`,
-  `PHASE_11`, `PHASE_12`, `PHASE_14`, `PHASE_16`, `PHASE_17` design
-  docs
-- `survival` from `Suggests` in `DESCRIPTION` (kept only if another
-  non-survival use remains; audited at removal time)
-- All survival-focused tests (`test-s3-methods.R` survival blocks,
-  `test-simulation.R` survival blocks, `test-causat.R` competing
-  block, `test-weights-edge-cases.R` survival block,
-  `test-critical-review-2026-04.R` B5 block) and corresponding
-  snapshots
-
-`to_person_period()` and `is_uncensored()` **stay in causatr** because
-they serve non-survival longitudinal use cases as well.
-
-## 13. References
+## 11. References
 
 - Hernán MA, Robins JM (2025). *Causal Inference: What If*. Chapman &
   Hall/CRC. **Chapter 17** (survival analysis, IP weighting and

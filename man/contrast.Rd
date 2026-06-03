@@ -18,11 +18,42 @@ Method-dependent.
 S3 generic dispatched on the class of \code{fit}. survatr ships
 \code{contrast.survatr_fit()} for time-indexed survival / risk / RMST
 contrasts.
-}
-\details{
+
 \code{causatr::contrast()} (same symbol name in causatr, but not an S3
 generic there) handles scalar-outcome causatr_fit objects. If both
 packages are attached, this generic shadows \code{causatr::contrast()};
 users who need the causatr path should call \code{causatr::contrast()}
 explicitly.
 }
+\examples{
+# Small rectangular person-period dataset: 30 ids over 4 periods.
+set.seed(1)
+n_id <- 30L
+K <- 4L
+pp <- data.frame(
+  id = rep(seq_len(n_id), each = K),
+  t = rep(seq_len(K), times = n_id),
+  A = rep(rbinom(n_id, 1L, 0.5), each = K),
+  Y = rbinom(n_id * K, 1L, 0.1)
+)
+
+fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
+
+# Contrast two static interventions; dispatches to contrast.survatr_fit().
+contrast(
+  fit,
+  interventions = list(a1 = causatr::static(1), a0 = causatr::static(0)),
+  times = 1:4,
+  type = "risk_difference"
+)
+}
+\seealso{
+Other survatr_result methods: 
+\code{\link{contrast.survatr_fit}()},
+\code{\link{forrest}()},
+\code{\link{forrest.survatr_result}()},
+\code{\link{plot.survatr_result}()},
+\code{\link{print.survatr_result}()},
+\code{\link{tidy.survatr_result}()}
+}
+\concept{survatr_result methods}

@@ -21,3 +21,21 @@ number of individuals, number of person-period rows used to fit, and the
 time grid span. A richer print (coef table, time-spline degrees of
 freedom) ships with the contrast / S3 polish in a later chunk.
 }
+\examples{
+set.seed(1)
+n_id <- 30L
+K <- 4L
+pp <- data.frame(
+  id = rep(seq_len(n_id), each = K),
+  t = rep(seq_len(K), times = n_id),
+  A = rep(rbinom(n_id, 1L, 0.5), each = K),
+  Y = rbinom(n_id * K, 1L, 0.1)
+)
+fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
+print(fit)
+}
+\seealso{
+Other survatr_fit functions: 
+\code{\link{surv_fit}()}
+}
+\concept{survatr_fit functions}

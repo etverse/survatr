@@ -7,6 +7,7 @@ NULL
 
 #' Tidy a `survatr_result` into long format
 #'
+#' @description
 #' Stacks the per-intervention `estimates` and pairwise `contrasts` into a
 #' single long `data.frame` suitable for downstream plotting or further
 #' aggregation. The `estimand` column identifies which column the row
@@ -25,6 +26,25 @@ NULL
 #'   `intervention | contrast | time | estimand | estimate | se |
 #'   ci_lower | ci_upper` (or a subset when `which` / `conf.int`
 #'   restrict it).
+#' @family survatr_result methods
+#' @examples
+#' set.seed(2)
+#' n_id <- 40L
+#' K <- 5L
+#' pp <- data.frame(
+#'   id = rep(seq_len(n_id), each = K),
+#'   t = rep(seq_len(K), times = n_id),
+#'   A = rep(rbinom(n_id, 1L, 0.5), each = K),
+#'   Y = rbinom(n_id * K, 1L, 0.1)
+#' )
+#' fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
+#' res <- contrast(
+#'   fit,
+#'   interventions = list(a1 = causatr::static(1), a0 = causatr::static(0)),
+#'   times = 1:5,
+#'   type = "risk_difference"
+#' )
+#' head(tidy(res))
 #' @method tidy survatr_result
 #' @export
 tidy.survatr_result <- function(

@@ -1,5 +1,6 @@
 #' Fit a causal survival hazard model on person-period data
 #'
+#' @description
 #' Fit-only entry point for survatr. Builds the risk set and fits the
 #' pooled-logistic discrete-time hazard model
 #' `logit h(t | A, L) = alpha(t) + beta_A A + beta_L L` on the at-risk
@@ -45,15 +46,25 @@
 #'   equations, free dispersion -- drops the "non-integer #successes"
 #'   warning). The variance engine in later chunks reads the family from
 #'   `fit$family` to pick the right dispersion.
-#' @param estimator Character scalar. Currently `"gcomp"` (pooled-logistic
-#'   standardization). `"ipw"` and `"ice"` ship in later tracks and are
-#'   rejected here. Matching is a hard reject with class
-#'   `survatr_matching_rejected` pointing to
-#'   `survival::coxph(..., weights = , cluster = )`.
+#' @param estimator Character scalar. `"gcomp"` (pooled-logistic
+#'   standardization) or `"ipw"` (weighted marginal hazard MSM with stabilized
+#'   density-ratio weights). `"ice"` ships in a later track and is rejected
+#'   here. Matching is a hard reject with class `survatr_matching_rejected`
+#'   pointing to `survival::coxph(..., weights = , cluster = )`.
 #' @param model_fn Fitting function for the hazard model. Defaults to
 #'   `stats::glm`. Accepts any function matching the `stats::glm` interface
 #'   (formula, data, family, weights, ...), e.g. `mgcv::gam` with an
 #'   `s(time)` term in `time_formula`.
+#' @param propensity_model_fn Fitting function for the **treatment** model
+#'   under `estimator = "ipw"` (ignored otherwise). Same `stats::glm`-style
+#'   interface as `model_fn`. Defaults to `stats::glm`. The treatment model is
+#'   fit on the baseline rows (one per id) with `confounders` as predictors;
+#'   the hazard MSM then uses `A` only.
+#' @param trim Numeric scalar in `(0, 1]` or `NULL` (the default). Under
+#'   `estimator = "ipw"`, the per-id stabilized weights are winsorized at the
+#'   `trim`-th quantile (Cole & Hernán 2008) before being broadcast onto the
+#'   person-period rows. `NULL` / `1` means no truncation. The resolved fixed
+#'   cutoff is reused by the sandwich variance.
 #' @param ... Forwarded to `model_fn`. `na.action = na.exclude` is rejected
 #'   with class `survatr_bad_na_action` -- `na.exclude` pads working
 #'   residuals with `NA`s while `model.matrix()` drops them, which silently
@@ -65,6 +76,22 @@
 #'
 #' @seealso `causatr::to_person_period()` for reshaping wide data.
 #'
+#' @family survatr_fit functions
+#' @examples
+#' # Small rectangular person-period dataset: 30 ids over 4 periods.
+#' set.seed(1)
+#' n_id <- 30L
+#' K <- 4L
+#' pp <- data.frame(
+#'   id = rep(seq_len(n_id), each = K),
+#'   t = rep(seq_len(K), times = n_id),
+#'   A = rep(rbinom(n_id, 1L, 0.5), each = K),
+#'   Y = rbinom(n_id * K, 1L, 0.1)
+#' )
+#'
+#' # Pooled-logistic hazard with period dummies for the baseline hazard.
+#' fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
+#' fit
 #' @export
 surv_fit <- function(
   data,
@@ -79,6 +106,8 @@ surv_fit <- function(
   weights = NULL,
   estimator = "gcomp",
   model_fn = stats::glm,
+  propensity_model_fn = stats::glm,
+  trim = NULL,
   ...
 ) {
   ## Estimator gating. Matching is structurally invalid for survival (see
@@ -98,7 +127,7 @@ surv_fit <- function(
       class = "survatr_matching_rejected"
     )
   }
-  valid_estimators <- "gcomp"
+  valid_estimators <- c("gcomp", "ipw")
   if (!isTRUE(estimator %in% valid_estimators)) {
     rlang::abort(
       paste0(
@@ -168,6 +197,25 @@ surv_fit <- function(
   }
 
   check_weights(weights, nrow(data))
+  check_trim(trim)
+
+  ## Composing external (survey / design) weights with the stabilized IPW
+  ## weights is a target-population transport problem (causatr handles it for
+  ## scalar outcomes via a sampling block); folding it silently into the
+  ## broadcast would mis-weight the MSM. It is a planned transport extension,
+  ## so reject the combination upfront rather than guess the intended product.
+  if (identical(estimator, "ipw") && !is.null(weights)) {
+    rlang::abort(
+      c(
+        "External `weights` are not yet supported with `estimator = \"ipw\"`.",
+        i = paste0(
+          "Composing survey / external design weights with the stabilized ",
+          "IPW weights (target-population transport) ships in a later chunk."
+        )
+      ),
+      class = "survatr_ipw_external_weights"
+    )
+  }
 
   fit_rows <- build_risk_set(
     data = data,
@@ -176,17 +224,39 @@ surv_fit <- function(
     censoring = censoring
   )
 
-  fit <- fit_hazard_gcomp(
-    data = data,
-    fit_rows = fit_rows,
-    outcome = outcome,
-    treatment = treatment,
-    confounders = confounders,
-    time_formula = time_formula,
-    weights = weights,
-    model_fn = model_fn,
-    ...
-  )
+  ## Estimator dispatch. gcomp fits the pooled-logistic hazard on the at-risk
+  ## rows directly; ipw fits a baseline treatment model, forms stabilized
+  ## weights, and fits a weighted marginal hazard MSM (alpha(t) + A). Both
+  ## return `model` / `family_name` / `n_fit`; ipw additionally returns the
+  ## treatment models, the broadcast weights, and the resolved trim cutoff.
+  if (identical(estimator, "ipw")) {
+    fit <- fit_ipw_survival(
+      data = data,
+      fit_rows = fit_rows,
+      outcome = outcome,
+      treatment = treatment,
+      confounders = confounders,
+      id = id,
+      time = time,
+      time_formula = time_formula,
+      propensity_model_fn = propensity_model_fn,
+      trim = trim,
+      model_fn = model_fn,
+      ...
+    )
+  } else {
+    fit <- fit_hazard_gcomp(
+      data = data,
+      fit_rows = fit_rows,
+      outcome = outcome,
+      treatment = treatment,
+      confounders = confounders,
+      time_formula = time_formula,
+      weights = weights,
+      model_fn = model_fn,
+      ...
+    )
+  }
 
   ## Strip internal bookkeeping before returning. Downstream code
   ## (`contrast()`, `diagnose()`) rebuilds the risk set from scratch from
@@ -207,14 +277,29 @@ surv_fit <- function(
     censoring = censoring,
     time_grid = sort(unique(data[[time]])),
     track = "A",
-    estimator = "gcomp",
+    estimator = estimator,
     family = fit$family_name,
     model_fn = model_fn,
     time_formula = time_formula,
-    weights = weights,
+    ## For ipw, `weights` holds the per-PP-row broadcast stabilized weight;
+    ## for gcomp it is the user's external weights (or NULL).
+    weights = if (identical(estimator, "ipw")) fit$weights else weights,
     n_fit = fit$n_fit,
     n_total = nrow(data),
     competing = competing,
+    treatment_model = fit$treatment_model,
+    marginal_model = fit$marginal_model,
+    trim_threshold = if (is.null(fit$trim_threshold)) {
+      NA_real_
+    } else {
+      fit$trim_threshold
+    },
+    propensity_model_fn = if (identical(estimator, "ipw")) {
+      propensity_model_fn
+    } else {
+      NULL
+    },
+    trim = trim,
     call = match.call()
   )
 }

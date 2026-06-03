@@ -1,5 +1,6 @@
 #' Plot a `survatr_result`
 #'
+#' @description
 #' Base-R graphics rendering of survival / risk / RMST curves or of
 #' risk-difference / risk-ratio / RMST-difference contrasts. Dispatches
 #' on `x$type`:
@@ -26,6 +27,25 @@
 #' @param ... Passed to the underlying `plot.default()` call.
 #'
 #' @return The `survatr_result`, invisibly.
+#' @family survatr_result methods
+#' @examples
+#' set.seed(2)
+#' n_id <- 40L
+#' K <- 5L
+#' pp <- data.frame(
+#'   id = rep(seq_len(n_id), each = K),
+#'   t = rep(seq_len(K), times = n_id),
+#'   A = rep(rbinom(n_id, 1L, 0.5), each = K),
+#'   Y = rbinom(n_id * K, 1L, 0.1)
+#' )
+#' fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
+#' res <- contrast(
+#'   fit,
+#'   interventions = list(a1 = causatr::static(1), a0 = causatr::static(0)),
+#'   times = 1:5,
+#'   type = "survival"
+#' )
+#' plot(res)
 #' @export
 plot.survatr_result <- function(
   x,
@@ -125,10 +145,21 @@ plot.survatr_result <- function(
 
   for (g_ix in seq_along(groups)) {
     g <- groups[g_ix]
-    rows <- tbl[get(group_col) == g]
+    ## Build the row mask in plain R, then filter, rather than
+    ## `tbl[get(group_col) == g]`: evaluated inside [.data.table the symbol
+    ## `g` would resolve to a column named "g" if one existed, shadowing the
+    ## loop variable. Computing the logical vector outside the subscript can't
+    ## be shadowed.
+    keep <- tbl[[group_col]] == g
+    rows <- tbl[keep]
     data.table::setorder(rows, time)
     if (ribbon && !all(is.na(rows$ci_lower))) {
       ribbon_col <- grDevices::adjustcolor(col[g_ix], alpha.f = ribbon_alpha)
+      ## Closed-polygon CI ribbon: trace the lower bound left-to-right, then
+      ## the upper bound right-to-left (`rev()`). The reversal joins the two
+      ## bounds into one closed ring so `polygon()` fills the band between
+      ## them; concatenating them in the same direction would instead draw a
+      ## self-crossing bowtie.
       graphics::polygon(
         x = c(rows$time, rev(rows$time)),
         y = c(rows$ci_lower, rev(rows$ci_upper)),

@@ -48,6 +48,11 @@ fit_hazard_gcomp <- function(
   model_formula <- stats::reformulate(rhs, response = outcome)
 
   fit_data <- data[fit_rows]
+  ## `weights` is supplied at the full person-period length (`nrow(data)`),
+  ## but the hazard model is fit only on the at-risk rows (`data[fit_rows]`).
+  ## Subset the weight vector by the same logical mask so each retained row's
+  ## weight stays aligned with its design row; passing the full-length vector
+  ## would be length-mismatched against `fit_data` and silently recycled.
   model_weights <- if (!is.null(weights)) weights[fit_rows] else NULL
 
   hazard_family <- if (!is.null(weights)) {

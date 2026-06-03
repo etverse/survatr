@@ -1,9 +1,17 @@
 #' Fill sandwich variance into a `survatr_result`
 #'
-#' Takes the chunk-2 `estimates` / `contrasts` tables and the list of
-#' per-intervention IF matrices, computes pointwise SEs via
-#' `crossprod(IF) / n_ids^2`, Wald CIs at `conf_level`, and replaces the
-#' `NA_real_` columns. Handles the six contrast types:
+#' @description
+#' Take the chunk-2 `estimates` / `contrasts` tables plus the
+#' per-intervention IF matrices, aggregate them into pointwise SEs and Wald
+#' CIs at `conf_level`, and replace the `NA_real_` placeholder columns.
+#'
+#' @details
+#' Pointwise variance comes from the cross-time IF covariance
+#' `V = crossprod(IF) / n_ids^2` (per-individual IFs are stacked rows, so the
+#' empirical-mean variance carries the `1 / n_ids^2` scaling). SEs are the
+#' square root of its diagonal; Wald CIs are `point +/- z * se` with
+#' `z = qnorm(1 - (1 - conf_level) / 2)`. The six contrast types map onto
+#' this as:
 #'
 #' - `survival` / `risk`: SE on `s_hat` / `1 - s_hat` is the same
 #'   (`IF_risk = -IF_S`).
@@ -15,6 +23,11 @@
 #' - `risk_ratio`: log-RR IF built pointwise per time; CI computed on the
 #'   log scale and exponentiated so the reported `ci_lower` / `ci_upper`
 #'   are always strictly positive.
+#'
+#' Source: M-estimation sandwich aggregation of the cumulative-product
+#' survival IF, grounded in Hernán & Robins (2020), *Causal Inference: What
+#' If*, Ch. 17; the cross-time delta derivation lives in
+#' `CHUNK_3_SANDWICH_A.md`.
 #'
 #' @param estimates Per-intervention estimates `data.table` from chunk 2.
 #' @param contrasts Contrast `data.table` from chunk 2.
@@ -45,6 +58,32 @@ fill_sandwich_ses <- function(
   ## --- per-intervention SE (for the `estimates` table) ------------------
   for (iv_name in names(if_list)) {
     IF_mat <- if_list[[iv_name]]$IF_mat
+    ## The IF matrix must be n_ids x |times| for `crossprod(IF) / n_ids^2`
+    ## to be the cross-time covariance. `compute_survival_if_matrix()`
+    ## guarantees this, but assert it so a future regression there surfaces
+    ## here rather than as a silently wrong vcov.
+    if (
+      !is.matrix(IF_mat) ||
+        nrow(IF_mat) != n_ids ||
+        ncol(IF_mat) != length(times)
+    ) {
+      rlang::abort(
+        paste0(
+          "influence-function matrix for intervention \"",
+          iv_name,
+          "\" is ",
+          nrow(IF_mat),
+          " x ",
+          ncol(IF_mat),
+          " but ",
+          n_ids,
+          " x ",
+          length(times),
+          " (n_ids x |times|) was expected."
+        ),
+        class = "survatr_if_failed"
+      )
+    }
     vcov_mat <- crossprod(IF_mat) / n_ids^2
     if (type %in% c("survival", "risk", "risk_difference", "risk_ratio")) {
       se_vec <- sqrt(pmax(diag(vcov_mat), 0))
@@ -126,10 +165,17 @@ fill_sandwich_ses <- function(
         get("contrast") == paste0(a1_name, " vs ", reference),
         estimate
       ]
+      ## Report the `se` column on the NATURAL (risk-ratio) scale via the
+      ## delta method (multiply the log-scale SE by RR), so it means "SE of
+      ## the reported estimand" and matches the bootstrap path (which reports
+      ## the SD of the RR replicates). The CI is still built on the log scale
+      ## and exponentiated -- transform-respecting and strictly positive -- so
+      ## it is intentionally not a symmetric `point +/- z * se` interval.
+      se_nat <- rr_vec * se_log
       contrasts[
         get("contrast") == paste0(a1_name, " vs ", reference),
         `:=`(
-          se = se_log,
+          se = se_nat,
           ci_lower = exp(log(rr_vec) - z * se_log),
           ci_upper = exp(log(rr_vec) + z * se_log)
         )

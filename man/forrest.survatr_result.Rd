@@ -30,3 +30,33 @@ horizontal forest plot: one row per contrast, with point estimate,
 contrast-shaped \code{type}s (\code{risk_difference}, \code{risk_ratio},
 \code{rmst_difference}).
 }
+\examples{
+set.seed(2)
+n_id <- 40L
+K <- 5L
+pp <- data.frame(
+  id = rep(seq_len(n_id), each = K),
+  t = rep(seq_len(K), times = n_id),
+  A = rep(rbinom(n_id, 1L, 0.5), each = K),
+  Y = rbinom(n_id * K, 1L, 0.1)
+)
+fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
+res <- contrast(
+  fit,
+  interventions = list(a1 = causatr::static(1), a0 = causatr::static(0)),
+  times = 1:5,
+  type = "risk_difference",
+  ci_method = "sandwich"
+)
+forrest(res, t_ref = 5)
+}
+\seealso{
+Other survatr_result methods: 
+\code{\link{contrast}()},
+\code{\link{contrast.survatr_fit}()},
+\code{\link{forrest}()},
+\code{\link{plot.survatr_result}()},
+\code{\link{print.survatr_result}()},
+\code{\link{tidy.survatr_result}()}
+}
+\concept{survatr_result methods}
