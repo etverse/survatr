@@ -155,8 +155,9 @@ event and multi-state (illness-death) extensions, left-truncation, and a
 curve-valued estimand surface (survival, risk, RD, RR, RMST, RMTL, survival
 quantiles / median, years-of-life-lost) with sandwich variance (delta-method
 through the cumulative product; pointwise + simultaneous bands; cluster-robust)
-and bootstrap. The chunk table below is the phased roadmap (v1 = 1–10, v1.x =
-11–15, v2 = 16–18). It is NOT: a Cox-PH modelling package (use `survival`), an
+and bootstrap. The phased roadmap (v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext =
+19–25) lives in [SURVIVAL_PACKAGE_HANDOFF.md §10](SURVIVAL_PACKAGE_HANDOFF.md).
+It is NOT: a Cox-PH modelling package (use `survival`), an
 **ML / TMLE** survival package (use `lmtp` — survatr's AIPW is parametric /
 M-estimation only), a forward-simulation g-formula for survival (use
 `gfoRmula`), or a Fine–Gray subdistribution-hazards package (competing risks
@@ -260,46 +261,17 @@ quasibinomial at k < K.
   risk-set construction. `check_reserved_cols()` guards against user
   collisions upfront.
 
-## Implementation chunks (from handoff §10)
+## Implementation chunks
 
-Status legend: ✅ done (commit pinned) · 🚧 in progress · ⬜ not started.
-Single source of truth for per-chunk status is the table below. Keep
-[SURVIVAL_PACKAGE_HANDOFF.md](SURVIVAL_PACKAGE_HANDOFF.md) §10 in sync.
+**Canonical roadmap + per-chunk status + commit pins:**
+[SURVIVAL_PACKAGE_HANDOFF.md §10](SURVIVAL_PACKAGE_HANDOFF.md) (25 chunks). Each
+chunk has a `CHUNK_<N>_*.md` doc at the repo root. Status legend: ✅ done
+(commit pinned) · 🚧 in progress · ⬜ not started.
 
-| # | Status | Chunk doc | Scope | Depends |
-|---|---|---|---|---|
-| 1 | ✅ `6e911d3` | [CHUNK_1_SKELETON.md](CHUNK_1_SKELETON.md) | Package skeleton + Track A fit path: `surv_fit()`, risk-set builder, copied `check_*` / `is_uncensored()` helpers, `survatr_fit` S3, full classed-error surface. | — |
-| 2 | ✅ `2525707` | [CHUNK_2_CONTRAST_A.md](CHUNK_2_CONTRAST_A.md) | Track A contrast path: per-individual hazards → survival curve → risk / RMST contrasts. **No variance yet.** Time-indexed `data.table` result shape. | 1 |
-| 3 | ✅ `a3f79cb` | [CHUNK_3_SANDWICH_A.md](CHUNK_3_SANDWICH_A.md) | Track A sandwich variance: delta-method cross-time IF aggregation on `causatr:::prepare_model_if()` / `apply_model_correction()`. | 2 |
-| 4 | ✅ `8a26904` | [CHUNK_4_BOOTSTRAP_S3.md](CHUNK_4_BOOTSTRAP_S3.md) | Track A bootstrap + S3 methods (`print` / `plot` / `tidy` / `forrest` for survival curves). | 2 |
-| 5 | ✅ `e995e7e` | [CHUNK_5_IPW_A.md](CHUNK_5_IPW_A.md) | Track A under IPW (binary; `static` / `dynamic`): baseline stabilized density-ratio weights composed from causatr primitives, broadcast onto PP rows, weighted marginal hazard MSM, two-stage stacked sandwich + dual-refit bootstrap. Extended types / `ipsi()` / transport / time-varying treatment deferred to chunks 19–22. | 2, causatr IPW |
-| 6 | ⬜ | [CHUNK_6_ICE_B.md](CHUNK_6_ICE_B.md) | Track B (ICE hazards): per-step hazard target + survival-tail pseudo-outcome, reuse causatr's `ice_iterate()` + `variance_if_ice()` via internal imports. | 3, causatr ICE |
-| 7 | ⬜ | [CHUNK_7_COMPETING_RISKS.md](CHUNK_7_COMPETING_RISKS.md) | Competing risks: parallel cause-specific hazards + CIF contrast + sandwich via stacked EE across cause-specific models. | 2, 3 |
-| 8 | ⬜ | [CHUNK_8_MATCHING_REJECTION.md](CHUNK_8_MATCHING_REJECTION.md) | Matching rejection path + classed error. (Already partially wired in chunk 1's `surv_fit()`; chunk 8 expands to the full rejection surface with a regression test.) | — |
-| 9 | ⬜ | [CHUNK_9_NHEFS_REPLICATION.md](CHUNK_9_NHEFS_REPLICATION.md) | NHEFS Ch. 17 replication test + `survival` vignette. | 2–7 |
-| 10 | ⬜ | [CHUNK_10_DIAGNOSE.md](CHUNK_10_DIAGNOSE.md) | Survival-aware `diagnose()`: per-period hazard positivity, cross-time balance, competing-risks decomposition. | 2, 7 |
-| 11 | ⬜ | [CHUNK_11_IPCW.md](CHUNK_11_IPCW.md) | Built-in IPCW: per-period cumulative censoring weights → weighted hazard MSM; stacked EE with censoring-model blocks. | 5 |
-| 12 | ⬜ | [CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md](CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md) | Estimands: survival quantiles / median, RMTL, per-cause years-of-life-lost. | 2, 3, 7 |
-| 13 | ⬜ | [CHUNK_13_CLUSTER_ROBUST_SE.md](CHUNK_13_CLUSTER_ROBUST_SE.md) | Cluster-robust sandwich (`cluster=` IF aggregation). | 3 |
-| 14 | ⬜ | [CHUNK_14_LEFT_TRUNCATION.md](CHUNK_14_LEFT_TRUNCATION.md) | Left-truncation / delayed entry (delayed risk-set start). | 1, 2 |
-| 15 | ⬜ | [CHUNK_15_AIPW.md](CHUNK_15_AIPW.md) | Parametric doubly-robust (AIPW) survival; stacked-EE sandwich. ML/TMLE out. | 5, 7, 11 |
-| 16 | ⬜ | [CHUNK_16_SIMULTANEOUS_BANDS.md](CHUNK_16_SIMULTANEOUS_BANDS.md) | Simultaneous / uniform confidence bands (multiplier bootstrap on the IF matrix). | 3 |
-| 17 | ⬜ | [CHUNK_17_TARGET_TRIAL.md](CHUNK_17_TARGET_TRIAL.md) | Target-trial alignment: landmark + immortal-time `diagnose()` check + vignette. | 2, 10 |
-| 18 | ⬜ | [CHUNK_18_RECURRENT_MULTISTATE.md](CHUNK_18_RECURRENT_MULTISTATE.md) | Recurrent events + multi-state (illness-death) models. | 2, 3, 7 |
-| 19 | ⬜ | [CHUNK_19_IPW_TREATMENT_TYPES.md](CHUNK_19_IPW_TREATMENT_TYPES.md) | IPW extended treatment types: continuous (gaussian pushforward), categorical (k>2), count (Poisson/NB). Generalizes the chunk-5 binary weight closure. | 5 |
-| 20 | ⬜ | [CHUNK_20_IPSI_SURVIVAL.md](CHUNK_20_IPSI_SURVIVAL.md) | IPSI survival (Kennedy 2019 weight-path estimand; not an MSM plug-in). | 5 |
-| 21 | ⬜ | [CHUNK_21_IPW_TRANSPORT_WEIGHTS.md](CHUNK_21_IPW_TRANSPORT_WEIGHTS.md) | Survey / external-weight composition with IPW (transport); sampling-block sandwich. | 5 |
-| 22 | ⬜ | [CHUNK_22_LONGITUDINAL_IPW.md](CHUNK_22_LONGITUDINAL_IPW.md) | Longitudinal IPW survival (time-varying treatment MSM): per-period cumulative density-ratio weights, weighted MSM, per-period stacked-EE blocks. Home for the `survatr_ipw_time_varying_treatment` rejection. | 5, 11 |
-| 23 | ⬜ | [CHUNK_23_MULTIVARIATE_IPW.md](CHUNK_23_MULTIVARIATE_IPW.md) | Multivariate-treatment IPW survival: joint chain-rule density, product weight, block-diagonal propensity sandwich. | 5 |
-| 24 | ⬜ | [CHUNK_24_STOCHASTIC.md](CHUNK_24_STOCHASTIC.md) | Stochastic interventions + survival: MC draws averaged at the cumulative-product level (Jensen-safe). | 2, 3 |
-| 25 | ⬜ | [CHUNK_25_MISSING_DATA_MI.md](CHUNK_25_MISSING_DATA_MI.md) | Missing data / multiple imputation for survival (research-first): congenial MI on person-period data, Rubin's-rules pooling of the curve estimand + cross-time variance. | 1, 2 |
-
+At a glance: **done = 1–5** (Track A gcomp + IPW); **next = 6** (Track B ICE).
 Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext = 19–25 (deferred IPW /
-intervention work + missing-data MI, spun out of the chunk-5 scope review).
-Chunks 11–18 ratified 2026-06; 19–21 added 2026-06-02; 22–25 (longitudinal IPW,
-multivariate IPW, stochastic interventions, missing-data MI) added 2026-06-03 —
-previously described only in the handoff §6 architecture / research notes, now
-chunked so the roadmap is complete against the described scope.
+intervention work + missing-data MI). When a chunk flips status, update the
+handoff §10 table (the only copy).
 
 ## Architecture notes
 

@@ -42,32 +42,6 @@ Keeping all of this inside `causatr` would either bloat the API
 scalar-shaped class, new S3 methods everywhere) or stall progress on
 scalar estimators that are better served by a focused package.
 
-## 2. What already exists in causatr (pre-removal baseline)
-
-Before removal, causatr shipped a **scaffolded** Phase 7 with:
-
-- `causat_survival(data, outcome, treatment, confounders, id, time, censoring, competing, time_formula, weights, ...)`
-  — fit-only. Converts to person-period if needed, builds the risk set
-  (drops rows at/after first event per id, drops rows at/after first
-  censor per id), fits a pooled logistic regression
-  $\text{logit}\,h(t \mid A, L) = \alpha(t) + \beta_A A + \beta_L L$
-  on at-risk rows. Returns a `causatr_fit` with `type = "survival"`.
-- `to_person_period(data, id, time_varying, time_invariant, time_name)`
-  — wide→long reshape (kept in causatr, general-purpose).
-- `contrast()` on a survival fit aborts with "not implemented".
-- `causat_survival(competing = ...)` aborts: the argument was reserved
-  but would have silently fit a biased cause-deleted hazard.
-- Risk-set bookkeeping used `.causatr_prev_event` / `.causatr_prev_cens`
-  within-id lagged cumsum columns.
-- `T6`: weighted fits switch to `quasibinomial()` (same score equations,
-  free dispersion, drops the "non-integer #successes" warning).
-- `T9`: internal columns stripped from `fit$data` before return.
-- Smoke tests pinned fit-time behaviour.
-
-**That entire surface is being removed from causatr.** Section 6
-summarises what ports over to the new package and what needs to be
-written fresh.
-
 ## 3. Target scope for the new package
 
 ### Two tracks + competing risks
@@ -427,7 +401,8 @@ NHEFS.
 ## 10. Implementation chunks (proposed)
 
 Status legend: ✅ done (commit pinned) · 🚧 in progress · ⬜ not started.
-[CLAUDE.md](CLAUDE.md) mirrors this table — update both when a chunk flips.
+**This is the canonical chunk roadmap** (single source of truth for per-chunk
+status); `CLAUDE.md` carries only a one-line pointer + a done/next summary.
 
 | # | Status | Chunk doc | Scope | Depends |
 |---|---|---|---|---|
@@ -475,50 +450,7 @@ multiple imputation) was added 2026-06-03 — promoted from an open research
 question to a research-first chunk; it begins with a literature review before
 implementation.
 
-## 11. Package naming / placement
-
-- **Repo:** already created under `etverse/` (user-confirmed — name TBD
-  by the user on first commit).
-- **Suggested package name:** something short + mnemonic in the
-  etverse style (e.g. `survcausatr`, `causurvtr`, `causatr.surv`).
-  Not prescribed here.
-- **Dependencies (`Imports`):** `causatr`, `data.table`, `rlang`,
-  `stats`, `sandwich`, `numDeriv`, `boot`.
-- **Dependencies (`Suggests`):** `survival`, `lmtp`, `gfoRmula`,
-  `MatchIt` (for the rejection path test), `mgcv`, `splines`,
-  `testthat`, `quarto` (vignettes).
-
-## 12. What was removed from causatr (for reference)
-
-The following files and symbols were removed from causatr in the
-same commit that introduced this handoff:
-
-- `R/causat_survival.R` (entire file)
-- `CAUSATR_SURVIVAL_INTERNAL_COLS` constant in `R/utils.R`
-- `.causatr_prev_event` / `.causatr_prev_cens` from
-  `CAUSATR_RESERVED_COLS`
-- Survival branch in `R/contrast.R::compute_contrast()`
-- Export of `causat_survival` from `NAMESPACE`
-- `man/causat_survival.Rd`
-- `vignettes/survival.qmd` and built artifacts
-- `PHASE_7_SURVIVAL.md`
-- Survival row / sections in `FEATURE_COVERAGE_MATRIX.md`
-- Phase 7 line in `CLAUDE.md` and `DESCRIPTION`
-- Survival-composition subsections in `PHASE_8`, `PHASE_10`,
-  `PHASE_11`, `PHASE_12`, `PHASE_14`, `PHASE_16`, `PHASE_17` design
-  docs
-- `survival` from `Suggests` in `DESCRIPTION` (kept only if another
-  non-survival use remains; audited at removal time)
-- All survival-focused tests (`test-s3-methods.R` survival blocks,
-  `test-simulation.R` survival blocks, `test-causat.R` competing
-  block, `test-weights-edge-cases.R` survival block,
-  `test-critical-review-2026-04.R` B5 block) and corresponding
-  snapshots
-
-`to_person_period()` and `is_uncensored()` **stay in causatr** because
-they serve non-survival longitudinal use cases as well.
-
-## 13. References
+## 11. References
 
 - Hernán MA, Robins JM (2025). *Causal Inference: What If*. Chapman &
   Hall/CRC. **Chapter 17** (survival analysis, IP weighting and
