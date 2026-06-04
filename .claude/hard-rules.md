@@ -221,6 +221,69 @@ Do NOT flag these as bugs. Each has a regression test.
   (positivity), guarded before `fit_treatment_model()` so causatr's family
   auto-detection cannot misclassify a degenerate binary column as "gaussian".
 
+### Established invariants from 2026-06-03 Track B (ICE survival, chunk 6)
+
+Do NOT flag these as bugs. Each has a regression test.
+
+- **survatr owns the ICE backward loop and the cross-step IF cascade; it does
+  NOT call `causatr:::ice_iterate()` or `variance_if_ice_one()`.** Those are
+  built for a single terminal `Y` (backward step regresses the raw next-step
+  prediction `q_{k+1}`) and have no failure carry-forward. The survival
+  pseudo-outcome is `Ỹ_k = D_k + (1−D_k)q_{k+1}`, coded NA-safe as
+  `ifelse(D_k==1, 1, q_{k+1})` (`ice_surv_pseudo()`). This is reuse of causatr's
+  **single-model** primitives composed into a survival recursion, not a
+  reimplementation to "move into causatr".
+- **The `(1−D_k)` failure carry-forward factor in the survival IF chain is
+  REQUIRED and is NOT redundant with the at-risk fit set.** `fit_ids[[k]]` is
+  at-risk-at-`k`, which *includes* individuals with the event at `k`
+  (`D_k = 1`). The survival cross-step derivative
+  `dỸ_k/dβ_{k+1} = (1−D_k) dq_{k+1}/dβ_{k+1}` must zero those out, so
+  `survatr_ice_surv_chain()` multiplies each previous-step contribution by
+  `(1 − D_{k−1})` from `build_event_by_step()`. Removing it inflates the
+  sandwich, growing with horizon. Pinned by the sandwich-vs-bootstrap test and,
+  to ~1e-5, by the independent `delicatessen` stacked-EE oracle
+  (`test-ice-survival-delicatessen.R`, `data-raw/delicatessen_ice_survival.py`).
+  Do not "simplify" the chain back to causatr's verbatim form.
+- **Per-step link forcing: binomial at the horizon step, quasibinomial at
+  earlier steps.** Asserted in `test-ice-survival.R`. Swapping changes the score
+  equations.
+- **One backward pass per horizon.** The survival-tail target is relative to a
+  fixed final period, so `compute_ice_survival_curve()` runs an independent pass
+  per requested `t`; `R^d(t) = mean(pseudo_final)`, `S^d(t) = 1 − R^d(t)`. Do
+  not "optimise" to a single pass without re-deriving the intermediate-horizon
+  pseudo-outcomes.
+- **Lag columns hold OBSERVED treatment; the intervention sets current-period
+  treatment only** (`causatr:::ice_apply_intervention_long()`). The static
+  counterfactual is recovered by the backward composition, not by setting lags.
+  Do not recompute lags from the intervened treatment.
+- **Track B confounders split: `confounders` (baseline, never lagged) +
+  `confounders_tv` (lag-expanded).** `history` is the Markov order (`Inf` =
+  full). Both Track-B-only; `time_formula` is NOT part of the ICE per-step
+  formula. The minimal `causatr_fit` for the IF is hand-built via
+  `causatr:::new_causatr_fit()`, never `fit_ice()`.
+- **Track B standardises over the AT-RISK-AT-BASELINE population; the means use
+  `na.rm` and the IF `target` is the at-risk-at-baseline mask.** Individuals
+  censored at entry (period 1) are never in the period-1 risk set, so they carry
+  `NA` in `pseudo_final`. They drop from the ICE standardisation (consistent
+  under MCAR entry censoring). `n_ids` passed to `fill_sandwich_ses` stays the
+  FULL first-period count — `ice_if_setup` scales Channel 1 by `n / n_target`,
+  so `crossprod(IF) / n_ids^2` is the correct mean variance. Do NOT "fix" this
+  to drop the `na.rm` or set `target = rep(TRUE, n)` (that re-introduces the
+  all-`NA`-curve bug, Issue #1 of the 2026-06-03 review) and do NOT rescale by
+  `n_target` (double-counts the `n/n_target` factor already in the IF).
+- **Track B v1 rejects external/IPCW weights (`survatr_ice_external_weights`)
+  and `ipsi()` / stochastic interventions
+  (`survatr_ice_intervention_deferred`).** A constant-within-id treatment under
+  `estimator="ice"` informs (`survatr_ice_static_treatment`) but proceeds; a
+  time-varying treatment under Track A warns
+  (`survatr_tv_treatment_track_a`). These are deliberate scoping, not bugs.
+- **Track B requires a NUMERIC treatment** (binary, or a numeric dose modelled
+  linearly). Factor / categorical (k > 2) treatments are rejected with
+  `survatr_ice_treatment_unsupported` (the intervention sets a numeric value,
+  which collides with a factor column; a `treatment_form` design path ships
+  later). A numeric-coded multi-level treatment is modelled linearly by design
+  — that is the user's modelling choice, not a bug to "fix".
+
 ### Implementation conventions
 
 - **causatr is the engine.** Import `prepare_model_if()`,

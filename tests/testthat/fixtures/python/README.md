@@ -15,6 +15,16 @@ Python at test time.
 - `ipw_survival_delicatessen.csv` — delicatessen output (`quantity, time,
   estimate, se`) for `S1`, `S0`, and `RD` at times 2–5, consumed by
   `test-ipw-delicatessen.R`.
+- `ice_survival_data.csv` — shared person-period fixture (`id, t, A, L, Y`) for
+  Track B (longitudinal ICE). Generated in R from `sim_ice_feedback(n = 1500,
+  K = 3, seed = 41)` (treatment-confounder feedback). Both R and Python read
+  this.
+- `ice_survival_delicatessen.csv` — delicatessen output (`quantity, time,
+  estimate, se`) for `S1`, `S0`, and `RD` at times 1–3, consumed by
+  `test-ice-survival-delicatessen.R`. The Python script reimplements the
+  backward survival-tail ICE recursion as a stacked M-estimator, so its
+  numerical sandwich independently validates survatr's analytic survival IF
+  chain — in particular the `(1 - D_k)` failure carry-forward factor.
 
 ## Environment
 
@@ -42,6 +52,15 @@ Rscript -e 'devtools::load_all(); source("tests/testthat/helper-dgp.R"); \
 
 # (2) regenerate the delicatessen reference (Python):
 ../causatr/data-raw/zepid_venv/bin/python data-raw/delicatessen_ipw_survival.py
+
+# Track B (ICE) fixtures:
+#   (1) data fixture (R):
+Rscript -e 'source("tests/testthat/helper-ice-survival-oracle.R"); \
+  dt <- sim_ice_feedback(n=1500L, K=3L, seed=41L); \
+  data.table::fwrite(dt[,.(id,t,A,L,Y)], \
+    "tests/testthat/fixtures/python/ice_survival_data.csv")'
+#   (2) delicatessen reference (Python):
+../causatr/data-raw/zepid_venv/bin/python data-raw/delicatessen_ice_survival.py
 ```
 
 The R fit and the delicatessen stack agree to ~1e-4 on `S^a(t)` and the risk

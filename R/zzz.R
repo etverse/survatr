@@ -5,6 +5,8 @@ utils::globalVariables(c(
   ".survatr_prev_cens",
   ".cf_hazard",
   ".cf_surv",
+  ".pseudo_y",
+  ".nu",
   "intervention",
   "s_hat",
   "risk_hat",

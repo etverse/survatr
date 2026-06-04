@@ -36,7 +36,8 @@ reflects **current** state, not planned scope. Planned scope lives in
 | `na.action = na.exclude` | 🔴 | `test-checks.R`, `test-surv_fit.R` | `survatr_bad_na_action`. Inherited rationale from causatr (residuals padding vs `model.matrix` drop misalignment). |
 | `estimator = "matching"` / `"match"` | 🔴 | `test-surv_fit.R` | `survatr_matching_rejected`. Points to `survival::coxph(..., weights = match_weights, cluster = subclass)`. |
 | `estimator = "ipw"` (weighted marginal hazard MSM) | 🟢 | `test-ipw-survival.R` | See the IPW section below. |
-| `estimator ∈ {"ice", <unknown>}` | 🔴 | `test-surv_fit.R` | `survatr_bad_estimator`. Track B (ice) ships in chunk 6. |
+| `estimator = "ice"` (longitudinal ICE hazards) | 🟢 | `test-ice-survival.R` | See the Track B section below. `track = "B"`, `model = NULL` (per-step models fit lazily in `contrast()`). |
+| `estimator = <unknown>` | 🔴 | `test-surv_fit.R` | `survatr_bad_estimator`. |
 | `competing = <non-NULL>` | 🔴 | `test-surv_fit.R` | `survatr_competing_misuse`. Cause-specific + CIF path ships in chunk 7. |
 | Missing column name in `data` | 🔴 | `test-prepare_data.R` | `survatr_col_not_found`. |
 | Wide input (one row per id) | 🔴 | `test-prepare_data.R` | `survatr_not_person_period`. Points to `causatr::to_person_period()`. |
@@ -132,7 +133,31 @@ person-period rows, and fit a weighted marginal MSM `logit h(t|A) = α(t) + β_A
 
 ## Track B — Longitudinal survival (ICE hazards)
 
-Ships in chunk 6.
+Time-varying treatment + time-to-event via backward iterated conditional
+expectations on the discrete-time hazard, with a survival-tail pseudo-outcome
+`Ỹ_k = D_k + (1−D_k)q_{k+1}`. survatr owns the backward loop + cross-step IF
+cascade (with the `(1−D_k)` failure carry-forward), reusing causatr's
+single-model primitives. Confounders split into `confounders` (baseline) +
+`confounders_tv` (lagged); `history` Markov order.
+
+| Feature combination | Status | Test file | Oracle / notes |
+|---|---|---|---|
+| Track B risk curve `R^d(t)`, static strategies | 🟢 | `test-ice-survival.R` | Forward-simulation Monte-Carlo g-formula truth on a treatment-confounder-feedback DGP (n = 4000, K = 4): `S^a(t)` within 0.02 at every t; protective treatment ⇒ `S^1 > S^0`. |
+| Per-step link forcing (binomial at horizon, quasibinomial earlier) | 🟢 | `test-ice-survival.R` | Asserts `models[[K]]$family == "binomial"`, `models[[k<K]] == "quasibinomial"`. |
+| Lag columns carry observed (not intervened) treatment | 🟢 | `test-ice-survival.R` | Under `shift(1)`: current `A` shifted, `lag1_A` unchanged. |
+| Survival-aware stacked-EE sandwich (`ci_method = "sandwich"`) | 🟢 | `test-ice-survival.R`, `test-ice-survival-delicatessen.R` | SEs finite, CIs bracket the point; `risk_difference` / `risk_ratio` / `rmst_difference` contrasts well-formed. |
+| ICE sandwich vs `delicatessen` (independent analytic M-estimation) | 🟢 | `test-ice-survival-delicatessen.R` | `S^1`, `S^0`, `RD` point + sandwich SE match a Python `delicatessen` stacked-EE survival-tail sandwich to ~1e-5 at t ∈ {1,2,3} on a shared fixture. Reference: `data-raw/delicatessen_ice_survival.py`; both read `fixtures/python/ice_survival_data.csv`. Pins the `(1−D_k)` failure carry-forward. |
+| ICE sandwich ≈ empirical bootstrap | 🟢 | `test-ice-survival.R` | Per-time sandwich vs bootstrap SE within 20% (n = 1200, 400 reps). Guards against regressing to causatr's verbatim chain (which over-covers, growing in t). |
+| Bootstrap variance (per-replicate ICE refit) | 🟢 | `test-ice-survival.R` | `bootstrap_survival()` refits Track B per replicate (lags rebuilt, `confounders_tv` / `history` threaded). |
+| External point-estimate oracle: `lmtp::lmtp_tmle(survival)` | 🟢 | `test-ice-survival-oracle.R` | Static strategies: lmtp and ICE both within 0.03 of the forward-sim truth (`skip_if_not_installed`). |
+| External oracle: `gfoRmula::gformula_survival()` | 🟡 | `test-ice-survival-oracle.R` | Cross-check when installed; `skip_if_not_installed` + defensive `tryCatch` (API-sensitive). |
+| `estimator = "ice"` with constant-within-id treatment | 🟢 | `test-ice-survival.R` | Informs `survatr_ice_static_treatment` (Track A cheaper) but proceeds. |
+| Time-varying treatment under Track A (gcomp/ipw) | 🟢 | `test-ice-survival.R` | Warns `survatr_tv_treatment_track_a`, points to `estimator = "ice"`. |
+| Non-numeric (factor / categorical k>2) treatment under Track B | 🔴 | `test-ice-survival.R` | `survatr_ice_treatment_unsupported`. Numeric (binary / linear dose) only; treatment-design-formula path → later chunk. |
+| (MCAR) entry (period-1) censoring under Track B | 🟢 | `test-ice-survival.R` | Standardises over the at-risk-at-baseline population; curve + sandwich finite, matches forward-sim truth, `n` = effective count. |
+| External `weights` + `estimator = "ice"` | 🔴 | `test-ice-survival.R` | `survatr_ice_external_weights` (weighted / IPCW longitudinal → later chunk). |
+| `ipsi()` / stochastic interventions under Track B | 🔴 | `test-ice-survival.R` | `survatr_ice_intervention_deferred` (weight-path / Monte-Carlo → later chunks). |
+| causatr ICE primitive contract pins | 🟢 | `test-causatr-integration.R` | Signatures of `ice_fit_step`, `ice_predict_step`, `ice_build_formula`, `ice_apply_intervention_long`, `create_lag_vars`, `ice_if_setup`, `correct_model`, `new_causatr_fit`, etc. |
 
 ## Competing risks (cause-specific hazards + CIF)
 

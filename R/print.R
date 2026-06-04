@@ -39,6 +39,22 @@ print.survatr_fit <- function(x, ...) {
   cat(sprintf("  ID:          %s\n", x$id))
   cat(sprintf("  Time:        %s\n", x$time))
   cat(sprintf("  Censoring:   %s\n", cens_info))
+  ## Track B (ICE) carries time-varying confounders + a Markov lag order that
+  ## Track A does not; surface them so the printout reflects the actual model.
+  if (identical(x$track, "B")) {
+    tv <- if (is.null(x$confounders_tv)) {
+      "none"
+    } else {
+      paste(all.vars(x$confounders_tv), collapse = " + ")
+    }
+    hist_lab <- if (is.null(x$history) || is.infinite(x$history)) {
+      "full"
+    } else {
+      as.character(x$history)
+    }
+    cat(sprintf("  TV covars:   %s\n", tv))
+    cat(sprintf("  History:     %s\n", hist_lab))
+  }
   cat(sprintf(
     "  N:           %d individuals, %d PP rows (%d at risk)\n",
     n_id,

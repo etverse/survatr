@@ -40,6 +40,14 @@ SURVATR_INTERNAL_COLS <- c(".survatr_prev_event", ".survatr_prev_cens")
 #' @param trim The `trim` quantile level passed to `surv_fit()` (not the
 #'   resolved cutoff), or `NULL`. Stored so the bootstrap re-estimates the
 #'   winsorization per replicate.
+#' @param confounders_tv Time-varying confounders formula under
+#'   `estimator = "ice"` (Track B), or `NULL` (Track A). Threaded to the
+#'   bootstrap refit and the contrast ICE path.
+#' @param history Markov lag order under `estimator = "ice"`, or `NULL`
+#'   (Track A).
+#' @param ice_details Per-step ICE metadata (`build_ice_surv_details()` output)
+#'   under `estimator = "ice"`, or `NULL`. Lets `contrast()` / the bootstrap
+#'   reconstruct the ICE machinery without re-parsing.
 #' @param call The original `match.call()` of `surv_fit()`.
 #'
 #' @return A list of class `survatr_fit`.
@@ -68,7 +76,10 @@ new_survatr_fit <- function(
   marginal_model = NULL,
   trim_threshold = NA_real_,
   propensity_model_fn = NULL,
-  trim = NULL
+  trim = NULL,
+  confounders_tv = NULL,
+  history = NULL,
+  ice_details = NULL
 ) {
   structure(
     list(
@@ -95,6 +106,9 @@ new_survatr_fit <- function(
       trim_threshold = trim_threshold,
       propensity_model_fn = propensity_model_fn,
       trim = trim,
+      confounders_tv = confounders_tv,
+      history = history,
+      ice_details = ice_details,
       call = call
     ),
     class = "survatr_fit"
