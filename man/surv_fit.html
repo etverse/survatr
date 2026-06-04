@@ -303,6 +303,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   model_fn = stats::glm,
   propensity_model_fn = stats::glm,
   trim = NULL,
+  confounders_tv = NULL,
+  history = Inf,
   ...
 )
 </code></pre>
@@ -331,7 +333,7 @@ Character scalar. Column name of the event indicator (<code>1</code> = event at 
 <code id="treatment">treatment</code>
 </td>
 <td>
-Character scalar. Column name of the (baseline, point) treatment. For Track A the treatment is constant within <code>id</code>.
+Character scalar. Column name of the treatment. For Track A the treatment is constant within <code>id</code>. Under <code>estimator = “ice”</code> (Track B) the treatment may vary within <code>id</code> and must be <strong>numeric</strong> (binary, or a numeric dose entered linearly); factor / categorical (k &gt; 2) treatments are rejected with class <code>survatr_ice_treatment_unsupported</code> (a treatment-design formula path ships in a later chunk).
 </td>
 </tr>
 <tr>
@@ -339,7 +341,7 @@ Character scalar. Column name of the (baseline, point) treatment. For Track A th
 <code id="confounders">confounders</code>
 </td>
 <td>
-A one-sided formula (e.g.&nbsp;<code>~ L1 + L2</code>) describing the covariate adjustment set.
+A one-sided formula (e.g.&nbsp;<code>~ L1 + L2</code>) describing the <strong>baseline</strong> (time-invariant) covariate adjustment set. Under <code>estimator = “ice”</code> (Track B), time-varying covariates go in <code>confounders_tv</code> instead; baseline terms here are never lagged.
 </td>
 </tr>
 <tr>
@@ -395,7 +397,7 @@ Optional numeric vector of external weights, length <code>nrow(data)</code>. Whe
 <code id="estimator">estimator</code>
 </td>
 <td>
-Character scalar. <code>“gcomp”</code> (pooled-logistic standardization) or <code>“ipw”</code> (weighted marginal hazard MSM with stabilized density-ratio weights). <code>“ice”</code> ships in a later track and is rejected here. Matching is a hard reject with class <code>survatr_matching_rejected</code> pointing to <code>survival::coxph(…, weights = , cluster = )</code>.
+Character scalar. <code>“gcomp”</code> (pooled-logistic standardization), <code>“ipw”</code> (weighted marginal hazard MSM with stabilized density-ratio weights), or <code>“ice”</code> (Track B: longitudinal iterated-conditional-expectation hazards for a time-varying treatment). Matching is a hard reject with class <code>survatr_matching_rejected</code> pointing to <code>survival::coxph(…, weights = , cluster = )</code>.
 </td>
 </tr>
 <tr>
@@ -420,6 +422,22 @@ Fitting function for the <strong>treatment</strong> model under <code>estimator 
 </td>
 <td>
 Numeric scalar in <code style="white-space: pre;">(0, 1]</code> or <code>NULL</code> (the default). Under <code>estimator = “ipw”</code>, the per-id stabilized weights are winsorized at the <code>trim</code>-th quantile (Cole &amp; Hernán 2008) before being broadcast onto the person-period rows. <code>NULL</code> / <code>1</code> means no truncation. The resolved fixed cutoff is reused by the sandwich variance.
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="confounders_tv">confounders_tv</code>
+</td>
+<td>
+A one-sided formula of <strong>time-varying</strong> confounders for Track B (<code>estimator = “ice”</code>), lag-expanded at each backward step (e.g.&nbsp;<code>~ L</code> builds <code>L + lag1_L + …</code>). <code>NULL</code> (the default) means no time-varying confounders. Ignored by Track A (<code>gcomp</code> / <code>ipw</code>).
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="history">history</code>
+</td>
+<td>
+Markov lag order for Track B. <code>Inf</code> (the default) uses the full available history (capped at <code>n_times - 1</code>); an integer restricts the lag structure (e.g.&nbsp;<code>history = 1</code> for first-order Markov). Ignored by Track A.
 </td>
 </tr>
 <tr>
