@@ -77,7 +77,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-b9c91b1e117c879de662b9ae260051b4.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-98130f95a46b67a4a867697a2c34a567.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -171,7 +171,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../vignettes/survatr.html">Articles</a></li><li class="breadcrumb-item"><a href="../vignettes/survatr.html">Introduction to survatr</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../vignettes/survatr.html">Getting started</a></li><li class="breadcrumb-item"><a href="../vignettes/survatr.html">Introduction</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -192,7 +192,7 @@ window.Quarto = {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
- <span class="menu-text">Articles</span></a>
+ <span class="menu-text">Getting started</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -201,7 +201,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../vignettes/survatr.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">Introduction to survatr</span></a>
+ <span class="menu-text">Introduction</span></a>
   </div>
 </li>
       </ul>
@@ -209,12 +209,35 @@ window.Quarto = {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false">
- <span class="menu-text">Reference</span></a>
+ <span class="menu-text">Estimation methods</span></a>
           <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../vignettes/ipw.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">IPW (Track A)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../vignettes/ice.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ICE / longitudinal (Track B)</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false">
+ <span class="menu-text">Reference</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../man/contrast.html" class="sidebar-item-text sidebar-link">
@@ -301,12 +324,31 @@ window.Quarto = {
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
-    <div class="quarto-code-links"><h2>Code Links</h2><ul><li><a href="undefined"><i class="bi bi-link-45deg"></i></a></li></ul></div></div>
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#two-step-api" id="toc-two-step-api" class="nav-link active" data-scroll-target="#two-step-api">Two-step API</a></li>
+  <li><a href="#quick-example" id="toc-quick-example" class="nav-link" data-scroll-target="#quick-example">Quick example</a>
+  <ul class="collapse">
+  <li><a href="#fit-the-hazard-model" id="toc-fit-the-hazard-model" class="nav-link" data-scroll-target="#fit-the-hazard-model">Fit the hazard model</a></li>
+  <li><a href="#survival-curves-under-two-interventions" id="toc-survival-curves-under-two-interventions" class="nav-link" data-scroll-target="#survival-curves-under-two-interventions">Survival curves under two interventions</a></li>
+  <li><a href="#risk-difference-with-sandwich-ci" id="toc-risk-difference-with-sandwich-ci" class="nav-link" data-scroll-target="#risk-difference-with-sandwich-ci">Risk difference with sandwich CI</a></li>
+  </ul></li>
+  <li><a href="#estimand-menu" id="toc-estimand-menu" class="nav-link" data-scroll-target="#estimand-menu">Estimand menu</a></li>
+  <li><a href="#intervention-types" id="toc-intervention-types" class="nav-link" data-scroll-target="#intervention-types">Intervention types</a></li>
+  <li><a href="#inference-methods" id="toc-inference-methods" class="nav-link" data-scroll-target="#inference-methods">Inference methods</a></li>
+  <li><a href="#extracting-results" id="toc-extracting-results" class="nav-link" data-scroll-target="#extracting-results">Extracting results</a></li>
+  <li><a href="#reserved-columns-and-error-surface" id="toc-reserved-columns-and-error-surface" class="nav-link" data-scroll-target="#reserved-columns-and-error-surface">Reserved columns and error surface</a></li>
+  <li><a href="#learning-more" id="toc-learning-more" class="nav-link" data-scroll-target="#learning-more">Learning more</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul>
+<div class="quarto-code-links"><h2>Code Links</h2><ul><li><a href="undefined"><i class="bi bi-link-45deg"></i></a></li></ul></div></nav>
+    </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../vignettes/survatr.html">Articles</a></li><li class="breadcrumb-item"><a href="../vignettes/survatr.html">Introduction to survatr</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../vignettes/survatr.html">Getting started</a></li><li class="breadcrumb-item"><a href="../vignettes/survatr.html">Introduction</a></li></ol></nav>
 <div class="quarto-title">
 <div class="quarto-title-block"><div><h1 class="title">Introduction to survatr</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li><li><hr class="dropdown-divider"></li><li><a id="quarto-view-source" class="dropdown-item" href="javascript:void(0)" role="button">View Source</a></li></ul></div></div>
 </div>
@@ -511,7 +553,19 @@ window.Quarto = {
 <span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">reference =</span> <span class="st">"a0"</span>,</span>
 <span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci_method =</span> <span class="st">"sandwich"</span></span>
 <span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>res_rd<span class="sc">$</span>contrasts</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>res_rd<span class="sc">$</span>contrasts[] <span class="co"># `[]` forces auto-print of a function-returned data.table</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     contrast  time     estimate          se    ci_lower    ci_upper</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       &lt;char&gt; &lt;int&gt;        &lt;num&gt;       &lt;num&gt;       &lt;num&gt;       &lt;num&gt;</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  1: a1 vs a0     1 -0.002041379 0.004378228 -0.01062255 0.006539789</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  2: a1 vs a0     2 -0.004171571 0.008932308 -0.02167857 0.013335430</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  3: a1 vs a0     3 -0.005770166 0.012348210 -0.02997221 0.018431881</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  4: a1 vs a0     4 -0.007225694 0.015461865 -0.03753039 0.023079005</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  5: a1 vs a0     5 -0.008595905 0.018396179 -0.04465175 0.027459943</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  6: a1 vs a0     6 -0.009513415 0.020361869 -0.04942194 0.030395114</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  7: a1 vs a0     7 -0.010408541 0.022278540 -0.05407368 0.033256595</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  8: a1 vs a0     8 -0.011120983 0.023800384 -0.05776888 0.035526913</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  9: a1 vs a0     9 -0.011596826 0.024817563 -0.06023836 0.037044704</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 10: a1 vs a0    10 -0.012090341 0.025873948 -0.06280235 0.038621665</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div class="cell">
@@ -625,7 +679,7 @@ window.Quarto = {
 </tr>
 </tbody>
 </table>
-<p>IPW-style stochastic (<code>ipsi()</code>) and longitudinal Track B interventions are supported via later chunks — see the <strong>Learning more</strong> section.</p>
+<p>The <code>dynamic()</code> rule and IPW (<code>estimator = "ipw"</code>) are demonstrated in <code>vignette("ipw")</code>; longitudinal time-varying treatments via Track B ICE (<code>estimator = "ice"</code>) are covered in <code>vignette("ice")</code>. IPW-style stochastic (<code>ipsi()</code>) interventions ship in a later chunk.</p>
 </section>
 <section id="inference-methods" class="level2">
 <h2 class="anchored" data-anchor-id="inference-methods">Inference methods</h2>
@@ -780,10 +834,13 @@ window.Quarto = {
 </section>
 <section id="learning-more" class="level2">
 <h2 class="anchored" data-anchor-id="learning-more">Learning more</h2>
-<p>survatr’s scope is laid out in <code>SURVIVAL_PACKAGE_HANDOFF.md</code>. Upcoming chunks will add dedicated vignettes for:</p>
+<p>This vignette covered Track A g-computation. Two further estimators are implemented and have dedicated vignettes:</p>
 <ul>
-<li><strong>Track A under IPW</strong> — baseline density-ratio weights broadcast onto person-period rows, weighted hazard MSM.</li>
-<li><strong>Track B (ICE hazards)</strong> — longitudinal survival via iterated conditional expectations (Zivich et al.&nbsp;2024), with the hazard indicator at the final period and a survival-tail pseudo-outcome at earlier periods.</li>
+<li><strong>Track A under IPW</strong> (<code>vignette("ipw")</code>) — stabilized density-ratio weights broadcast onto person-period rows, fitting a weighted marginal hazard MSM.</li>
+<li><strong>Track B (ICE hazards)</strong> (<code>vignette("ice")</code>) — longitudinal survival for a time-varying treatment via iterated conditional expectations (Zivich et al.&nbsp;2024), with the hazard indicator at the final period and a survival-tail pseudo-outcome at earlier periods.</li>
+</ul>
+<p>survatr’s full scope is laid out in <code>SURVIVAL_PACKAGE_HANDOFF.md</code>. Upcoming chunks will add:</p>
+<ul>
 <li><strong>Competing risks</strong> — parallel cause-specific hazards + cumulative incidence decomposition.</li>
 <li><strong>NHEFS Chapter 17 replication</strong> — the Hernán &amp; Robins running example with the 120-month survival curves and the ≈ 0.2% risk difference target.</li>
 </ul>
@@ -1410,7 +1467,7 @@ window.Quarto = {
 <span id="cb11-167"><a href="#cb11-167" aria-hidden="true" tabindex="-1"></a>  <span class="at">reference =</span> <span class="st">"a0"</span>,</span>
 <span id="cb11-168"><a href="#cb11-168" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci_method =</span> <span class="st">"sandwich"</span></span>
 <span id="cb11-169"><a href="#cb11-169" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb11-170"><a href="#cb11-170" aria-hidden="true" tabindex="-1"></a>res_rd<span class="sc">$</span>contrasts</span>
+<span id="cb11-170"><a href="#cb11-170" aria-hidden="true" tabindex="-1"></a>res_rd<span class="sc">$</span>contrasts[] <span class="co"># `[]` forces auto-print of a function-returned data.table</span></span>
 <span id="cb11-171"><a href="#cb11-171" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb11-172"><a href="#cb11-172" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-175"><a href="#cb11-175" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
@@ -1450,106 +1507,113 @@ window.Quarto = {
 <span id="cb11-209"><a href="#cb11-209" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`causatr::threshold(lower, upper)`</span> <span class="pp">|</span> Clamp treatment within bounds <span class="pp">|</span> <span class="in">`threshold(0, 20)`</span> <span class="pp">|</span></span>
 <span id="cb11-210"><a href="#cb11-210" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`causatr::dynamic(rule)`</span> <span class="pp">|</span> Apply a user-defined rule <span class="pp">|</span> <span class="in">`dynamic(\(d, a) ifelse(d$L &gt; 0, 1, 0))`</span> <span class="pp">|</span></span>
 <span id="cb11-211"><a href="#cb11-211" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-212"><a href="#cb11-212" aria-hidden="true" tabindex="-1"></a>IPW-style stochastic (<span class="in">`ipsi()`</span>) and longitudinal Track B interventions</span>
-<span id="cb11-213"><a href="#cb11-213" aria-hidden="true" tabindex="-1"></a>are supported via later chunks — see the **Learning more** section.</span>
-<span id="cb11-214"><a href="#cb11-214" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-215"><a href="#cb11-215" aria-hidden="true" tabindex="-1"></a><span class="fu">## Inference methods</span></span>
+<span id="cb11-212"><a href="#cb11-212" aria-hidden="true" tabindex="-1"></a>The <span class="in">`dynamic()`</span> rule and IPW (<span class="in">`estimator = "ipw"`</span>) are demonstrated in</span>
+<span id="cb11-213"><a href="#cb11-213" aria-hidden="true" tabindex="-1"></a><span class="in">`vignette("ipw")`</span>; longitudinal time-varying treatments via Track B ICE</span>
+<span id="cb11-214"><a href="#cb11-214" aria-hidden="true" tabindex="-1"></a>(<span class="in">`estimator = "ice"`</span>) are covered in <span class="in">`vignette("ice")`</span>. IPW-style</span>
+<span id="cb11-215"><a href="#cb11-215" aria-hidden="true" tabindex="-1"></a>stochastic (<span class="in">`ipsi()`</span>) interventions ship in a later chunk.</span>
 <span id="cb11-216"><a href="#cb11-216" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-217"><a href="#cb11-217" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`ci_method`</span> <span class="pp">|</span> Description <span class="pp">|</span></span>
-<span id="cb11-218"><a href="#cb11-218" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
-<span id="cb11-219"><a href="#cb11-219" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"none"`</span> <span class="pp">|</span> Point estimates only (default). <span class="in">`se`</span> / <span class="in">`ci_*`</span> columns are <span class="in">`NA_real_`</span>. <span class="pp">|</span></span>
-<span id="cb11-220"><a href="#cb11-220" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"sandwich"`</span> <span class="pp">|</span> Delta-method cross-time influence function aggregation through the cumulative product. Pointwise Wald bands. Fast (single pass). <span class="pp">|</span></span>
-<span id="cb11-221"><a href="#cb11-221" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"bootstrap"`</span> <span class="pp">|</span> Nonparametric bootstrap with per-id resampling. Percentile (default) or Wald CIs. Slower; required for non-GLM outcome fitters (e.g. <span class="in">`mgcv::gam`</span>). <span class="pp">|</span></span>
-<span id="cb11-222"><a href="#cb11-222" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-225"><a href="#cb11-225" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb11-226"><a href="#cb11-226" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: true</span></span>
-<span id="cb11-227"><a href="#cb11-227" aria-hidden="true" tabindex="-1"></a>res_boot <span class="ot">&lt;-</span> <span class="fu">contrast</span>(</span>
-<span id="cb11-228"><a href="#cb11-228" aria-hidden="true" tabindex="-1"></a>  fit,</span>
-<span id="cb11-229"><a href="#cb11-229" aria-hidden="true" tabindex="-1"></a>  <span class="at">interventions =</span> <span class="fu">list</span>(</span>
-<span id="cb11-230"><a href="#cb11-230" aria-hidden="true" tabindex="-1"></a>    <span class="at">a1 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">1</span>),</span>
-<span id="cb11-231"><a href="#cb11-231" aria-hidden="true" tabindex="-1"></a>    <span class="at">a0 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">0</span>)</span>
-<span id="cb11-232"><a href="#cb11-232" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb11-233"><a href="#cb11-233" aria-hidden="true" tabindex="-1"></a>  <span class="at">times     =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>,</span>
-<span id="cb11-234"><a href="#cb11-234" aria-hidden="true" tabindex="-1"></a>  <span class="at">type      =</span> <span class="st">"risk_difference"</span>,</span>
-<span id="cb11-235"><a href="#cb11-235" aria-hidden="true" tabindex="-1"></a>  <span class="at">reference =</span> <span class="st">"a0"</span>,</span>
-<span id="cb11-236"><a href="#cb11-236" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci_method =</span> <span class="st">"bootstrap"</span>,</span>
-<span id="cb11-237"><a href="#cb11-237" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_boot    =</span> <span class="dv">200</span>L,</span>
-<span id="cb11-238"><a href="#cb11-238" aria-hidden="true" tabindex="-1"></a>  <span class="at">seed      =</span> <span class="dv">42</span>L</span>
-<span id="cb11-239"><a href="#cb11-239" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb11-240"><a href="#cb11-240" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(res_boot<span class="sc">$</span>contrasts, <span class="dv">3</span>)</span>
-<span id="cb11-241"><a href="#cb11-241" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb11-242"><a href="#cb11-242" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-243"><a href="#cb11-243" aria-hidden="true" tabindex="-1"></a>Sandwich and bootstrap SEs match each other — and the true sampling SD</span>
-<span id="cb11-244"><a href="#cb11-244" aria-hidden="true" tabindex="-1"></a>— to within 1–2% on this DGP at n = 1500 (confirmed via a 300-replicate</span>
-<span id="cb11-245"><a href="#cb11-245" aria-hidden="true" tabindex="-1"></a>empirical-SD oracle; see <span class="in">`tests/testthat/test-bootstrap-survival.R`</span>).</span>
-<span id="cb11-246"><a href="#cb11-246" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-247"><a href="#cb11-247" aria-hidden="true" tabindex="-1"></a><span class="fu">## Extracting results</span></span>
+<span id="cb11-217"><a href="#cb11-217" aria-hidden="true" tabindex="-1"></a><span class="fu">## Inference methods</span></span>
+<span id="cb11-218"><a href="#cb11-218" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-219"><a href="#cb11-219" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`ci_method`</span> <span class="pp">|</span> Description <span class="pp">|</span></span>
+<span id="cb11-220"><a href="#cb11-220" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
+<span id="cb11-221"><a href="#cb11-221" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"none"`</span> <span class="pp">|</span> Point estimates only (default). <span class="in">`se`</span> / <span class="in">`ci_*`</span> columns are <span class="in">`NA_real_`</span>. <span class="pp">|</span></span>
+<span id="cb11-222"><a href="#cb11-222" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"sandwich"`</span> <span class="pp">|</span> Delta-method cross-time influence function aggregation through the cumulative product. Pointwise Wald bands. Fast (single pass). <span class="pp">|</span></span>
+<span id="cb11-223"><a href="#cb11-223" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"bootstrap"`</span> <span class="pp">|</span> Nonparametric bootstrap with per-id resampling. Percentile (default) or Wald CIs. Slower; required for non-GLM outcome fitters (e.g. <span class="in">`mgcv::gam`</span>). <span class="pp">|</span></span>
+<span id="cb11-224"><a href="#cb11-224" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-227"><a href="#cb11-227" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb11-228"><a href="#cb11-228" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: true</span></span>
+<span id="cb11-229"><a href="#cb11-229" aria-hidden="true" tabindex="-1"></a>res_boot <span class="ot">&lt;-</span> <span class="fu">contrast</span>(</span>
+<span id="cb11-230"><a href="#cb11-230" aria-hidden="true" tabindex="-1"></a>  fit,</span>
+<span id="cb11-231"><a href="#cb11-231" aria-hidden="true" tabindex="-1"></a>  <span class="at">interventions =</span> <span class="fu">list</span>(</span>
+<span id="cb11-232"><a href="#cb11-232" aria-hidden="true" tabindex="-1"></a>    <span class="at">a1 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">1</span>),</span>
+<span id="cb11-233"><a href="#cb11-233" aria-hidden="true" tabindex="-1"></a>    <span class="at">a0 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">0</span>)</span>
+<span id="cb11-234"><a href="#cb11-234" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb11-235"><a href="#cb11-235" aria-hidden="true" tabindex="-1"></a>  <span class="at">times     =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>,</span>
+<span id="cb11-236"><a href="#cb11-236" aria-hidden="true" tabindex="-1"></a>  <span class="at">type      =</span> <span class="st">"risk_difference"</span>,</span>
+<span id="cb11-237"><a href="#cb11-237" aria-hidden="true" tabindex="-1"></a>  <span class="at">reference =</span> <span class="st">"a0"</span>,</span>
+<span id="cb11-238"><a href="#cb11-238" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci_method =</span> <span class="st">"bootstrap"</span>,</span>
+<span id="cb11-239"><a href="#cb11-239" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_boot    =</span> <span class="dv">200</span>L,</span>
+<span id="cb11-240"><a href="#cb11-240" aria-hidden="true" tabindex="-1"></a>  <span class="at">seed      =</span> <span class="dv">42</span>L</span>
+<span id="cb11-241"><a href="#cb11-241" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-242"><a href="#cb11-242" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(res_boot<span class="sc">$</span>contrasts, <span class="dv">3</span>)</span>
+<span id="cb11-243"><a href="#cb11-243" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb11-244"><a href="#cb11-244" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-245"><a href="#cb11-245" aria-hidden="true" tabindex="-1"></a>Sandwich and bootstrap SEs match each other — and the true sampling SD</span>
+<span id="cb11-246"><a href="#cb11-246" aria-hidden="true" tabindex="-1"></a>— to within 1–2% on this DGP at n = 1500 (confirmed via a 300-replicate</span>
+<span id="cb11-247"><a href="#cb11-247" aria-hidden="true" tabindex="-1"></a>empirical-SD oracle; see <span class="in">`tests/testthat/test-bootstrap-survival.R`</span>).</span>
 <span id="cb11-248"><a href="#cb11-248" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-249"><a href="#cb11-249" aria-hidden="true" tabindex="-1"></a><span class="in">`tidy()`</span>, <span class="in">`plot()`</span>, <span class="in">`print()`</span>, and <span class="in">`forrest()`</span> all dispatch on the</span>
-<span id="cb11-250"><a href="#cb11-250" aria-hidden="true" tabindex="-1"></a>time-indexed <span class="in">`survatr_result`</span> shape:</span>
-<span id="cb11-251"><a href="#cb11-251" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-254"><a href="#cb11-254" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb11-255"><a href="#cb11-255" aria-hidden="true" tabindex="-1"></a>res_td <span class="ot">&lt;-</span> <span class="fu">tidy</span>(res_rd)</span>
-<span id="cb11-256"><a href="#cb11-256" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(res_td, <span class="dv">6</span>)</span>
-<span id="cb11-257"><a href="#cb11-257" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb11-258"><a href="#cb11-258" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-261"><a href="#cb11-261" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb11-262"><a href="#cb11-262" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
-<span id="cb11-263"><a href="#cb11-263" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 3</span></span>
-<span id="cb11-264"><a href="#cb11-264" aria-hidden="true" tabindex="-1"></a><span class="fu">forrest</span>(res_rd, <span class="at">t_ref =</span> <span class="dv">10</span>, <span class="at">main =</span> <span class="st">"Risk difference at t = 10"</span>)</span>
-<span id="cb11-265"><a href="#cb11-265" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb11-266"><a href="#cb11-266" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-267"><a href="#cb11-267" aria-hidden="true" tabindex="-1"></a><span class="fu">## Reserved columns and error surface</span></span>
+<span id="cb11-249"><a href="#cb11-249" aria-hidden="true" tabindex="-1"></a><span class="fu">## Extracting results</span></span>
+<span id="cb11-250"><a href="#cb11-250" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-251"><a href="#cb11-251" aria-hidden="true" tabindex="-1"></a><span class="in">`tidy()`</span>, <span class="in">`plot()`</span>, <span class="in">`print()`</span>, and <span class="in">`forrest()`</span> all dispatch on the</span>
+<span id="cb11-252"><a href="#cb11-252" aria-hidden="true" tabindex="-1"></a>time-indexed <span class="in">`survatr_result`</span> shape:</span>
+<span id="cb11-253"><a href="#cb11-253" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-256"><a href="#cb11-256" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb11-257"><a href="#cb11-257" aria-hidden="true" tabindex="-1"></a>res_td <span class="ot">&lt;-</span> <span class="fu">tidy</span>(res_rd)</span>
+<span id="cb11-258"><a href="#cb11-258" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(res_td, <span class="dv">6</span>)</span>
+<span id="cb11-259"><a href="#cb11-259" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb11-260"><a href="#cb11-260" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-263"><a href="#cb11-263" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb11-264"><a href="#cb11-264" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
+<span id="cb11-265"><a href="#cb11-265" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 3</span></span>
+<span id="cb11-266"><a href="#cb11-266" aria-hidden="true" tabindex="-1"></a><span class="fu">forrest</span>(res_rd, <span class="at">t_ref =</span> <span class="dv">10</span>, <span class="at">main =</span> <span class="st">"Risk difference at t = 10"</span>)</span>
+<span id="cb11-267"><a href="#cb11-267" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb11-268"><a href="#cb11-268" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-269"><a href="#cb11-269" aria-hidden="true" tabindex="-1"></a>survatr reserves column names prefixed with <span class="in">`.survatr_*`</span> for internal</span>
-<span id="cb11-270"><a href="#cb11-270" aria-hidden="true" tabindex="-1"></a>bookkeeping (<span class="in">`.survatr_prev_event`</span>, <span class="in">`.survatr_prev_cens`</span>). User-data</span>
-<span id="cb11-271"><a href="#cb11-271" aria-hidden="true" tabindex="-1"></a>collisions produce <span class="in">`survatr_reserved_col`</span>.</span>
-<span id="cb11-272"><a href="#cb11-272" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-273"><a href="#cb11-273" aria-hidden="true" tabindex="-1"></a>All rejection paths raise **classed** errors with the <span class="in">`survatr_*`</span> prefix</span>
-<span id="cb11-274"><a href="#cb11-274" aria-hidden="true" tabindex="-1"></a>so downstream code can pattern-match on class rather than English:</span>
-<span id="cb11-275"><a href="#cb11-275" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-276"><a href="#cb11-276" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Class <span class="pp">|</span> Trigger <span class="pp">|</span></span>
-<span id="cb11-277"><a href="#cb11-277" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
-<span id="cb11-278"><a href="#cb11-278" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_interventions`</span> <span class="pp">|</span> Empty / unnamed / duplicate-named / wrong-type <span class="in">`interventions`</span>, or a pairwise-contrast <span class="in">`type`</span> with a single intervention <span class="pp">|</span></span>
-<span id="cb11-279"><a href="#cb11-279" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_times`</span> <span class="pp">|</span> Non-numeric / empty / NA <span class="in">`times`</span> <span class="pp">|</span></span>
-<span id="cb11-280"><a href="#cb11-280" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_time_extrapolation`</span> <span class="pp">|</span> <span class="in">`times`</span> outside <span class="in">`fit$time_grid`</span> <span class="pp">|</span></span>
-<span id="cb11-281"><a href="#cb11-281" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_reference`</span> <span class="pp">|</span> <span class="in">`reference`</span> not in <span class="in">`interventions`</span> names <span class="pp">|</span></span>
-<span id="cb11-282"><a href="#cb11-282" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_ci_method`</span> <span class="pp">|</span> <span class="in">`ci_method`</span> not in <span class="in">`{"none", "sandwich", "bootstrap"}`</span> <span class="pp">|</span></span>
-<span id="cb11-283"><a href="#cb11-283" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_conf_level`</span> <span class="pp">|</span> <span class="in">`conf_level`</span> outside <span class="in">`(0, 1)`</span> <span class="pp">|</span></span>
-<span id="cb11-284"><a href="#cb11-284" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_n_boot`</span> / <span class="in">`survatr_bad_boot_ci`</span> / <span class="in">`survatr_bad_parallel`</span> <span class="pp">|</span> Bootstrap argument misuse <span class="pp">|</span></span>
-<span id="cb11-285"><a href="#cb11-285" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_matching_rejected`</span> <span class="pp">|</span> <span class="in">`estimator = "matching"`</span> (use <span class="in">`survival::coxph(..., weights, cluster)`</span> instead) <span class="pp">|</span></span>
-<span id="cb11-286"><a href="#cb11-286" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_na_action`</span> <span class="pp">|</span> <span class="in">`na.action = na.exclude`</span> (silently corrupts sandwich variance) <span class="pp">|</span></span>
-<span id="cb11-287"><a href="#cb11-287" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_competing_misuse`</span> <span class="pp">|</span> Non-<span class="in">`NULL`</span> <span class="in">`competing`</span> argument (cause-specific path ships later) <span class="pp">|</span></span>
-<span id="cb11-288"><a href="#cb11-288" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-289"><a href="#cb11-289" aria-hidden="true" tabindex="-1"></a><span class="fu">## Learning more</span></span>
+<span id="cb11-269"><a href="#cb11-269" aria-hidden="true" tabindex="-1"></a><span class="fu">## Reserved columns and error surface</span></span>
+<span id="cb11-270"><a href="#cb11-270" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-271"><a href="#cb11-271" aria-hidden="true" tabindex="-1"></a>survatr reserves column names prefixed with <span class="in">`.survatr_*`</span> for internal</span>
+<span id="cb11-272"><a href="#cb11-272" aria-hidden="true" tabindex="-1"></a>bookkeeping (<span class="in">`.survatr_prev_event`</span>, <span class="in">`.survatr_prev_cens`</span>). User-data</span>
+<span id="cb11-273"><a href="#cb11-273" aria-hidden="true" tabindex="-1"></a>collisions produce <span class="in">`survatr_reserved_col`</span>.</span>
+<span id="cb11-274"><a href="#cb11-274" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-275"><a href="#cb11-275" aria-hidden="true" tabindex="-1"></a>All rejection paths raise **classed** errors with the <span class="in">`survatr_*`</span> prefix</span>
+<span id="cb11-276"><a href="#cb11-276" aria-hidden="true" tabindex="-1"></a>so downstream code can pattern-match on class rather than English:</span>
+<span id="cb11-277"><a href="#cb11-277" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-278"><a href="#cb11-278" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Class <span class="pp">|</span> Trigger <span class="pp">|</span></span>
+<span id="cb11-279"><a href="#cb11-279" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
+<span id="cb11-280"><a href="#cb11-280" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_interventions`</span> <span class="pp">|</span> Empty / unnamed / duplicate-named / wrong-type <span class="in">`interventions`</span>, or a pairwise-contrast <span class="in">`type`</span> with a single intervention <span class="pp">|</span></span>
+<span id="cb11-281"><a href="#cb11-281" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_times`</span> <span class="pp">|</span> Non-numeric / empty / NA <span class="in">`times`</span> <span class="pp">|</span></span>
+<span id="cb11-282"><a href="#cb11-282" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_time_extrapolation`</span> <span class="pp">|</span> <span class="in">`times`</span> outside <span class="in">`fit$time_grid`</span> <span class="pp">|</span></span>
+<span id="cb11-283"><a href="#cb11-283" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_reference`</span> <span class="pp">|</span> <span class="in">`reference`</span> not in <span class="in">`interventions`</span> names <span class="pp">|</span></span>
+<span id="cb11-284"><a href="#cb11-284" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_ci_method`</span> <span class="pp">|</span> <span class="in">`ci_method`</span> not in <span class="in">`{"none", "sandwich", "bootstrap"}`</span> <span class="pp">|</span></span>
+<span id="cb11-285"><a href="#cb11-285" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_conf_level`</span> <span class="pp">|</span> <span class="in">`conf_level`</span> outside <span class="in">`(0, 1)`</span> <span class="pp">|</span></span>
+<span id="cb11-286"><a href="#cb11-286" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_n_boot`</span> / <span class="in">`survatr_bad_boot_ci`</span> / <span class="in">`survatr_bad_parallel`</span> <span class="pp">|</span> Bootstrap argument misuse <span class="pp">|</span></span>
+<span id="cb11-287"><a href="#cb11-287" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_matching_rejected`</span> <span class="pp">|</span> <span class="in">`estimator = "matching"`</span> (use <span class="in">`survival::coxph(..., weights, cluster)`</span> instead) <span class="pp">|</span></span>
+<span id="cb11-288"><a href="#cb11-288" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_na_action`</span> <span class="pp">|</span> <span class="in">`na.action = na.exclude`</span> (silently corrupts sandwich variance) <span class="pp">|</span></span>
+<span id="cb11-289"><a href="#cb11-289" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_competing_misuse`</span> <span class="pp">|</span> Non-<span class="in">`NULL`</span> <span class="in">`competing`</span> argument (cause-specific path ships later) <span class="pp">|</span></span>
 <span id="cb11-290"><a href="#cb11-290" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-291"><a href="#cb11-291" aria-hidden="true" tabindex="-1"></a>survatr's scope is laid out in <span class="in">`SURVIVAL_PACKAGE_HANDOFF.md`</span>. Upcoming</span>
-<span id="cb11-292"><a href="#cb11-292" aria-hidden="true" tabindex="-1"></a>chunks will add dedicated vignettes for:</span>
-<span id="cb11-293"><a href="#cb11-293" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-294"><a href="#cb11-294" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Track A under IPW** — baseline density-ratio weights broadcast onto</span>
-<span id="cb11-295"><a href="#cb11-295" aria-hidden="true" tabindex="-1"></a>  person-period rows, weighted hazard MSM.</span>
-<span id="cb11-296"><a href="#cb11-296" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Track B (ICE hazards)** — longitudinal survival via iterated</span>
-<span id="cb11-297"><a href="#cb11-297" aria-hidden="true" tabindex="-1"></a>  conditional expectations (Zivich et al. 2024), with the hazard</span>
-<span id="cb11-298"><a href="#cb11-298" aria-hidden="true" tabindex="-1"></a>  indicator at the final period and a survival-tail pseudo-outcome at</span>
-<span id="cb11-299"><a href="#cb11-299" aria-hidden="true" tabindex="-1"></a>  earlier periods.</span>
-<span id="cb11-300"><a href="#cb11-300" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Competing risks** — parallel cause-specific hazards + cumulative</span>
-<span id="cb11-301"><a href="#cb11-301" aria-hidden="true" tabindex="-1"></a>  incidence decomposition.</span>
-<span id="cb11-302"><a href="#cb11-302" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**NHEFS Chapter 17 replication** — the Hernán &amp; Robins running</span>
-<span id="cb11-303"><a href="#cb11-303" aria-hidden="true" tabindex="-1"></a>  example with the 120-month survival curves and the ≈ 0.2% risk</span>
-<span id="cb11-304"><a href="#cb11-304" aria-hidden="true" tabindex="-1"></a>  difference target.</span>
-<span id="cb11-305"><a href="#cb11-305" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-306"><a href="#cb11-306" aria-hidden="true" tabindex="-1"></a><span class="fu">## References</span></span>
-<span id="cb11-307"><a href="#cb11-307" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-308"><a href="#cb11-308" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Hernán MA, Robins JM (2025). *Causal Inference: What If*. Chapman &amp;</span>
-<span id="cb11-309"><a href="#cb11-309" aria-hidden="true" tabindex="-1"></a>  Hall/CRC. Chapter 17 (survival analysis via IP weighting and</span>
-<span id="cb11-310"><a href="#cb11-310" aria-hidden="true" tabindex="-1"></a>  standardisation).</span>
-<span id="cb11-311"><a href="#cb11-311" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Zivich PN, Ross RK, Shook-Sa BE, Cole SR, Edwards JK (2024). Empirical</span>
-<span id="cb11-312"><a href="#cb11-312" aria-hidden="true" tabindex="-1"></a>  sandwich variance estimator for iterated conditional expectation</span>
-<span id="cb11-313"><a href="#cb11-313" aria-hidden="true" tabindex="-1"></a>  g-computation. *Statistics in Medicine* 43:5562–5572.</span>
-<span id="cb11-314"><a href="#cb11-314" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>D'Agostino RB, Lee ML, Belanger AJ, Cupples LA, Anderson K, Kannel WB</span>
-<span id="cb11-315"><a href="#cb11-315" aria-hidden="true" tabindex="-1"></a>  (1990). Relation of pooled logistic regression to time-dependent Cox</span>
-<span id="cb11-316"><a href="#cb11-316" aria-hidden="true" tabindex="-1"></a>  regression analysis: the Framingham Heart Study. *Statistics in</span>
-<span id="cb11-317"><a href="#cb11-317" aria-hidden="true" tabindex="-1"></a>  Medicine* 9:1501–1515.</span>
+<span id="cb11-291"><a href="#cb11-291" aria-hidden="true" tabindex="-1"></a><span class="fu">## Learning more</span></span>
+<span id="cb11-292"><a href="#cb11-292" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-293"><a href="#cb11-293" aria-hidden="true" tabindex="-1"></a>This vignette covered Track A g-computation. Two further estimators are</span>
+<span id="cb11-294"><a href="#cb11-294" aria-hidden="true" tabindex="-1"></a>implemented and have dedicated vignettes:</span>
+<span id="cb11-295"><a href="#cb11-295" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-296"><a href="#cb11-296" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Track A under IPW** (<span class="in">`vignette("ipw")`</span>) — stabilized density-ratio</span>
+<span id="cb11-297"><a href="#cb11-297" aria-hidden="true" tabindex="-1"></a>  weights broadcast onto person-period rows, fitting a weighted marginal</span>
+<span id="cb11-298"><a href="#cb11-298" aria-hidden="true" tabindex="-1"></a>  hazard MSM.</span>
+<span id="cb11-299"><a href="#cb11-299" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Track B (ICE hazards)** (<span class="in">`vignette("ice")`</span>) — longitudinal survival</span>
+<span id="cb11-300"><a href="#cb11-300" aria-hidden="true" tabindex="-1"></a>  for a time-varying treatment via iterated conditional expectations</span>
+<span id="cb11-301"><a href="#cb11-301" aria-hidden="true" tabindex="-1"></a>  (Zivich et al. 2024), with the hazard indicator at the final period and</span>
+<span id="cb11-302"><a href="#cb11-302" aria-hidden="true" tabindex="-1"></a>  a survival-tail pseudo-outcome at earlier periods.</span>
+<span id="cb11-303"><a href="#cb11-303" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-304"><a href="#cb11-304" aria-hidden="true" tabindex="-1"></a>survatr's full scope is laid out in <span class="in">`SURVIVAL_PACKAGE_HANDOFF.md`</span>. Upcoming</span>
+<span id="cb11-305"><a href="#cb11-305" aria-hidden="true" tabindex="-1"></a>chunks will add:</span>
+<span id="cb11-306"><a href="#cb11-306" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-307"><a href="#cb11-307" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Competing risks** — parallel cause-specific hazards + cumulative</span>
+<span id="cb11-308"><a href="#cb11-308" aria-hidden="true" tabindex="-1"></a>  incidence decomposition.</span>
+<span id="cb11-309"><a href="#cb11-309" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**NHEFS Chapter 17 replication** — the Hernán &amp; Robins running</span>
+<span id="cb11-310"><a href="#cb11-310" aria-hidden="true" tabindex="-1"></a>  example with the 120-month survival curves and the ≈ 0.2% risk</span>
+<span id="cb11-311"><a href="#cb11-311" aria-hidden="true" tabindex="-1"></a>  difference target.</span>
+<span id="cb11-312"><a href="#cb11-312" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-313"><a href="#cb11-313" aria-hidden="true" tabindex="-1"></a><span class="fu">## References</span></span>
+<span id="cb11-314"><a href="#cb11-314" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-315"><a href="#cb11-315" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Hernán MA, Robins JM (2025). *Causal Inference: What If*. Chapman &amp;</span>
+<span id="cb11-316"><a href="#cb11-316" aria-hidden="true" tabindex="-1"></a>  Hall/CRC. Chapter 17 (survival analysis via IP weighting and</span>
+<span id="cb11-317"><a href="#cb11-317" aria-hidden="true" tabindex="-1"></a>  standardisation).</span>
+<span id="cb11-318"><a href="#cb11-318" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Zivich PN, Ross RK, Shook-Sa BE, Cole SR, Edwards JK (2024). Empirical</span>
+<span id="cb11-319"><a href="#cb11-319" aria-hidden="true" tabindex="-1"></a>  sandwich variance estimator for iterated conditional expectation</span>
+<span id="cb11-320"><a href="#cb11-320" aria-hidden="true" tabindex="-1"></a>  g-computation. *Statistics in Medicine* 43:5562–5572.</span>
+<span id="cb11-321"><a href="#cb11-321" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>D'Agostino RB, Lee ML, Belanger AJ, Cupples LA, Anderson K, Kannel WB</span>
+<span id="cb11-322"><a href="#cb11-322" aria-hidden="true" tabindex="-1"></a>  (1990). Relation of pooled logistic regression to time-dependent Cox</span>
+<span id="cb11-323"><a href="#cb11-323" aria-hidden="true" tabindex="-1"></a>  regression analysis: the Framingham Heart Study. *Statistics in</span>
+<span id="cb11-324"><a href="#cb11-324" aria-hidden="true" tabindex="-1"></a>  Medicine* 9:1501–1515.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

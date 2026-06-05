@@ -2,9 +2,8 @@ project:
   type: website
   output-dir: ../docs/
 
-# Note: freeze functionality can be set at a project level or for individual .qmd files
-# execute:
-#   freeze: false
+execute:
+  freeze: auto
 
 website:
   title: "$ALTDOC_PACKAGE_NAME"
@@ -20,7 +19,16 @@ website:
     contents:
       - text: Home
         file: index.md
-      - section: $ALTDOC_VIGNETTE_BLOCK
+      - section: Getting started
+        contents:
+          - text: Introduction
+            file: vignettes/survatr.qmd
+      - section: Estimation methods
+        contents:
+          - text: "IPW (Track A)"
+            file: vignettes/ipw.qmd
+          - text: "ICE / longitudinal (Track B)"
+            file: vignettes/ice.qmd
       - section: $ALTDOC_MAN_BLOCK
       - text: News
         file: $ALTDOC_NEWS
@@ -38,5 +46,6 @@ website:
 format:
   html:
     code-link: true
-#     theme: cosmo
-#     number-sections: false
+    theme: lumen
+    toc: true
+    toc-depth: 3

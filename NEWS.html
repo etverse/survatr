@@ -42,7 +42,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-b9c91b1e117c879de662b9ae260051b4.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-98130f95a46b67a4a867697a2c34a567.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -128,7 +128,7 @@ ul.task-list li input[type="checkbox"] {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="false">
- <span class="menu-text">Articles</span></a>
+ <span class="menu-text">Getting started</span></a>
           <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="false" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -137,7 +137,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./vignettes/survatr.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Introduction to survatr</span></a>
+ <span class="menu-text">Introduction</span></a>
   </div>
 </li>
       </ul>
@@ -145,12 +145,35 @@ ul.task-list li input[type="checkbox"] {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false">
- <span class="menu-text">Reference</span></a>
+ <span class="menu-text">Estimation methods</span></a>
           <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vignettes/ipw.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">IPW (Track A)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vignettes/ice.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ICE / longitudinal (Track B)</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false">
+ <span class="menu-text">Reference</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./man/contrast.html" class="sidebar-item-text sidebar-link">
@@ -237,8 +260,26 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
-    <div class="quarto-code-links"><h2>Code Links</h2><ul><li><a href="undefined"><i class="bi bi-link-45deg"></i></a></li></ul></div></div>
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#survatr-development-version" id="toc-survatr-development-version" class="nav-link active" data-scroll-target="#survatr-development-version">survatr (development version)</a>
+  <ul class="collapse">
+  <li><a href="#track-b-longitudinal-survival-via-ice-hazards-estimator-ice" id="toc-track-b-longitudinal-survival-via-ice-hazards-estimator-ice" class="nav-link" data-scroll-target="#track-b-longitudinal-survival-via-ice-hazards-estimator-ice">2026-06-03 — Track B: longitudinal survival via ICE hazards (<code>estimator = "ice"</code>)</a></li>
+  <li><a href="#risk_ratio-sandwich-se-now-reported-on-the-natural-scale" id="toc-risk_ratio-sandwich-se-now-reported-on-the-natural-scale" class="nav-link" data-scroll-target="#risk_ratio-sandwich-se-now-reported-on-the-natural-scale">2026-06-02 — <code>risk_ratio</code> sandwich <code>se</code> now reported on the natural scale</a></li>
+  <li><a href="#ipw-weighted-hazard-msm-track-a-estimator-ipw" id="toc-ipw-weighted-hazard-msm-track-a-estimator-ipw" class="nav-link" data-scroll-target="#ipw-weighted-hazard-msm-track-a-estimator-ipw">2026-06-02 — IPW weighted hazard MSM (Track A, <code>estimator = "ipw"</code>)</a></li>
+  <li><a href="#gam-hazard-models-work-with-sandwich-variance" id="toc-gam-hazard-models-work-with-sandwich-variance" class="nav-link" data-scroll-target="#gam-hazard-models-work-with-sandwich-variance">2026-06-02 — GAM hazard models work with sandwich variance</a></li>
+  <li><a href="#smaller-correctness-and-robustness-fixes" id="toc-smaller-correctness-and-robustness-fixes" class="nav-link" data-scroll-target="#smaller-correctness-and-robustness-fixes">2026-06-02 — Smaller correctness and robustness fixes</a></li>
+  <li><a href="#round-1-critical-review-9-fixes-across-chunks-14" id="toc-round-1-critical-review-9-fixes-across-chunks-14" class="nav-link" data-scroll-target="#round-1-critical-review-9-fixes-across-chunks-14">2026-04-22 — Round-1 critical review: 9 fixes across chunks 1–4</a></li>
+  <li><a href="#track-a-bootstrap-s3-polish" id="toc-track-a-bootstrap-s3-polish" class="nav-link" data-scroll-target="#track-a-bootstrap-s3-polish">2026-04-22 — Track A bootstrap + S3 polish</a></li>
+  <li><a href="#track-a-sandwich-variance" id="toc-track-a-sandwich-variance" class="nav-link" data-scroll-target="#track-a-sandwich-variance">2026-04-22 — Track A sandwich variance</a></li>
+  <li><a href="#track-a-contrast-path-no-variance" id="toc-track-a-contrast-path-no-variance" class="nav-link" data-scroll-target="#track-a-contrast-path-no-variance">2026-04-22 — Track A contrast path (no variance)</a></li>
+  <li><a href="#track-a-fit-skeleton" id="toc-track-a-fit-skeleton" class="nav-link" data-scroll-target="#track-a-fit-skeleton">2026-04-22 — Track A fit skeleton</a></li>
+  </ul></li>
+  </ul>
+<div class="quarto-code-links"><h2>Code Links</h2><ul><li><a href="undefined"><i class="bi bi-link-45deg"></i></a></li></ul></div></nav>
+    </div>
 <!-- main -->
 <main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"></header>
 

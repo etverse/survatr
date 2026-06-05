@@ -110,6 +110,127 @@
     ]
   },
   {
+    "objectID": "vignettes/ipw.html",
+    "href": "vignettes/ipw.html",
+    "title": "IPW survival with survatr",
+    "section": "",
+    "text": "Inverse-probability weighting (IPW) estimates the counterfactual survival curve by reweighting the observed data so that confounders are balanced across treatment groups, then fitting a weighted marginal hazard MSM rather than a covariate-adjusted hazard. It is the second of survatr’s two Track A estimators (alongside g-computation) and a methodologically distinct route to the same estimand — when the two agree you can be more confident in the result.\nThis vignette covers estimator = \"ipw\" for a binary point treatment: the weight construction, the supported estimands and interventions, sandwich vs bootstrap inference, and weight truncation.",
+    "crumbs": [
+      "Estimation methods",
+      "IPW (Track A)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ipw.html#how-survatrs-ipw-differs-from-g-computation",
+    "href": "vignettes/ipw.html#how-survatrs-ipw-differs-from-g-computation",
+    "title": "IPW survival with survatr",
+    "section": "How survatr’s IPW differs from g-computation",
+    "text": "How survatr’s IPW differs from g-computation\ng-computation models the hazard \\(h(t \\mid A, L)\\) and standardizes over the covariate distribution. IPW instead models the treatment mechanism \\(f(A \\mid L)\\) and reweights. survatr composes a stabilized density-ratio weight at the baseline (one row per id),\n\\[\nw_i = \\frac{f(A_i)}{f(A_i \\mid L_i)},\n\\]\nbroadcasts the per-id weight onto every person-period row, and fits an intervention-free weighted marginal hazard MSM \\(\\text{logit}\\, h(t \\mid A) = \\alpha(t) + \\beta_A A\\). Because the weighting removes confounding, the MSM needs only \\(A\\) and the baseline-hazard term \\(\\alpha(t)\\) — no \\(L\\). The treatment model is fit by propensity_model_fn (default stats::glm); the hazard MSM by model_fn.",
+    "crumbs": [
+      "Estimation methods",
+      "IPW (Track A)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ipw.html#a-confounded-survival-dgp",
+    "href": "vignettes/ipw.html#a-confounded-survival-dgp",
+    "title": "IPW survival with survatr",
+    "section": "A confounded survival DGP",
+    "text": "A confounded survival DGP\nWe simulate person-period data with a constant-ish discrete-time hazard, a single baseline confounder \\(L\\) that drives both treatment assignment and the hazard, and a genuinely protective treatment (\\(\\beta_A &lt; 0\\)):\n\\[\n\\begin{aligned}\n  L_i &\\sim N(0, 1) \\\\\n  A_i \\mid L_i &\\sim \\text{Bernoulli}\\!\\bigl(\\text{logit}^{-1}(\\gamma\\, L_i)\\bigr) \\\\\n  \\text{logit}\\, h_{i,k} &= \\alpha_0 + \\alpha_k + \\beta_A A_i + \\beta_L L_i,\n\\end{aligned}\n\\]\nwith first-event truncation and rectangular padding (so every id has one row at every period). Because \\(L\\) confounds the \\(A \\to Y\\) relationship, the unadjusted survival curve is biased; IPW recovers the counterfactual curve.\n\n\nCode\nlibrary(causatr) # attach first so survatr's contrast() generic dispatches\nlibrary(survatr)\nlibrary(data.table)\n\nsim_confounded &lt;- function(n = 2000L, K = 5L, seed = 1L,\n                           gamma = 0.8, alpha0 = -2, beta_A = -0.6,\n                           beta_L = 0.7) {\n  set.seed(seed)\n  L &lt;- rnorm(n)\n  A &lt;- rbinom(n, 1L, plogis(gamma * L)) # L drives treatment (confounding)\n  alpha_t &lt;- seq(0, 0.3, length.out = K) # mild per-period baseline drift\n  rbindlist(lapply(seq_len(n), function(i) {\n    h &lt;- plogis(alpha0 + alpha_t + beta_A * A[i] + beta_L * L[i])\n    Y &lt;- rbinom(K, 1L, h)\n    first &lt;- which(Y == 1L)[1L]\n    if (!is.na(first) && first &lt; K) Y[(first + 1L):K] &lt;- 0L\n    data.table(id = i, t = seq_len(K), A = A[i], L = L[i], Y = Y)\n  }))\n}\n\npp &lt;- sim_confounded()\nhead(pp, 5)\n#&gt;       id     t     A          L     Y\n#&gt;    &lt;int&gt; &lt;int&gt; &lt;int&gt;      &lt;num&gt; &lt;int&gt;\n#&gt; 1:     1     1     0 -0.6264538     0\n#&gt; 2:     1     2     0 -0.6264538     0\n#&gt; 3:     1     3     0 -0.6264538     0\n#&gt; 4:     1     4     0 -0.6264538     0\n#&gt; 5:     1     5     0 -0.6264538     1",
+    "crumbs": [
+      "Estimation methods",
+      "IPW (Track A)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ipw.html#fitting-the-ipw-hazard-msm",
+    "href": "vignettes/ipw.html#fitting-the-ipw-hazard-msm",
+    "title": "IPW survival with survatr",
+    "section": "Fitting the IPW hazard MSM",
+    "text": "Fitting the IPW hazard MSM\nPass estimator = \"ipw\". confounders specifies the treatment model \\(f(A \\mid L)\\); the weighted MSM uses only \\(A\\).\n\n\nCode\nfit &lt;- surv_fit(\n  pp,\n  outcome      = \"Y\",\n  treatment    = \"A\",\n  confounders  = ~ L,\n  id           = \"id\",\n  time         = \"t\",\n  time_formula = ~ factor(t), # non-parametric baseline hazard\n  estimator    = \"ipw\"\n)\nfit\n#&gt; &lt;survatr_fit&gt;\n#&gt;   Track:       A\n#&gt;   Estimator:   ipw\n#&gt;   Family:      quasibinomial\n#&gt;   Outcome:     Y\n#&gt;   Treatment:   A\n#&gt;   ID:          id\n#&gt;   Time:        t\n#&gt;   Censoring:   none\n#&gt;   N:           2000 individuals, 10000 PP rows (8056 at risk)\n#&gt;   Time grid:   [1, 5] (5 unique times)\n\n\n\nThe stabilized weights\nfit$weights holds the per-person-period broadcast weight. Stabilization centres the weights near 1, and the weight is constant within an id (the baseline density ratio is broadcast onto all of that id’s rows):\n\n\nCode\nw_dt &lt;- data.table(id = pp$id, w = fit$weights)\nsummary(unique(w_dt)$w)\n#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. \n#&gt;  0.5234  0.7317  0.8865  0.9969  1.1358  4.7073\n# the weight is constant within each id (one density ratio, broadcast)\nall(w_dt[, uniqueN(w), by = id]$V1 == 1L)\n#&gt; [1] TRUE",
+    "crumbs": [
+      "Estimation methods",
+      "IPW (Track A)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ipw.html#survival-curves",
+    "href": "vignettes/ipw.html#survival-curves",
+    "title": "IPW survival with survatr",
+    "section": "Survival curves",
+    "text": "Survival curves\ncontrast() produces the time-indexed counterfactual survival curve under each intervention. Interventions are constructed with causatr::static().\n\n\nCode\nres_surv &lt;- contrast(\n  fit,\n  interventions = list(a1 = static(1), a0 = static(0)),\n  times     = 1:5,\n  type      = \"survival\",\n  ci_method = \"sandwich\"\n)\nres_surv\n#&gt; &lt;survatr_result&gt;\n#&gt;   Type:        survival\n#&gt;   Reference:   (none)\n#&gt;   CI method:   sandwich\n#&gt;   Time grid:   [1, 5] (5 unique times)\n#&gt;   Estimates:   10 rows\n#&gt;   Contrasts:   0 rows\n#&gt; \n#&gt;     intervention  time     s_hat   risk_hat          se  ci_lower  ci_upper\n#&gt;           &lt;char&gt; &lt;int&gt;     &lt;num&gt;      &lt;num&gt;       &lt;num&gt;     &lt;num&gt;     &lt;num&gt;\n#&gt;  1:           a1     1 0.9072030 0.09279696 0.007156973 0.8931756 0.9212304\n#&gt;  2:           a1     2 0.8233862 0.17661380 0.010590964 0.8026283 0.8441441\n#&gt;  3:           a1     3 0.7446961 0.25530387 0.012787401 0.7196333 0.7697590\n#&gt;  4:           a1     4 0.6866888 0.31331125 0.014221879 0.6588144 0.7145631\n#&gt;  5:           a1     5 0.6135496 0.38645037 0.015867978 0.5824490 0.6446503\n#&gt;  6:           a0     1 0.8672526 0.13274743 0.009752943 0.8481372 0.8863680\n#&gt;  7:           a0     2 0.7526093 0.24739069 0.012807617 0.7275068 0.7777118\n#&gt;  8:           a0     3 0.6498533 0.35014674 0.014731026 0.6209810 0.6787255\n#&gt;  9:           a0     4 0.5769253 0.42307471 0.015647460 0.5462568 0.6075938\n#&gt; 10:           a0     5 0.4895910 0.51040899 0.016097284 0.4580409 0.5211411\n#&gt;         n\n#&gt;     &lt;int&gt;\n#&gt;  1:  2000\n#&gt;  2:  2000\n#&gt;  3:  2000\n#&gt;  4:  2000\n#&gt;  5:  2000\n#&gt;  6:  2000\n#&gt;  7:  2000\n#&gt;  8:  2000\n#&gt;  9:  2000\n#&gt; 10:  2000\n\n\n\n\nCode\nplot(res_surv, main = \"IPW survival: A = 1 vs A = 0\")\n\n\n\n\n\n\n\n\n\nBecause treatment is protective, survival under a1 sits above a0.",
+    "crumbs": [
+      "Estimation methods",
+      "IPW (Track A)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ipw.html#risk-difference-and-risk-ratio",
+    "href": "vignettes/ipw.html#risk-difference-and-risk-ratio",
+    "title": "IPW survival with survatr",
+    "section": "Risk difference and risk ratio",
+    "text": "Risk difference and risk ratio\nThe pairwise estimands (risk_difference, risk_ratio, rmst_difference) need a reference intervention. The risk-ratio CI is built on the log scale.\n\n\nCode\nres_rd &lt;- contrast(\n  fit,\n  interventions = list(a1 = static(1), a0 = static(0)),\n  times     = 1:5,\n  type      = \"risk_difference\",\n  reference = \"a0\",\n  ci_method = \"sandwich\"\n)\nres_rd$contrasts[] # `[]` forces auto-print of a function-returned data.table\n#&gt;    contrast  time    estimate          se    ci_lower    ci_upper\n#&gt;      &lt;char&gt; &lt;int&gt;       &lt;num&gt;       &lt;num&gt;       &lt;num&gt;       &lt;num&gt;\n#&gt; 1: a1 vs a0     1 -0.03995047 0.007537805 -0.05472429 -0.02517664\n#&gt; 2: a1 vs a0     2 -0.07077689 0.012695880 -0.09566036 -0.04589342\n#&gt; 3: a1 vs a0     3 -0.09484287 0.016864923 -0.12789751 -0.06178823\n#&gt; 4: a1 vs a0     4 -0.10976346 0.019426444 -0.14783859 -0.07168833\n#&gt; 5: a1 vs a0     5 -0.12395862 0.021834869 -0.16675418 -0.08116306\n\n\n\n\nCode\nres_rr &lt;- contrast(\n  fit,\n  interventions = list(a1 = static(1), a0 = static(0)),\n  times     = 1:5,\n  type      = \"risk_ratio\",\n  reference = \"a0\",\n  ci_method = \"sandwich\"\n)\nres_rr$contrasts[]\n#&gt;    contrast  time  estimate         se  ci_lower  ci_upper\n#&gt;      &lt;char&gt; &lt;int&gt;     &lt;num&gt;      &lt;num&gt;     &lt;num&gt;     &lt;num&gt;\n#&gt; 1: a1 vs a0     1 0.6990490 0.04464470 0.6168020 0.7922633\n#&gt; 2: a1 vs a0     2 0.7139064 0.04309413 0.6342486 0.8035688\n#&gt; 3: a1 vs a0     3 0.7291339 0.04126996 0.6525716 0.8146789\n#&gt; 4: a1 vs a0     4 0.7405577 0.03989667 0.6663485 0.8230314\n#&gt; 5: a1 vs a0     5 0.7571386 0.03791358 0.6863595 0.8352167",
+    "crumbs": [
+      "Estimation methods",
+      "IPW (Track A)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ipw.html#sandwich-vs-bootstrap-inference",
+    "href": "vignettes/ipw.html#sandwich-vs-bootstrap-inference",
+    "title": "IPW survival with survatr",
+    "section": "Sandwich vs bootstrap inference",
+    "text": "Sandwich vs bootstrap inference\nThe IPW sandwich is a two-stage stacked estimating-equation variance: it accounts for estimation of the treatment model by subtracting a treatment-model correction from the naive weights-as-known sandwich. For stabilized weights this makes the SE narrower than treating the weights as fixed. The nonparametric bootstrap resamples ids (all of an id’s rows together) and refits both the treatment model and the hazard MSM per replicate; the two agree closely.\n\n\nCode\nres_boot &lt;- contrast(\n  fit,\n  interventions = list(a1 = static(1), a0 = static(0)),\n  times     = 1:5,\n  type      = \"risk_difference\",\n  reference = \"a0\",\n  ci_method = \"bootstrap\",\n  n_boot    = 200L,\n  seed      = 42L\n)\n\n# Sandwich vs bootstrap SE at each period.\ndata.table(\n  time    = res_rd$contrasts$time,\n  se_sand = res_rd$contrasts$se,\n  se_boot = res_boot$contrasts$se\n)[]\n#&gt;     time     se_sand     se_boot\n#&gt;    &lt;int&gt;       &lt;num&gt;       &lt;num&gt;\n#&gt; 1:     1 0.007537805 0.007584255\n#&gt; 2:     2 0.012695880 0.013047872\n#&gt; 3:     3 0.016864923 0.017315078\n#&gt; 4:     4 0.019426444 0.020022203\n#&gt; 5:     5 0.021834869 0.022523821",
+    "crumbs": [
+      "Estimation methods",
+      "IPW (Track A)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ipw.html#dynamic-interventions",
+    "href": "vignettes/ipw.html#dynamic-interventions",
+    "title": "IPW survival with survatr",
+    "section": "Dynamic interventions",
+    "text": "Dynamic interventions\nBeyond static(), IPW supports dynamic() rules: each id is assigned a treatment value as a function of its baseline covariates. The rule receives the data and the treatment vector and returns the assigned treatment.\n\n\nCode\nres_dyn &lt;- contrast(\n  fit,\n  interventions = list(\n    treat_high = dynamic(function(data, trt) as.integer(data$L &gt; 0)),\n    none       = static(0)\n  ),\n  times     = 1:5,\n  type      = \"risk_difference\",\n  reference = \"none\",\n  ci_method = \"sandwich\"\n)\nres_dyn$contrasts[]\n#&gt;              contrast  time    estimate          se    ci_lower    ci_upper\n#&gt;                &lt;char&gt; &lt;int&gt;       &lt;num&gt;       &lt;num&gt;       &lt;num&gt;       &lt;num&gt;\n#&gt; 1: treat_high vs none     1 -0.01923615 0.003688285 -0.02646506 -0.01200724\n#&gt; 2: treat_high vs none     2 -0.03407907 0.006212123 -0.04625461 -0.02190353\n#&gt; 3: treat_high vs none     3 -0.04566684 0.008252062 -0.06184058 -0.02949310\n#&gt; 4: treat_high vs none     4 -0.05285111 0.009501985 -0.07147465 -0.03422756\n#&gt; 5: treat_high vs none     5 -0.05968607 0.010671253 -0.08060135 -0.03877080",
+    "crumbs": [
+      "Estimation methods",
+      "IPW (Track A)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ipw.html#weight-truncation",
+    "href": "vignettes/ipw.html#weight-truncation",
+    "title": "IPW survival with survatr",
+    "section": "Weight truncation",
+    "text": "Weight truncation\nWhen the propensity model yields extreme density ratios (near-positivity violations, strong confounding), the IPW estimator can be unstable. The trim argument on surv_fit() winsorizes the per-id stabilized weights at a quantile (Cole & Hernán 2008) before they are broadcast onto the person-period rows; the resolved cutoff is held fixed and reused by the sandwich variance.\n\n\nCode\nfit_trim &lt;- surv_fit(\n  pp, \"Y\", \"A\", ~ L, \"id\", \"t\",\n  time_formula = ~ factor(t), estimator = \"ipw\",\n  trim = 0.99 # winsorize at the 99th percentile of the weights\n)\n\nc(max_raw = max(fit$weights), max_trim = max(fit_trim$weights),\n  cutoff = fit_trim$trim_threshold)\n#&gt;  max_raw max_trim   cutoff \n#&gt; 4.707337 2.467578 2.467578\n\n\ntrim = NULL (the default) applies no truncation; an untrimmed fit records trim_threshold = NA.",
+    "crumbs": [
+      "Estimation methods",
+      "IPW (Track A)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ipw.html#what-ipw-rejects",
+    "href": "vignettes/ipw.html#what-ipw-rejects",
+    "title": "IPW survival with survatr",
+    "section": "What IPW rejects",
+    "text": "What IPW rejects\nsurvatr’s IPW path is deliberately narrow for now and rejects unsupported combinations with classed errors rather than fitting something misleading:\n\n\n\n\n\n\n\nTrigger\nError class\n\n\n\n\nContinuous treatment\nsurvatr_ipw_treatment_unsupported\n\n\nTreatment varying within id\nsurvatr_ipw_time_varying_treatment\n\n\nConstant treatment (no variation → undefined weights)\nsurvatr_ipw_no_treatment_variation\n\n\nipsi() intervention\nsurvatr_ipw_ipsi_deferred\n\n\nExternal weights = composed with IPW (transport)\nsurvatr_ipw_external_weights\n\n\n\nFor a time-varying treatment, use estimator = \"ice\" — see vignette(\"ice\").",
+    "crumbs": [
+      "Estimation methods",
+      "IPW (Track A)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ipw.html#references",
+    "href": "vignettes/ipw.html#references",
+    "title": "IPW survival with survatr",
+    "section": "References",
+    "text": "References\nHernán MA, Robins JM (2025). Causal Inference: What If. Chapman & Hall/CRC. Chapter 17 (survival analysis via IP weighting and standardization).\nRobins JM, Hernán MA, Brumback B (2000). Marginal structural models and causal inference in epidemiology. Epidemiology 11:550–560.\nCole SR, Hernán MA (2008). Constructing inverse probability weights for marginal structural models. American Journal of Epidemiology 168:656–664.",
+    "crumbs": [
+      "Estimation methods",
+      "IPW (Track A)"
+    ]
+  },
+  {
     "objectID": "man/print.survatr_fit.html",
     "href": "man/print.survatr_fit.html",
     "title": "survatr",
@@ -234,7 +355,7 @@
     "href": "index.html",
     "title": "survatr",
     "section": "",
-    "text": "The goal of survatr is to …\n\n\nYou can install the development version of survatr from GitHub with:\n# install.packages(\"pak\")\npak::pak(\"etverse/survatr\")\n\n\n\nThis is a basic example which shows you how to solve a common problem:\nlibrary(survatr)\n## basic example code\nWhat is special about using README.Rmd instead of just README.md? You can include R chunks like so:\nsummary(cars)\n#&gt;      speed           dist       \n#&gt;  Min.   : 4.0   Min.   :  2.00  \n#&gt;  1st Qu.:12.0   1st Qu.: 26.00  \n#&gt;  Median :15.0   Median : 36.00  \n#&gt;  Mean   :15.4   Mean   : 42.98  \n#&gt;  3rd Qu.:19.0   3rd Qu.: 56.00  \n#&gt;  Max.   :25.0   Max.   :120.00\nYou’ll still need to render README.Rmd regularly, to keep README.md up-to-date. devtools::build_readme() is handy for this.\nYou can also embed plots, for example:\n\nIn that case, don’t forget to commit and push the resulting figure files, so they display on GitHub and CRAN.",
+    "text": "survatr extends the causatr engine to time-to-event outcomes. It estimates counterfactual survival via pooled-logistic discrete-time hazard models on person-period data, with three complementary estimators: g-computation (Track A), inverse-probability weighting (IPW, Track A), and iterated conditional expectations (ICE) for longitudinal, time-varying treatments (Track B). The estimand is a curve — survival \\(S^a(t)\\), risk \\(1 - S^a(t)\\), risk difference, risk ratio, or restricted mean survival time (RMST) — not a scalar. Inference is by a delta-method sandwich that propagates per-row influence functions through the cumulative-product survival curve, or by an individual-level nonparametric bootstrap.\nThe package implements the survival methods of Hernán & Robins (2025) Causal Inference: What If (Chapter 17) with the same two-step API causatr users know:\n\nFit the hazard model once with surv_fit()\nContrast many interventions cheaply with contrast()\n\n\n\nYou can install the development version of survatr from GitHub with:\n# install.packages(\"pak\")\npak::pak(\"etverse/survatr\")\n\n\n\nThe data-generating process below has a constant 6% discrete-time hazard, a single binary treatment with no causal effect, and one confounder L that drives both treatment and the hazard. Under this DGP the counterfactual survival under either intervention converges to \\((1 - 0.06)^t\\).\nlibrary(causatr) # attach first so survatr's contrast() generic shadows it\nlibrary(survatr)\nlibrary(data.table)\n\n# Simulate person-period data: constant hazard, one confounder L.\nset.seed(1)\nn &lt;- 800L\nK &lt;- 10L\nL &lt;- rnorm(n)\nA &lt;- rbinom(n, 1L, plogis(0.3 * L)) # L affects treatment\npp &lt;- rbindlist(lapply(seq_len(n), function(i) {\n  Y &lt;- rbinom(K, 1L, 0.06) # hazard independent of A (null effect)\n  first &lt;- which(Y == 1L)[1L]\n  if (!is.na(first) && first &lt; K) Y[(first + 1L):K] &lt;- 0L\n  data.table(id = i, t = seq_len(K), A = A[i], L = L[i], Y = Y)\n}))\n\n# Step 1: fit the pooled-logistic hazard model once.\nfit &lt;- surv_fit(\n  pp,\n  outcome      = \"Y\",\n  treatment    = \"A\",\n  confounders  = ~ L,\n  id           = \"id\",\n  time         = \"t\",\n  time_formula = ~ factor(t) # non-parametric baseline hazard\n)\n\n# Step 2: contrast interventions on the fitted hazard. Risk difference with\n# a delta-method sandwich CI at each of the 10 periods.\nres &lt;- contrast(\n  fit,\n  interventions = list(a1 = static(1), a0 = static(0)),\n  times         = 1:10,\n  type          = \"risk_difference\",\n  reference     = \"a0\",\n  ci_method     = \"sandwich\"\n)\nres$contrasts[] # `[]` forces data.table to auto-print a function-returned table\n#&gt;     contrast  time    estimate          se     ci_lower   ci_upper\n#&gt;       &lt;char&gt; &lt;int&gt;       &lt;num&gt;       &lt;num&gt;        &lt;num&gt;      &lt;num&gt;\n#&gt;  1: a1 vs a0     1 0.001650894 0.005623608 -0.009371174 0.01267296\n#&gt;  2: a1 vs a0     2 0.003298391 0.011214573 -0.018681768 0.02527855\n#&gt;  3: a1 vs a0     3 0.004732117 0.016070436 -0.026765359 0.03622959\n#&gt;  4: a1 vs a0     4 0.005742165 0.019490983 -0.032459460 0.04394379\n#&gt;  5: a1 vs a0     5 0.007329630 0.024885202 -0.041444470 0.05610373\n#&gt;  6: a1 vs a0     6 0.008164440 0.027713630 -0.046153277 0.06248216\n#&gt;  7: a1 vs a0     7 0.008834524 0.029982957 -0.049930992 0.06760004\n#&gt;  8: a1 vs a0     8 0.009416127 0.031949858 -0.053204443 0.07203670\n#&gt;  9: a1 vs a0     9 0.009897176 0.033579818 -0.055918058 0.07571241\n#&gt; 10: a1 vs a0    10 0.010389809 0.035247492 -0.058694005 0.07947362\nThe DGP has no treatment effect, so the risk-difference CI comfortably covers 0 at every time point.\n\n\n\n\nThree estimators: g-computation (estimator = \"gcomp\", pooled-logistic standardization), IPW (estimator = \"ipw\", a weighted marginal hazard MSM with stabilized density-ratio weights), and ICE (estimator = \"ice\", Track B longitudinal survival via backward iterated conditional expectations for a time-varying treatment). Matching + survival is a hard reject — use survival::coxph(..., weights, cluster) directly.\nCurve-valued estimands: survival \\(S^a(t)\\), risk \\(1 - S^a(t)\\), risk difference, risk ratio (log-scale CI), and RMST / RMST difference, all returned as time-indexed data.tables.\nFlexible interventions via causatr: static(), shift(), scale_by(), threshold(), and dynamic(). Which are available depends on the estimator.\nRobust inference: a delta-method sandwich that aggregates per-individual influence functions across time through the cumulative product (pointwise Wald bands; stacked estimating equations for IPW and ICE), or a nonparametric bootstrap that resamples ids and refits per replicate.\nPluggable hazard models via model_fn (stats::glm by default; mgcv::gam with an s(time) baseline-hazard term, splines via ns()).\ntidy() / plot() / print() / forrest() S3 methods that dispatch on the time-indexed survatr_result shape (survival curves, and forest plots at a reference time t*).\n\n\n\n\n\nvignette(\"survatr\") — introduction and the two-step API\nvignette(\"ipw\") — Track A IPW (weighted hazard MSM)\nvignette(\"ice\") — Track B longitudinal survival via ICE\n\n\n\n\nHernán MA, Robins JM (2025). Causal Inference: What If. Chapman & Hall/CRC. Chapter 17 (survival analysis via IP weighting and standardization).\nZivich PN, Ross RK, Shook-Sa BE, Cole SR, Edwards JK (2024). Empirical sandwich variance estimator for iterated conditional expectation g-computation. Statistics in Medicine 43:5562–5572.\n\n\n\nThis package was built with the contribution of Claude, Anthropic’s AI assistant.",
     "crumbs": [
       "Home"
     ]
@@ -250,11 +371,51 @@
     ]
   },
   {
-    "objectID": "index.html#example",
-    "href": "index.html#example",
+    "objectID": "index.html#quick-example",
+    "href": "index.html#quick-example",
     "title": "survatr",
     "section": "",
-    "text": "This is a basic example which shows you how to solve a common problem:\nlibrary(survatr)\n## basic example code\nWhat is special about using README.Rmd instead of just README.md? You can include R chunks like so:\nsummary(cars)\n#&gt;      speed           dist       \n#&gt;  Min.   : 4.0   Min.   :  2.00  \n#&gt;  1st Qu.:12.0   1st Qu.: 26.00  \n#&gt;  Median :15.0   Median : 36.00  \n#&gt;  Mean   :15.4   Mean   : 42.98  \n#&gt;  3rd Qu.:19.0   3rd Qu.: 56.00  \n#&gt;  Max.   :25.0   Max.   :120.00\nYou’ll still need to render README.Rmd regularly, to keep README.md up-to-date. devtools::build_readme() is handy for this.\nYou can also embed plots, for example:\n\nIn that case, don’t forget to commit and push the resulting figure files, so they display on GitHub and CRAN.",
+    "text": "The data-generating process below has a constant 6% discrete-time hazard, a single binary treatment with no causal effect, and one confounder L that drives both treatment and the hazard. Under this DGP the counterfactual survival under either intervention converges to \\((1 - 0.06)^t\\).\nlibrary(causatr) # attach first so survatr's contrast() generic shadows it\nlibrary(survatr)\nlibrary(data.table)\n\n# Simulate person-period data: constant hazard, one confounder L.\nset.seed(1)\nn &lt;- 800L\nK &lt;- 10L\nL &lt;- rnorm(n)\nA &lt;- rbinom(n, 1L, plogis(0.3 * L)) # L affects treatment\npp &lt;- rbindlist(lapply(seq_len(n), function(i) {\n  Y &lt;- rbinom(K, 1L, 0.06) # hazard independent of A (null effect)\n  first &lt;- which(Y == 1L)[1L]\n  if (!is.na(first) && first &lt; K) Y[(first + 1L):K] &lt;- 0L\n  data.table(id = i, t = seq_len(K), A = A[i], L = L[i], Y = Y)\n}))\n\n# Step 1: fit the pooled-logistic hazard model once.\nfit &lt;- surv_fit(\n  pp,\n  outcome      = \"Y\",\n  treatment    = \"A\",\n  confounders  = ~ L,\n  id           = \"id\",\n  time         = \"t\",\n  time_formula = ~ factor(t) # non-parametric baseline hazard\n)\n\n# Step 2: contrast interventions on the fitted hazard. Risk difference with\n# a delta-method sandwich CI at each of the 10 periods.\nres &lt;- contrast(\n  fit,\n  interventions = list(a1 = static(1), a0 = static(0)),\n  times         = 1:10,\n  type          = \"risk_difference\",\n  reference     = \"a0\",\n  ci_method     = \"sandwich\"\n)\nres$contrasts[] # `[]` forces data.table to auto-print a function-returned table\n#&gt;     contrast  time    estimate          se     ci_lower   ci_upper\n#&gt;       &lt;char&gt; &lt;int&gt;       &lt;num&gt;       &lt;num&gt;        &lt;num&gt;      &lt;num&gt;\n#&gt;  1: a1 vs a0     1 0.001650894 0.005623608 -0.009371174 0.01267296\n#&gt;  2: a1 vs a0     2 0.003298391 0.011214573 -0.018681768 0.02527855\n#&gt;  3: a1 vs a0     3 0.004732117 0.016070436 -0.026765359 0.03622959\n#&gt;  4: a1 vs a0     4 0.005742165 0.019490983 -0.032459460 0.04394379\n#&gt;  5: a1 vs a0     5 0.007329630 0.024885202 -0.041444470 0.05610373\n#&gt;  6: a1 vs a0     6 0.008164440 0.027713630 -0.046153277 0.06248216\n#&gt;  7: a1 vs a0     7 0.008834524 0.029982957 -0.049930992 0.06760004\n#&gt;  8: a1 vs a0     8 0.009416127 0.031949858 -0.053204443 0.07203670\n#&gt;  9: a1 vs a0     9 0.009897176 0.033579818 -0.055918058 0.07571241\n#&gt; 10: a1 vs a0    10 0.010389809 0.035247492 -0.058694005 0.07947362\nThe DGP has no treatment effect, so the risk-difference CI comfortably covers 0 at every time point.",
+    "crumbs": [
+      "Home"
+    ]
+  },
+  {
+    "objectID": "index.html#features",
+    "href": "index.html#features",
+    "title": "survatr",
+    "section": "",
+    "text": "Three estimators: g-computation (estimator = \"gcomp\", pooled-logistic standardization), IPW (estimator = \"ipw\", a weighted marginal hazard MSM with stabilized density-ratio weights), and ICE (estimator = \"ice\", Track B longitudinal survival via backward iterated conditional expectations for a time-varying treatment). Matching + survival is a hard reject — use survival::coxph(..., weights, cluster) directly.\nCurve-valued estimands: survival \\(S^a(t)\\), risk \\(1 - S^a(t)\\), risk difference, risk ratio (log-scale CI), and RMST / RMST difference, all returned as time-indexed data.tables.\nFlexible interventions via causatr: static(), shift(), scale_by(), threshold(), and dynamic(). Which are available depends on the estimator.\nRobust inference: a delta-method sandwich that aggregates per-individual influence functions across time through the cumulative product (pointwise Wald bands; stacked estimating equations for IPW and ICE), or a nonparametric bootstrap that resamples ids and refits per replicate.\nPluggable hazard models via model_fn (stats::glm by default; mgcv::gam with an s(time) baseline-hazard term, splines via ns()).\ntidy() / plot() / print() / forrest() S3 methods that dispatch on the time-indexed survatr_result shape (survival curves, and forest plots at a reference time t*).",
+    "crumbs": [
+      "Home"
+    ]
+  },
+  {
+    "objectID": "index.html#learning-more",
+    "href": "index.html#learning-more",
+    "title": "survatr",
+    "section": "",
+    "text": "vignette(\"survatr\") — introduction and the two-step API\nvignette(\"ipw\") — Track A IPW (weighted hazard MSM)\nvignette(\"ice\") — Track B longitudinal survival via ICE",
+    "crumbs": [
+      "Home"
+    ]
+  },
+  {
+    "objectID": "index.html#references",
+    "href": "index.html#references",
+    "title": "survatr",
+    "section": "",
+    "text": "Hernán MA, Robins JM (2025). Causal Inference: What If. Chapman & Hall/CRC. Chapter 17 (survival analysis via IP weighting and standardization).\nZivich PN, Ross RK, Shook-Sa BE, Cole SR, Edwards JK (2024). Empirical sandwich variance estimator for iterated conditional expectation g-computation. Statistics in Medicine 43:5562–5572.",
+    "crumbs": [
+      "Home"
+    ]
+  },
+  {
+    "objectID": "index.html#acknowledgements",
+    "href": "index.html#acknowledgements",
+    "title": "survatr",
+    "section": "",
+    "text": "This package was built with the contribution of Claude, Anthropic’s AI assistant.",
     "crumbs": [
       "Home"
     ]
@@ -386,8 +547,8 @@
     "section": "",
     "text": "survatr extends the causatr engine to time-to-event outcomes via three building blocks:\nThe estimand is a curve (survival, risk, RMST) or a contrast of curves (risk difference, risk ratio, RMST difference), not a scalar. The entire API returns time-indexed data.tables.",
     "crumbs": [
-      "Articles",
-      "Introduction to survatr"
+      "Getting started",
+      "Introduction"
     ]
   },
   {
@@ -397,8 +558,8 @@
     "section": "Two-step API",
     "text": "Two-step API\nAll analyses follow the same two-step pattern that causatr users will recognise:\n# Step 1: Fit the hazard model once\nfit &lt;- surv_fit(\n  data,\n  outcome     = \"Y\",\n  treatment   = \"A\",\n  confounders = ~ L1 + L2,\n  id          = \"id\",\n  time        = \"t\",\n  censoring   = \"C\",\n  time_formula = ~ splines::ns(t, 4)  # alpha(t) baseline hazard\n)\n\n# Step 2: Contrast many interventions cheaply on the same fit\nresult &lt;- contrast(\n  fit,\n  interventions = list(\n    treated = causatr::static(1),\n    control = causatr::static(0)\n  ),\n  times       = seq(0, 120, by = 12),\n  type        = \"risk_difference\",\n  reference   = \"control\",\n  ci_method   = \"sandwich\"\n)",
     "crumbs": [
-      "Articles",
-      "Introduction to survatr"
+      "Getting started",
+      "Introduction"
     ]
   },
   {
@@ -406,10 +567,10 @@
     "href": "vignettes/survatr.html#quick-example",
     "title": "Introduction to survatr",
     "section": "Quick example",
-    "text": "Quick example\nThe example below uses a simulated DGP: a constant discrete-time hazard of 6% per period, a single binary treatment with no causal effect, and one normal-distributed confounder that jointly affects the propensity of treatment and the hazard rate. Under this DGP the counterfactual survival under either intervention converges to \\((1 - 0.06)^t\\), so we can check the point estimates against the closed form.\n\n\nCode\n## Attach `causatr` first so survatr's `contrast()` generic shadows\n## causatr's scalar-outcome `contrast()` and dispatches correctly on\n## `survatr_fit` objects. Call `causatr::contrast()` explicitly if you\n## need the causatr path while survatr is loaded.\nlibrary(causatr)\nlibrary(survatr)\nlibrary(data.table)\n\n## Simulate person-period data with a constant hazard and a confounder L.\nsim_pp &lt;- function(n = 1500L, K = 10L, h = 0.06, seed = 1L) {\n  set.seed(seed)\n  L &lt;- rnorm(n)                                 # single baseline confounder\n  A &lt;- rbinom(n, 1L, plogis(0.3 * L))           # L affects treatment\n  rows &lt;- vector(\"list\", n)\n  for (i in seq_len(n)) {\n    Y &lt;- rbinom(K, 1L, h)                        # hazard independent of A (null)\n    first &lt;- which(Y == 1L)[1L]\n    if (!is.na(first) && first &lt; K) Y[(first + 1L):K] &lt;- 0L\n    rows[[i]] &lt;- data.table::data.table(\n      id = i, t = seq_len(K), A = A[i], L = L[i], Y = Y\n    )\n  }\n  data.table::rbindlist(rows)\n}\n\npp &lt;- sim_pp()\nhead(pp, 5)\n#&gt;       id     t     A          L     Y\n#&gt;    &lt;int&gt; &lt;int&gt; &lt;int&gt;      &lt;num&gt; &lt;int&gt;\n#&gt; 1:     1     1     1 -0.6264538     0\n#&gt; 2:     1     2     1 -0.6264538     0\n#&gt; 3:     1     3     1 -0.6264538     0\n#&gt; 4:     1     4     1 -0.6264538     0\n#&gt; 5:     1     5     1 -0.6264538     0\n\n\n\nFit the hazard model\n\n\nCode\nfit &lt;- surv_fit(\n  pp,\n  outcome      = \"Y\",\n  treatment    = \"A\",\n  confounders  = ~ L,\n  id           = \"id\",\n  time         = \"t\",\n  time_formula = ~ factor(t)   # non-parametric baseline hazard\n)\nfit\n#&gt; &lt;survatr_fit&gt;\n#&gt;   Track:       A\n#&gt;   Estimator:   gcomp\n#&gt;   Family:      binomial\n#&gt;   Outcome:     Y\n#&gt;   Treatment:   A\n#&gt;   ID:          id\n#&gt;   Time:        t\n#&gt;   Censoring:   none\n#&gt;   N:           1500 individuals, 15000 PP rows (11423 at risk)\n#&gt;   Time grid:   [1, 10] (10 unique times)\n\n\n\n\nSurvival curves under two interventions\n\n\nCode\nres_surv &lt;- contrast(\n  fit,\n  interventions = list(\n    a1 = causatr::static(1),\n    a0 = causatr::static(0)\n  ),\n  times     = 1:10,\n  type      = \"survival\",\n  ci_method = \"sandwich\"\n)\nres_surv\n#&gt; &lt;survatr_result&gt;\n#&gt;   Type:        survival\n#&gt;   Reference:   (none)\n#&gt;   CI method:   sandwich\n#&gt;   Time grid:   [1, 10] (10 unique times)\n#&gt;   Estimates:   20 rows\n#&gt;   Contrasts:   0 rows\n#&gt; \n#&gt;     intervention  time     s_hat   risk_hat          se  ci_lower  ci_upper\n#&gt;           &lt;char&gt; &lt;int&gt;     &lt;num&gt;      &lt;num&gt;       &lt;num&gt;     &lt;num&gt;     &lt;num&gt;\n#&gt;  1:           a1     1 0.9429846 0.05701541 0.006267503 0.9307005 0.9552687\n#&gt;  2:           a1     2 0.8786721 0.12132791 0.009437176 0.8601756 0.8971686\n#&gt;  3:           a1     3 0.8267793 0.17322073 0.011515336 0.8042096 0.8493489\n#&gt;  4:           a1     4 0.7754882 0.22451176 0.013224880 0.7495680 0.8014085\n#&gt;  5:           a1     5 0.7221593 0.27784075 0.014669052 0.6934084 0.7509101\n#&gt;  6:           a1     6 0.6832754 0.31672462 0.015549770 0.6527984 0.7137524\n#&gt;  7:           a1     7 0.6410406 0.35895942 0.016384880 0.6089268 0.6731544\n#&gt;  8:           a1     8 0.6033769 0.39662309 0.017148193 0.5697671 0.6369867\n#&gt;  9:           a1     9 0.5756057 0.42439434 0.017615190 0.5410805 0.6101308\n#&gt; 10:           a1    10 0.5425151 0.45748489 0.018002313 0.5072312 0.5777990\n#&gt;         n\n#&gt;     &lt;int&gt;\n#&gt;  1:  1500\n#&gt;  2:  1500\n#&gt;  3:  1500\n#&gt;  4:  1500\n#&gt;  5:  1500\n#&gt;  6:  1500\n#&gt;  7:  1500\n#&gt;  8:  1500\n#&gt;  9:  1500\n#&gt; 10:  1500\n\n\n\n\nCode\nplot(res_surv, main = \"Counterfactual survival under A = 1 vs A = 0\")\n\n\n\n\n\n\n\n\n\n\n\nRisk difference with sandwich CI\n\n\nCode\nres_rd &lt;- contrast(\n  fit,\n  interventions = list(\n    a1 = causatr::static(1),\n    a0 = causatr::static(0)\n  ),\n  times     = 1:10,\n  type      = \"risk_difference\",\n  reference = \"a0\",\n  ci_method = \"sandwich\"\n)\nres_rd$contrasts\n\n\n\n\nCode\nplot(res_rd, main = \"Risk difference (a1 vs a0) with sandwich 95% CI\")\n\n\n\n\n\n\n\n\n\nThe DGP has no treatment effect, so the risk-difference CI should comfortably cover 0 at every time point.",
+    "text": "Quick example\nThe example below uses a simulated DGP: a constant discrete-time hazard of 6% per period, a single binary treatment with no causal effect, and one normal-distributed confounder that jointly affects the propensity of treatment and the hazard rate. Under this DGP the counterfactual survival under either intervention converges to \\((1 - 0.06)^t\\), so we can check the point estimates against the closed form.\n\n\nCode\n## Attach `causatr` first so survatr's `contrast()` generic shadows\n## causatr's scalar-outcome `contrast()` and dispatches correctly on\n## `survatr_fit` objects. Call `causatr::contrast()` explicitly if you\n## need the causatr path while survatr is loaded.\nlibrary(causatr)\nlibrary(survatr)\nlibrary(data.table)\n\n## Simulate person-period data with a constant hazard and a confounder L.\nsim_pp &lt;- function(n = 1500L, K = 10L, h = 0.06, seed = 1L) {\n  set.seed(seed)\n  L &lt;- rnorm(n)                                 # single baseline confounder\n  A &lt;- rbinom(n, 1L, plogis(0.3 * L))           # L affects treatment\n  rows &lt;- vector(\"list\", n)\n  for (i in seq_len(n)) {\n    Y &lt;- rbinom(K, 1L, h)                        # hazard independent of A (null)\n    first &lt;- which(Y == 1L)[1L]\n    if (!is.na(first) && first &lt; K) Y[(first + 1L):K] &lt;- 0L\n    rows[[i]] &lt;- data.table::data.table(\n      id = i, t = seq_len(K), A = A[i], L = L[i], Y = Y\n    )\n  }\n  data.table::rbindlist(rows)\n}\n\npp &lt;- sim_pp()\nhead(pp, 5)\n#&gt;       id     t     A          L     Y\n#&gt;    &lt;int&gt; &lt;int&gt; &lt;int&gt;      &lt;num&gt; &lt;int&gt;\n#&gt; 1:     1     1     1 -0.6264538     0\n#&gt; 2:     1     2     1 -0.6264538     0\n#&gt; 3:     1     3     1 -0.6264538     0\n#&gt; 4:     1     4     1 -0.6264538     0\n#&gt; 5:     1     5     1 -0.6264538     0\n\n\n\nFit the hazard model\n\n\nCode\nfit &lt;- surv_fit(\n  pp,\n  outcome      = \"Y\",\n  treatment    = \"A\",\n  confounders  = ~ L,\n  id           = \"id\",\n  time         = \"t\",\n  time_formula = ~ factor(t)   # non-parametric baseline hazard\n)\nfit\n#&gt; &lt;survatr_fit&gt;\n#&gt;   Track:       A\n#&gt;   Estimator:   gcomp\n#&gt;   Family:      binomial\n#&gt;   Outcome:     Y\n#&gt;   Treatment:   A\n#&gt;   ID:          id\n#&gt;   Time:        t\n#&gt;   Censoring:   none\n#&gt;   N:           1500 individuals, 15000 PP rows (11423 at risk)\n#&gt;   Time grid:   [1, 10] (10 unique times)\n\n\n\n\nSurvival curves under two interventions\n\n\nCode\nres_surv &lt;- contrast(\n  fit,\n  interventions = list(\n    a1 = causatr::static(1),\n    a0 = causatr::static(0)\n  ),\n  times     = 1:10,\n  type      = \"survival\",\n  ci_method = \"sandwich\"\n)\nres_surv\n#&gt; &lt;survatr_result&gt;\n#&gt;   Type:        survival\n#&gt;   Reference:   (none)\n#&gt;   CI method:   sandwich\n#&gt;   Time grid:   [1, 10] (10 unique times)\n#&gt;   Estimates:   20 rows\n#&gt;   Contrasts:   0 rows\n#&gt; \n#&gt;     intervention  time     s_hat   risk_hat          se  ci_lower  ci_upper\n#&gt;           &lt;char&gt; &lt;int&gt;     &lt;num&gt;      &lt;num&gt;       &lt;num&gt;     &lt;num&gt;     &lt;num&gt;\n#&gt;  1:           a1     1 0.9429846 0.05701541 0.006267503 0.9307005 0.9552687\n#&gt;  2:           a1     2 0.8786721 0.12132791 0.009437176 0.8601756 0.8971686\n#&gt;  3:           a1     3 0.8267793 0.17322073 0.011515336 0.8042096 0.8493489\n#&gt;  4:           a1     4 0.7754882 0.22451176 0.013224880 0.7495680 0.8014085\n#&gt;  5:           a1     5 0.7221593 0.27784075 0.014669052 0.6934084 0.7509101\n#&gt;  6:           a1     6 0.6832754 0.31672462 0.015549770 0.6527984 0.7137524\n#&gt;  7:           a1     7 0.6410406 0.35895942 0.016384880 0.6089268 0.6731544\n#&gt;  8:           a1     8 0.6033769 0.39662309 0.017148193 0.5697671 0.6369867\n#&gt;  9:           a1     9 0.5756057 0.42439434 0.017615190 0.5410805 0.6101308\n#&gt; 10:           a1    10 0.5425151 0.45748489 0.018002313 0.5072312 0.5777990\n#&gt;         n\n#&gt;     &lt;int&gt;\n#&gt;  1:  1500\n#&gt;  2:  1500\n#&gt;  3:  1500\n#&gt;  4:  1500\n#&gt;  5:  1500\n#&gt;  6:  1500\n#&gt;  7:  1500\n#&gt;  8:  1500\n#&gt;  9:  1500\n#&gt; 10:  1500\n\n\n\n\nCode\nplot(res_surv, main = \"Counterfactual survival under A = 1 vs A = 0\")\n\n\n\n\n\n\n\n\n\n\n\nRisk difference with sandwich CI\n\n\nCode\nres_rd &lt;- contrast(\n  fit,\n  interventions = list(\n    a1 = causatr::static(1),\n    a0 = causatr::static(0)\n  ),\n  times     = 1:10,\n  type      = \"risk_difference\",\n  reference = \"a0\",\n  ci_method = \"sandwich\"\n)\nres_rd$contrasts[] # `[]` forces auto-print of a function-returned data.table\n#&gt;     contrast  time     estimate          se    ci_lower    ci_upper\n#&gt;       &lt;char&gt; &lt;int&gt;        &lt;num&gt;       &lt;num&gt;       &lt;num&gt;       &lt;num&gt;\n#&gt;  1: a1 vs a0     1 -0.002041379 0.004378228 -0.01062255 0.006539789\n#&gt;  2: a1 vs a0     2 -0.004171571 0.008932308 -0.02167857 0.013335430\n#&gt;  3: a1 vs a0     3 -0.005770166 0.012348210 -0.02997221 0.018431881\n#&gt;  4: a1 vs a0     4 -0.007225694 0.015461865 -0.03753039 0.023079005\n#&gt;  5: a1 vs a0     5 -0.008595905 0.018396179 -0.04465175 0.027459943\n#&gt;  6: a1 vs a0     6 -0.009513415 0.020361869 -0.04942194 0.030395114\n#&gt;  7: a1 vs a0     7 -0.010408541 0.022278540 -0.05407368 0.033256595\n#&gt;  8: a1 vs a0     8 -0.011120983 0.023800384 -0.05776888 0.035526913\n#&gt;  9: a1 vs a0     9 -0.011596826 0.024817563 -0.06023836 0.037044704\n#&gt; 10: a1 vs a0    10 -0.012090341 0.025873948 -0.06280235 0.038621665\n\n\n\n\nCode\nplot(res_rd, main = \"Risk difference (a1 vs a0) with sandwich 95% CI\")\n\n\n\n\n\n\n\n\n\nThe DGP has no treatment effect, so the risk-difference CI should comfortably cover 0 at every time point.",
     "crumbs": [
-      "Articles",
-      "Introduction to survatr"
+      "Getting started",
+      "Introduction"
     ]
   },
   {
@@ -419,8 +580,8 @@
     "section": "Estimand menu",
     "text": "Estimand menu\nPass any of the following to type =:\n\n\n\n\n\n\n\n\ntype\nEstimand\nShape of result\n\n\n\n\n\"survival\"\n\\(\\hat{S}^a(t)\\)\nOne row per (intervention, time)\n\n\n\"risk\"\n\\(1 - \\hat{S}^a(t)\\)\nOne row per (intervention, time)\n\n\n\"rmst\"\n\\(\\int_0^t \\hat{S}^a(u)\\,du\\)\nOne row per (intervention, time)\n\n\n\"risk_difference\"\n\\(\\hat{R}^{a_1}(t) - \\hat{R}^{a_0}(t)\\)\nPairwise contrasts\n\n\n\"risk_ratio\"\n\\(\\hat{R}^{a_1}(t) / \\hat{R}^{a_0}(t)\\)\nPairwise contrasts (log-scale CI)\n\n\n\"rmst_difference\"\n\\(\\mathrm{RMST}^{a_1}(t) - \\mathrm{RMST}^{a_0}(t)\\)\nPairwise contrasts\n\n\n\n\"survival\", \"risk\", and \"rmst\" return an empty contrasts table (stable schema); the three pairwise types fill it.",
     "crumbs": [
-      "Articles",
-      "Introduction to survatr"
+      "Getting started",
+      "Introduction"
     ]
   },
   {
@@ -428,10 +589,10 @@
     "href": "vignettes/survatr.html#intervention-types",
     "title": "Introduction to survatr",
     "section": "Intervention types",
-    "text": "Intervention types\nInterventions are constructed via causatr:\n\n\n\n\n\n\n\n\nConstructor\nDescription\nExample\n\n\n\n\ncausatr::static(value)\nSet treatment to a fixed value\nstatic(1)\n\n\ncausatr::shift(delta)\nAdd a constant to observed treatment\nshift(0.5)\n\n\ncausatr::scale_by(factor)\nMultiply observed treatment\nscale_by(0.5)\n\n\ncausatr::threshold(lower, upper)\nClamp treatment within bounds\nthreshold(0, 20)\n\n\ncausatr::dynamic(rule)\nApply a user-defined rule\ndynamic(\\(d, a) ifelse(d$L &gt; 0, 1, 0))\n\n\n\nIPW-style stochastic (ipsi()) and longitudinal Track B interventions are supported via later chunks — see the Learning more section.",
+    "text": "Intervention types\nInterventions are constructed via causatr:\n\n\n\n\n\n\n\n\nConstructor\nDescription\nExample\n\n\n\n\ncausatr::static(value)\nSet treatment to a fixed value\nstatic(1)\n\n\ncausatr::shift(delta)\nAdd a constant to observed treatment\nshift(0.5)\n\n\ncausatr::scale_by(factor)\nMultiply observed treatment\nscale_by(0.5)\n\n\ncausatr::threshold(lower, upper)\nClamp treatment within bounds\nthreshold(0, 20)\n\n\ncausatr::dynamic(rule)\nApply a user-defined rule\ndynamic(\\(d, a) ifelse(d$L &gt; 0, 1, 0))\n\n\n\nThe dynamic() rule and IPW (estimator = \"ipw\") are demonstrated in vignette(\"ipw\"); longitudinal time-varying treatments via Track B ICE (estimator = \"ice\") are covered in vignette(\"ice\"). IPW-style stochastic (ipsi()) interventions ship in a later chunk.",
     "crumbs": [
-      "Articles",
-      "Introduction to survatr"
+      "Getting started",
+      "Introduction"
     ]
   },
   {
@@ -441,8 +602,8 @@
     "section": "Inference methods",
     "text": "Inference methods\n\n\n\n\n\n\n\nci_method\nDescription\n\n\n\n\n\"none\"\nPoint estimates only (default). se / ci_* columns are NA_real_.\n\n\n\"sandwich\"\nDelta-method cross-time influence function aggregation through the cumulative product. Pointwise Wald bands. Fast (single pass).\n\n\n\"bootstrap\"\nNonparametric bootstrap with per-id resampling. Percentile (default) or Wald CIs. Slower; required for non-GLM outcome fitters (e.g. mgcv::gam).\n\n\n\n\n\nCode\nres_boot &lt;- contrast(\n  fit,\n  interventions = list(\n    a1 = causatr::static(1),\n    a0 = causatr::static(0)\n  ),\n  times     = 1:10,\n  type      = \"risk_difference\",\n  reference = \"a0\",\n  ci_method = \"bootstrap\",\n  n_boot    = 200L,\n  seed      = 42L\n)\nhead(res_boot$contrasts, 3)\n#&gt;    contrast  time     estimate          se    ci_lower    ci_upper\n#&gt;      &lt;char&gt; &lt;int&gt;        &lt;num&gt;       &lt;num&gt;       &lt;num&gt;       &lt;num&gt;\n#&gt; 1: a1 vs a0     1 -0.002041379 0.004091117 -0.01035280 0.006202343\n#&gt; 2: a1 vs a0     2 -0.004171571 0.008360997 -0.02275464 0.012317831\n#&gt; 3: a1 vs a0     3 -0.005770166 0.011535107 -0.03143288 0.016800506\n\n\nSandwich and bootstrap SEs match each other — and the true sampling SD — to within 1–2% on this DGP at n = 1500 (confirmed via a 300-replicate empirical-SD oracle; see tests/testthat/test-bootstrap-survival.R).",
     "crumbs": [
-      "Articles",
-      "Introduction to survatr"
+      "Getting started",
+      "Introduction"
     ]
   },
   {
@@ -452,8 +613,8 @@
     "section": "Extracting results",
     "text": "Extracting results\ntidy(), plot(), print(), and forrest() all dispatch on the time-indexed survatr_result shape:\n\n\nCode\nres_td &lt;- tidy(res_rd)\nhead(res_td, 6)\n#&gt;   intervention contrast time estimand   estimate          se   ci_lower\n#&gt; 1           a1     &lt;NA&gt;    1 risk_hat 0.05701541 0.006267503 0.04473133\n#&gt; 2           a1     &lt;NA&gt;    2 risk_hat 0.12132791 0.009437176 0.10283139\n#&gt; 3           a1     &lt;NA&gt;    3 risk_hat 0.17322073 0.011515336 0.15065108\n#&gt; 4           a1     &lt;NA&gt;    4 risk_hat 0.22451176 0.013224880 0.19859147\n#&gt; 5           a1     &lt;NA&gt;    5 risk_hat 0.27784075 0.014669052 0.24908993\n#&gt; 6           a1     &lt;NA&gt;    6 risk_hat 0.31672462 0.015549770 0.28624763\n#&gt;     ci_upper\n#&gt; 1 0.06929949\n#&gt; 2 0.13982444\n#&gt; 3 0.19579037\n#&gt; 4 0.25043205\n#&gt; 5 0.30659156\n#&gt; 6 0.34720161\n\n\n\n\nCode\nforrest(res_rd, t_ref = 10, main = \"Risk difference at t = 10\")",
     "crumbs": [
-      "Articles",
-      "Introduction to survatr"
+      "Getting started",
+      "Introduction"
     ]
   },
   {
@@ -463,8 +624,8 @@
     "section": "Reserved columns and error surface",
     "text": "Reserved columns and error surface\nsurvatr reserves column names prefixed with .survatr_* for internal bookkeeping (.survatr_prev_event, .survatr_prev_cens). User-data collisions produce survatr_reserved_col.\nAll rejection paths raise classed errors with the survatr_* prefix so downstream code can pattern-match on class rather than English:\n\n\n\n\n\n\n\nClass\nTrigger\n\n\n\n\nsurvatr_bad_interventions\nEmpty / unnamed / duplicate-named / wrong-type interventions, or a pairwise-contrast type with a single intervention\n\n\nsurvatr_bad_times\nNon-numeric / empty / NA times\n\n\nsurvatr_time_extrapolation\ntimes outside fit$time_grid\n\n\nsurvatr_bad_reference\nreference not in interventions names\n\n\nsurvatr_bad_ci_method\nci_method not in {\"none\", \"sandwich\", \"bootstrap\"}\n\n\nsurvatr_bad_conf_level\nconf_level outside (0, 1)\n\n\nsurvatr_bad_n_boot / survatr_bad_boot_ci / survatr_bad_parallel\nBootstrap argument misuse\n\n\nsurvatr_matching_rejected\nestimator = \"matching\" (use survival::coxph(..., weights, cluster) instead)\n\n\nsurvatr_bad_na_action\nna.action = na.exclude (silently corrupts sandwich variance)\n\n\nsurvatr_competing_misuse\nNon-NULL competing argument (cause-specific path ships later)",
     "crumbs": [
-      "Articles",
-      "Introduction to survatr"
+      "Getting started",
+      "Introduction"
     ]
   },
   {
@@ -472,10 +633,10 @@
     "href": "vignettes/survatr.html#learning-more",
     "title": "Introduction to survatr",
     "section": "Learning more",
-    "text": "Learning more\nsurvatr’s scope is laid out in SURVIVAL_PACKAGE_HANDOFF.md. Upcoming chunks will add dedicated vignettes for:\n\nTrack A under IPW — baseline density-ratio weights broadcast onto person-period rows, weighted hazard MSM.\nTrack B (ICE hazards) — longitudinal survival via iterated conditional expectations (Zivich et al. 2024), with the hazard indicator at the final period and a survival-tail pseudo-outcome at earlier periods.\nCompeting risks — parallel cause-specific hazards + cumulative incidence decomposition.\nNHEFS Chapter 17 replication — the Hernán & Robins running example with the 120-month survival curves and the ≈ 0.2% risk difference target.",
+    "text": "Learning more\nThis vignette covered Track A g-computation. Two further estimators are implemented and have dedicated vignettes:\n\nTrack A under IPW (vignette(\"ipw\")) — stabilized density-ratio weights broadcast onto person-period rows, fitting a weighted marginal hazard MSM.\nTrack B (ICE hazards) (vignette(\"ice\")) — longitudinal survival for a time-varying treatment via iterated conditional expectations (Zivich et al. 2024), with the hazard indicator at the final period and a survival-tail pseudo-outcome at earlier periods.\n\nsurvatr’s full scope is laid out in SURVIVAL_PACKAGE_HANDOFF.md. Upcoming chunks will add:\n\nCompeting risks — parallel cause-specific hazards + cumulative incidence decomposition.\nNHEFS Chapter 17 replication — the Hernán & Robins running example with the 120-month survival curves and the ≈ 0.2% risk difference target.",
     "crumbs": [
-      "Articles",
-      "Introduction to survatr"
+      "Getting started",
+      "Introduction"
     ]
   },
   {
@@ -485,8 +646,129 @@
     "section": "References",
     "text": "References\n\nHernán MA, Robins JM (2025). Causal Inference: What If. Chapman & Hall/CRC. Chapter 17 (survival analysis via IP weighting and standardisation).\nZivich PN, Ross RK, Shook-Sa BE, Cole SR, Edwards JK (2024). Empirical sandwich variance estimator for iterated conditional expectation g-computation. Statistics in Medicine 43:5562–5572.\nD’Agostino RB, Lee ML, Belanger AJ, Cupples LA, Anderson K, Kannel WB (1990). Relation of pooled logistic regression to time-dependent Cox regression analysis: the Framingham Heart Study. Statistics in Medicine 9:1501–1515.",
     "crumbs": [
-      "Articles",
-      "Introduction to survatr"
+      "Getting started",
+      "Introduction"
+    ]
+  },
+  {
+    "objectID": "vignettes/ice.html",
+    "href": "vignettes/ice.html",
+    "title": "Longitudinal survival via ICE (Track B) with survatr",
+    "section": "",
+    "text": "Track A (estimator = \"gcomp\" / \"ipw\") handles a point treatment fixed at baseline. When the treatment varies over time and there is treatment–confounder feedback — a time-varying covariate that both responds to past treatment and drives future treatment and the hazard — a point-treatment hazard model is biased, and no single weighted MSM recovers the counterfactual curve. survatr’s Track B (estimator = \"ice\") solves this with iterated conditional expectations (ICE) on the discrete-time hazard (Zivich et al. 2024).\nThis vignette explains the ICE backward sweep, the Track-B arguments (confounders_tv, history), and shows the estimator recovering the longitudinal g-formula truth on a feedback DGP that fools the naive curve.",
+    "crumbs": [
+      "Estimation methods",
+      "ICE / longitudinal (Track B)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ice.html#why-ice-not-a-single-hazard-model",
+    "href": "vignettes/ice.html#why-ice-not-a-single-hazard-model",
+    "title": "Longitudinal survival via ICE (Track B) with survatr",
+    "section": "Why ICE, not a single hazard model",
+    "text": "Why ICE, not a single hazard model\nWith feedback, a time-varying confounder \\(L_k\\) is simultaneously a confounder of later treatment and a mediator of earlier treatment. Conditioning on it (as a covariate-adjusted hazard would) blocks the causal path; ignoring it leaves confounding. The g-formula resolves this by standardizing sequentially.\nsurvatr implements the iterated conditional expectation form: rather than modelling every time-varying covariate (forward simulation, à la gfoRmula), ICE models the outcome only, iterating backward from the horizon. At each step the pseudo-outcome is the survival tail under the intervention,\n\\[\n\\tilde{Y}_k = D_k + (1 - D_k)\\, q_{k+1},\n\\]\nwhere \\(D_k\\) is the cumulative event indicator and \\(q_{k+1}\\) the predicted survival probability from the next step. The final step is a binomial fit on the observed event; earlier steps are quasibinomial fits on the continuous tail pseudo-outcome. Inference is a stacked-EE sandwich across the per-step models (or a per-id bootstrap).",
+    "crumbs": [
+      "Estimation methods",
+      "ICE / longitudinal (Track B)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ice.html#a-treatmentconfounder-feedback-dgp",
+    "href": "vignettes/ice.html#a-treatmentconfounder-feedback-dgp",
+    "title": "Longitudinal survival via ICE (Track B) with survatr",
+    "section": "A treatment–confounder-feedback DGP",
+    "text": "A treatment–confounder-feedback DGP\nWe simulate a discrete-time survival process (Hernán & Robins Ch. 21 structure) where the time-varying confounder \\(L_k\\) drives both the current treatment \\(A_k\\) and the hazard, and past treatment \\(A_{k-1}\\) feeds forward into \\(L_k\\):\n\\[\n\\begin{aligned}\n  L_k &\\sim N(\\mu_L L_{k-1} + \\mu_A A_{k-1},\\; 1) \\\\\n  A_k &\\sim \\text{Bernoulli}\\!\\bigl(\\text{logit}^{-1}(g_L L_k + g_A A_{k-1})\\bigr) \\\\\n  \\text{logit}\\, h_k &= \\alpha_0 + \\beta_L L_k + \\beta_A A_k,\n\\end{aligned}\n\\]\nwith \\(\\beta_A &lt; 0\\) (treatment is protective). Rows at and after the first event are padded to keep the person-period grid rectangular.\n\n\nCode\nlibrary(causatr) # attach first so survatr's contrast() generic dispatches\nlibrary(survatr)\nlibrary(data.table)\n\n# Shared parameters (feedback structure).\np &lt;- list(g_L = 0.6, g_A = -0.3, mu_L = 0.4, mu_A = 0.5,\n          a0 = -2, bL = 0.8, bA = -0.7, a_prev0 = 0)\n\nsim_feedback &lt;- function(n = 3000L, K = 4L, seed = 1L, p = p) {\n  set.seed(seed)\n  rbindlist(lapply(seq_len(n), function(i) {\n    L &lt;- A &lt;- numeric(K)\n    Y &lt;- integer(K)\n    l_prev &lt;- 0\n    a_prev &lt;- p$a_prev0\n    failed &lt;- NA_integer_\n    for (k in seq_len(K)) {\n      L[k] &lt;- rnorm(1, p$mu_L * l_prev + p$mu_A * a_prev, 1)\n      A[k] &lt;- rbinom(1, 1L, plogis(p$g_L * L[k] + p$g_A * a_prev))\n      Y[k] &lt;- rbinom(1, 1L, plogis(p$a0 + p$bL * L[k] + p$bA * A[k]))\n      l_prev &lt;- L[k]\n      a_prev &lt;- A[k]\n      if (Y[k] == 1L) { failed &lt;- k; break }\n    }\n    if (!is.na(failed) && failed &lt; K) { # pad post-event rows\n      idx &lt;- (failed + 1L):K\n      L[idx] &lt;- L[failed]; A[idx] &lt;- A[failed]; Y[idx] &lt;- 0L\n    }\n    data.table(id = i, t = seq_len(K), L = L, A = A, Y = Y)\n  }))\n}\n\ndat &lt;- sim_feedback(p = p)\nhead(dat, 6)\n#&gt;       id     t          L     A     Y\n#&gt;    &lt;int&gt; &lt;int&gt;      &lt;num&gt; &lt;num&gt; &lt;int&gt;\n#&gt; 1:     1     1 -0.6264538     0     0\n#&gt; 2:     1     2 -1.0862101     1     0\n#&gt; 3:     1     3  0.3950237     0     0\n#&gt; 4:     1     4  0.6454385     0     0\n#&gt; 5:     2     1  0.5757814     1     0\n#&gt; 6:     2     2  2.2420937     1     0",
+    "crumbs": [
+      "Estimation methods",
+      "ICE / longitudinal (Track B)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ice.html#fitting-the-track-b-ice-model",
+    "href": "vignettes/ice.html#fitting-the-track-b-ice-model",
+    "title": "Longitudinal survival via ICE (Track B) with survatr",
+    "section": "Fitting the Track B ICE model",
+    "text": "Fitting the Track B ICE model\nPass estimator = \"ice\". The Track-B arguments split the adjustment set:\n\nconfounders — baseline (time-invariant) covariates, never lagged. Here there are none, so ~ 1.\nconfounders_tv — time-varying covariates, lag-expanded at each backward step (e.g. ~ L builds L + lag1_L + ...).\nhistory — the Markov lag order. Inf (default) uses the full available history; an integer (e.g. history = 1) restricts to a first-order Markov structure.\n\nThe treatment must be numeric (binary or a linear dose) and may vary within id. surv_fit() fits no model itself for ICE — the per-step models are fit lazily inside contrast() per (intervention, horizon).\n\n\nCode\nfit &lt;- surv_fit(\n  dat,\n  outcome        = \"Y\",\n  treatment      = \"A\",\n  confounders    = ~ 1,   # no baseline confounders here\n  confounders_tv = ~ L,   # time-varying confounder, lag-expanded\n  id             = \"id\",\n  time           = \"t\",\n  estimator      = \"ice\"\n)\nfit\n#&gt; &lt;survatr_fit&gt;\n#&gt;   Track:       B\n#&gt;   Estimator:   ice\n#&gt;   Family:      binomial\n#&gt;   Outcome:     Y\n#&gt;   Treatment:   A\n#&gt;   ID:          id\n#&gt;   Time:        t\n#&gt;   Censoring:   none\n#&gt;   TV covars:   L\n#&gt;   History:     full\n#&gt;   N:           3000 individuals, 12000 PP rows (10061 at risk)\n#&gt;   Time grid:   [1, 4] (4 unique times)",
+    "crumbs": [
+      "Estimation methods",
+      "ICE / longitudinal (Track B)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ice.html#counterfactual-survival-under-static-strategies",
+    "href": "vignettes/ice.html#counterfactual-survival-under-static-strategies",
+    "title": "Longitudinal survival via ICE (Track B) with survatr",
+    "section": "Counterfactual survival under static strategies",
+    "text": "Counterfactual survival under static strategies\nA static strategy “always treat” (static(1)) vs “never treat” (static(0)) sets \\(A_k\\) at every period; ICE standardizes over the evolving confounder history. The protective treatment yields higher survival under a1.\n\n\nCode\nres_surv &lt;- contrast(\n  fit,\n  interventions = list(a1 = static(1), a0 = static(0)),\n  times     = 1:4,\n  type      = \"survival\",\n  ci_method = \"sandwich\"\n)\nres_surv\n#&gt; &lt;survatr_result&gt;\n#&gt;   Type:        survival\n#&gt;   Reference:   (none)\n#&gt;   CI method:   sandwich\n#&gt;   Time grid:   [1, 4] (4 unique times)\n#&gt;   Estimates:   8 rows\n#&gt;   Contrasts:   0 rows\n#&gt; \n#&gt;    intervention  time     s_hat   risk_hat          se  ci_lower  ci_upper\n#&gt;          &lt;char&gt; &lt;int&gt;     &lt;num&gt;      &lt;num&gt;       &lt;num&gt;     &lt;num&gt;     &lt;num&gt;\n#&gt; 1:           a1     1 0.9316887 0.06831126 0.006041341 0.9198479 0.9435295\n#&gt; 2:           a1     2 0.8309844 0.16901556 0.010542718 0.8103211 0.8516478\n#&gt; 3:           a1     3 0.7146013 0.28539872 0.014777216 0.6856385 0.7435641\n#&gt; 4:           a1     4 0.6204521 0.37954786 0.017015772 0.5871018 0.6538024\n#&gt; 5:           a0     1 0.8453436 0.15465641 0.009973810 0.8257953 0.8648919\n#&gt; 6:           a0     2 0.7345327 0.26546731 0.013842318 0.7074022 0.7616631\n#&gt; 7:           a0     3 0.6449204 0.35507957 0.016036147 0.6134902 0.6763507\n#&gt; 8:           a0     4 0.5615826 0.43841743 0.017439953 0.5274009 0.5957643\n#&gt;        n\n#&gt;    &lt;int&gt;\n#&gt; 1:  3000\n#&gt; 2:  3000\n#&gt; 3:  3000\n#&gt; 4:  3000\n#&gt; 5:  3000\n#&gt; 6:  3000\n#&gt; 7:  3000\n#&gt; 8:  3000\n\n\n\n\nCode\nplot(res_surv, main = \"ICE survival: always vs never treat\")",
+    "crumbs": [
+      "Estimation methods",
+      "ICE / longitudinal (Track B)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ice.html#ice-corrects-feedback-bias",
+    "href": "vignettes/ice.html#ice-corrects-feedback-bias",
+    "title": "Longitudinal survival via ICE (Track B) with survatr",
+    "section": "ICE corrects feedback bias",
+    "text": "ICE corrects feedback bias\nThe point of Track B is that a point-treatment hazard model is biased under feedback, while ICE is not. A naive Track A g-computation treats \\(A\\) as if it were fixed at baseline (it warns that the treatment is time-varying) and adjusts for \\(L\\) as an ordinary confounder — which blocks the mediated causal path. Its a1 survival curve diverges from the ICE curve:\n\n\nCode\nfit_naive &lt;- suppressWarnings(surv_fit(\n  dat, \"Y\", \"A\", ~ L, \"id\", \"t\",\n  time_formula = ~ factor(t), estimator = \"gcomp\"\n))\ns_naive &lt;- contrast(\n  fit_naive, interventions = list(a1 = static(1)),\n  times = 1:4, type = \"survival\"\n)$estimates\n\nice_a1 &lt;- res_surv$estimates[intervention == \"a1\"][order(time)]\ndata.table(\n  time      = ice_a1$time,\n  ice       = round(ice_a1$s_hat, 3),\n  naive_gc  = round(s_naive[order(time)]$s_hat, 3)\n)[] # `[]` forces auto-print of a function-returned data.table\n#&gt;     time   ice naive_gc\n#&gt;    &lt;int&gt; &lt;num&gt;    &lt;num&gt;\n#&gt; 1:     1 0.932    0.921\n#&gt; 2:     2 0.831    0.834\n#&gt; 3:     3 0.715    0.745\n#&gt; 4:     4 0.620    0.672\n\n\nOnly the ICE g-formula curve targets \\(S^{a=1}(t)\\) correctly; the naive Track A curve is biased because it conditions on the feedback variable \\(L\\).",
+    "crumbs": [
+      "Estimation methods",
+      "ICE / longitudinal (Track B)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ice.html#risk-difference-risk-ratio-rmst",
+    "href": "vignettes/ice.html#risk-difference-risk-ratio-rmst",
+    "title": "Longitudinal survival via ICE (Track B) with survatr",
+    "section": "Risk difference, risk ratio, RMST",
+    "text": "Risk difference, risk ratio, RMST\nAll the Track A estimand types are available on a Track B fit. The stacked-EE sandwich propagates the cross-step influence-function cascade through the cumulative-product survival curve.\n\n\nCode\nfor (ty in c(\"risk_difference\", \"risk_ratio\", \"rmst_difference\")) {\n  rr &lt;- contrast(\n    fit,\n    interventions = list(a1 = static(1), a0 = static(0)),\n    times = 4L, type = ty, reference = \"a0\", ci_method = \"sandwich\"\n  )\n  cat(sprintf(\"%-16s estimate = %+.4f  (se = %.4f)\\n\",\n              ty, rr$contrasts$estimate, rr$contrasts$se))\n}\n#&gt; risk_difference  estimate = -0.0589  (se = 0.0293)\n#&gt; risk_ratio       estimate = +0.8657  (se = 0.0624)\n#&gt; rmst_difference  estimate = +0.1177  (se = 0.0586)",
+    "crumbs": [
+      "Estimation methods",
+      "ICE / longitudinal (Track B)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ice.html#sandwich-vs-bootstrap",
+    "href": "vignettes/ice.html#sandwich-vs-bootstrap",
+    "title": "Longitudinal survival via ICE (Track B) with survatr",
+    "section": "Sandwich vs bootstrap",
+    "text": "Sandwich vs bootstrap\nThe survival influence-function chain carries a \\((1 - D_k)\\) failure carry-forward factor that a terminal-outcome ICE chain omits; reusing the latter verbatim over-covers at later horizons. The sandwich and the per-id bootstrap should agree at every horizon:\n\n\nCode\nsw &lt;- contrast(\n  fit, interventions = list(a1 = static(1), a0 = static(0)),\n  times = 1:4, type = \"survival\", ci_method = \"sandwich\"\n)$estimates\nbo &lt;- contrast(\n  fit, interventions = list(a1 = static(1), a0 = static(0)),\n  times = 1:4, type = \"survival\", ci_method = \"bootstrap\",\n  n_boot = 200L, seed = 42L\n)$estimates\n\nmerge(\n  sw[, .(intervention, time, se_sandwich = se)],\n  bo[, .(intervention, time, se_bootstrap = se)],\n  by = c(\"intervention\", \"time\")\n)[]\n#&gt; Key: &lt;intervention, time&gt;\n#&gt;    intervention  time se_sandwich se_bootstrap\n#&gt;          &lt;char&gt; &lt;int&gt;       &lt;num&gt;        &lt;num&gt;\n#&gt; 1:           a0     1 0.009973810  0.010258627\n#&gt; 2:           a0     2 0.013842318  0.014705032\n#&gt; 3:           a0     3 0.016036147  0.016622047\n#&gt; 4:           a0     4 0.017439953  0.018773488\n#&gt; 5:           a1     1 0.006041341  0.005840303\n#&gt; 6:           a1     2 0.010542718  0.009199410\n#&gt; 7:           a1     3 0.014777216  0.014304820\n#&gt; 8:           a1     4 0.017015772  0.018012532",
+    "crumbs": [
+      "Estimation methods",
+      "ICE / longitudinal (Track B)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ice.html#dynamic-strategies",
+    "href": "vignettes/ice.html#dynamic-strategies",
+    "title": "Longitudinal survival via ICE (Track B) with survatr",
+    "section": "Dynamic strategies",
+    "text": "Dynamic strategies\nICE also handles genuinely longitudinal dynamic strategies — treat as a function of the evolving covariate. Here, “treat whenever the current confounder is positive”:\n\n\nCode\nres_dyn &lt;- contrast(\n  fit,\n  interventions = list(\n    treat_if_L = dynamic(function(data, trt) as.integer(data$L &gt; 0)),\n    never      = static(0)\n  ),\n  times     = 1:4,\n  type      = \"risk_difference\",\n  reference = \"never\",\n  ci_method = \"sandwich\"\n)\nres_dyn$contrasts[]\n#&gt;               contrast  time    estimate          se    ci_lower     ci_upper\n#&gt;                 &lt;char&gt; &lt;int&gt;       &lt;num&gt;       &lt;num&gt;       &lt;num&gt;        &lt;num&gt;\n#&gt; 1: treat_if_L vs never     1 -0.06110478 0.008668922 -0.07809555 -0.044114002\n#&gt; 2: treat_if_L vs never     2 -0.06653580 0.013494052 -0.09298365 -0.040087941\n#&gt; 3: treat_if_L vs never     3 -0.04720873 0.016362776 -0.07927918 -0.015138276\n#&gt; 4: treat_if_L vs never     4 -0.04175772 0.018153166 -0.07733727 -0.006178167\n\n\nOnly the current-period treatment is intervened; the lag columns carry the observed past treatment, as the ICE g-formula requires.",
+    "crumbs": [
+      "Estimation methods",
+      "ICE / longitudinal (Track B)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ice.html#scope-and-rejections",
+    "href": "vignettes/ice.html#scope-and-rejections",
+    "title": "Longitudinal survival via ICE (Track B) with survatr",
+    "section": "Scope and rejections",
+    "text": "Scope and rejections\nTrack B currently supports a numeric treatment with static / shift / dynamic strategies and sandwich or bootstrap inference. It rejects, with classed errors, combinations that need later chunks:\n\n\n\n\n\n\n\nTrigger\nError class\n\n\n\n\nNon-numeric (factor / categorical) treatment\nsurvatr_ice_treatment_unsupported\n\n\nipsi() / stochastic intervention\nsurvatr_ice_intervention_deferred\n\n\nExternal / IPCW weights =\nsurvatr_ice_external_weights\n\n\n\nA baseline-constant treatment is allowed under ICE (it just informs that Track A is cheaper). Entry (period-1) censoring is handled by standardizing over the at-risk-at-baseline population (consistent under MCAR), not by returning an all-NA curve.",
+    "crumbs": [
+      "Estimation methods",
+      "ICE / longitudinal (Track B)"
+    ]
+  },
+  {
+    "objectID": "vignettes/ice.html#references",
+    "href": "vignettes/ice.html#references",
+    "title": "Longitudinal survival via ICE (Track B) with survatr",
+    "section": "References",
+    "text": "References\nHernán MA, Robins JM (2025). Causal Inference: What If. Chapman & Hall/CRC. Chapter 21 (g-methods for time-varying treatments).\nZivich PN, Ross RK, Shook-Sa BE, Cole SR, Edwards JK (2024). Empirical sandwich variance estimator for iterated conditional expectation g-computation. Statistics in Medicine 43:5562–5572.",
+    "crumbs": [
+      "Estimation methods",
+      "ICE / longitudinal (Track B)"
     ]
   }
 ]
