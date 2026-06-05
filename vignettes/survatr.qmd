@@ -155,7 +155,7 @@ res_rd <- contrast(
   reference = "a0",
   ci_method = "sandwich"
 )
-res_rd$contrasts
+res_rd$contrasts[] # `[]` forces auto-print of a function-returned data.table
 ```
 
 ```{r}
@@ -195,8 +195,10 @@ Interventions are constructed via `causatr`:
 | `causatr::threshold(lower, upper)` | Clamp treatment within bounds | `threshold(0, 20)` |
 | `causatr::dynamic(rule)` | Apply a user-defined rule | `dynamic(\(d, a) ifelse(d$L > 0, 1, 0))` |
 
-IPW-style stochastic (`ipsi()`) and longitudinal Track B interventions
-are supported via later chunks — see the **Learning more** section.
+The `dynamic()` rule and IPW (`estimator = "ipw"`) are demonstrated in
+`vignette("ipw")`; longitudinal time-varying treatments via Track B ICE
+(`estimator = "ice"`) are covered in `vignette("ice")`. IPW-style
+stochastic (`ipsi()`) interventions ship in a later chunk.
 
 ## Inference methods
 
@@ -268,15 +270,20 @@ so downstream code can pattern-match on class rather than English:
 
 ## Learning more
 
-survatr's scope is laid out in `SURVIVAL_PACKAGE_HANDOFF.md`. Upcoming
-chunks will add dedicated vignettes for:
+This vignette covered Track A g-computation. Two further estimators are
+implemented and have dedicated vignettes:
 
-- **Track A under IPW** — baseline density-ratio weights broadcast onto
-  person-period rows, weighted hazard MSM.
-- **Track B (ICE hazards)** — longitudinal survival via iterated
-  conditional expectations (Zivich et al. 2024), with the hazard
-  indicator at the final period and a survival-tail pseudo-outcome at
-  earlier periods.
+- **Track A under IPW** (`vignette("ipw")`) — stabilized density-ratio
+  weights broadcast onto person-period rows, fitting a weighted marginal
+  hazard MSM.
+- **Track B (ICE hazards)** (`vignette("ice")`) — longitudinal survival
+  for a time-varying treatment via iterated conditional expectations
+  (Zivich et al. 2024), with the hazard indicator at the final period and
+  a survival-tail pseudo-outcome at earlier periods.
+
+survatr's full scope is laid out in `SURVIVAL_PACKAGE_HANDOFF.md`. Upcoming
+chunks will add:
+
 - **Competing risks** — parallel cause-specific hazards + cumulative
   incidence decomposition.
 - **NHEFS Chapter 17 replication** — the Hernán & Robins running

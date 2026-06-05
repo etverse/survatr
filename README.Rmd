@@ -20,38 +20,124 @@ knitr::opts_chunk$set(
 [![Codecov test coverage](https://codecov.io/gh/etverse/survatr/graph/badge.svg)](https://app.codecov.io/gh/etverse/survatr)
 <!-- badges: end -->
 
-The goal of survatr is to ...
+**survatr** extends the [causatr](https://github.com/etverse/causatr) engine to
+**time-to-event outcomes**. It estimates counterfactual survival via
+pooled-logistic discrete-time hazard models on person-period data, with three
+complementary estimators: g-computation (Track A), inverse-probability weighting
+(IPW, Track A), and iterated conditional expectations (ICE) for longitudinal,
+time-varying treatments (Track B). The **estimand is a curve** — survival
+$S^a(t)$, risk $1 - S^a(t)$, risk difference, risk ratio, or restricted mean
+survival time (RMST) — not a scalar. Inference is by a delta-method sandwich
+that propagates per-row influence functions through the cumulative-product
+survival curve, or by an individual-level nonparametric bootstrap.
+
+The package implements the survival methods of Hernán & Robins (2025) *Causal
+Inference: What If* (Chapter 17) with the same two-step API causatr users know:
+
+1.  **Fit** the hazard model once with `surv_fit()`
+2.  **Contrast** many interventions cheaply with `contrast()`
 
 ## Installation
 
-You can install the development version of survatr from [GitHub](https://github.com/) with:
+You can install the development version of survatr from
+[GitHub](https://github.com/etverse/survatr) with:
 
 ``` r
 # install.packages("pak")
 pak::pak("etverse/survatr")
 ```
 
-## Example
+## Quick example
 
-This is a basic example which shows you how to solve a common problem:
+The data-generating process below has a constant 6% discrete-time hazard, a
+single binary treatment with no causal effect, and one confounder `L` that
+drives both treatment and the hazard. Under this DGP the counterfactual survival
+under either intervention converges to $(1 - 0.06)^t$.
 
-```{r example}
+```{r example, message = FALSE}
+library(causatr) # attach first so survatr's contrast() generic shadows it
 library(survatr)
-## basic example code
+library(data.table)
+
+# Simulate person-period data: constant hazard, one confounder L.
+set.seed(1)
+n <- 800L
+K <- 10L
+L <- rnorm(n)
+A <- rbinom(n, 1L, plogis(0.3 * L)) # L affects treatment
+pp <- rbindlist(lapply(seq_len(n), function(i) {
+  Y <- rbinom(K, 1L, 0.06) # hazard independent of A (null effect)
+  first <- which(Y == 1L)[1L]
+  if (!is.na(first) && first < K) Y[(first + 1L):K] <- 0L
+  data.table(id = i, t = seq_len(K), A = A[i], L = L[i], Y = Y)
+}))
+
+# Step 1: fit the pooled-logistic hazard model once.
+fit <- surv_fit(
+  pp,
+  outcome      = "Y",
+  treatment    = "A",
+  confounders  = ~ L,
+  id           = "id",
+  time         = "t",
+  time_formula = ~ factor(t) # non-parametric baseline hazard
+)
+
+# Step 2: contrast interventions on the fitted hazard. Risk difference with
+# a delta-method sandwich CI at each of the 10 periods.
+res <- contrast(
+  fit,
+  interventions = list(a1 = static(1), a0 = static(0)),
+  times         = 1:10,
+  type          = "risk_difference",
+  reference     = "a0",
+  ci_method     = "sandwich"
+)
+res$contrasts[] # `[]` forces data.table to auto-print a function-returned table
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
+The DGP has no treatment effect, so the risk-difference CI comfortably covers 0
+at every time point.
 
-```{r cars}
-summary(cars)
-```
+## Features
 
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
+- **Three estimators**: g-computation (`estimator = "gcomp"`, pooled-logistic
+  standardization), IPW (`estimator = "ipw"`, a weighted marginal hazard MSM
+  with stabilized density-ratio weights), and ICE (`estimator = "ice"`, Track B
+  longitudinal survival via backward iterated conditional expectations for a
+  time-varying treatment). Matching + survival is a hard reject — use
+  `survival::coxph(..., weights, cluster)` directly.
+- **Curve-valued estimands**: survival $S^a(t)$, risk $1 - S^a(t)$, risk
+  difference, risk ratio (log-scale CI), and RMST / RMST difference, all
+  returned as time-indexed `data.table`s.
+- **Flexible interventions** via causatr: `static()`, `shift()`, `scale_by()`,
+  `threshold()`, and `dynamic()`. Which are available depends on the estimator.
+- **Robust inference**: a delta-method sandwich that aggregates per-individual
+  influence functions across time through the cumulative product (pointwise Wald
+  bands; stacked estimating equations for IPW and ICE), or a nonparametric
+  bootstrap that resamples ids and refits per replicate.
+- **Pluggable hazard models** via `model_fn` (`stats::glm` by default;
+  `mgcv::gam` with an `s(time)` baseline-hazard term, splines via `ns()`).
+- **`tidy()` / `plot()` / `print()` / `forrest()`** S3 methods that dispatch on
+  the time-indexed `survatr_result` shape (survival curves, and forest plots at
+  a reference time `t*`).
 
-You can also embed plots, for example:
+## Learning more
 
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
+- `vignette("survatr")` — introduction and the two-step API
+- `vignette("ipw")` — Track A IPW (weighted hazard MSM)
+- `vignette("ice")` — Track B longitudinal survival via ICE
 
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
+## References
+
+Hernán MA, Robins JM (2025). *Causal Inference: What If*. Chapman & Hall/CRC.
+Chapter 17 (survival analysis via IP weighting and standardization).
+
+Zivich PN, Ross RK, Shook-Sa BE, Cole SR, Edwards JK (2024). Empirical sandwich
+variance estimator for iterated conditional expectation g-computation.
+*Statistics in Medicine* 43:5562–5572.
+
+## Acknowledgements
+
+This package was built with the contribution of [Claude](https://claude.ai),
+Anthropic's AI assistant.
