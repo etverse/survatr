@@ -181,7 +181,7 @@ hazards only — Fine–Gray / subdistribution is out of scope (documented).
 | CR sandwich vs `delicatessen` (independent analytic M-estimation) | 🟢 | `test-competing-risks-sandwich.R` | Per-cause `F^(j),a(t)`, all-cause `S^a(t)`, and `RD^(j)(t)` point + sandwich SE match a Python `delicatessen` stacked-EE oracle to ~1e-4 on a shared fixture. Reference: `data-raw/delicatessen_competing_risks.py`; both read `fixtures/python/cr_survival_data.csv`. |
 | CR bootstrap (per-replicate dual cause-model refit) | 🟢 | `test-competing-risks.R`, `test-competing-risks-sandwich.R` | Cause models re-estimated per resample; CIs populated, point ∈ CI; SE ≈ sandwich. |
 | CR × `mgcv::gam` baseline hazard | 🟢 | `test-competing-risks-sandwich.R` | lpmatrix-basis per cause; sandwich SE finite / positive on `s(t, k = 4)`. |
-| Cause-aware `print` / `tidy` / `plot` / `forrest` | 🟢 | exercised in `test-competing-risks*.R` + the existing S3 tests | `cause` column threaded; `print` shows the truncation-by-death caveat for difference / ratio; single-event shapes unchanged. |
+| Cause-aware `print` / `tidy` / `plot` / `forrest` | 🟢 | `test-competing-risks-s3.R` | `cause` column threaded; `print` shows the truncation-by-death caveat for difference / ratio; `tidy` keeps `cause` (NA for all-cause); `plot` / `forrest` render per (group, cause); single-event shapes unchanged. |
 | Truncation-by-death caveat | 🟢 | `test-competing-risks.R` (via `suppressMessages`) | One-time `rlang::inform()` + `print` note + vignette. |
 | CR × `estimator = "ipw"` / `"ice"` | 🔴 | `test-competing-risks.R` | `survatr_competing_estimator` (gcomp / Track A only; IPW / ICE CR → later chunks). |
 | `competing != outcome`, or `< 2` distinct causes | 🔴 | `test-competing-risks.R` | `survatr_competing_misuse`. |
