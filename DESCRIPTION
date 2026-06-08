@@ -31,6 +31,7 @@ Suggests:
     MatchIt,
     mgcv,
     quarto,
+    riskRegression,
     splines,
     survival,
     testthat (>= 3.0.0)
