@@ -84,6 +84,76 @@ analytic_cr <- function(times, h1, h2) {
   )
 }
 
+## riskRegression::ate g-formula CIF oracle. Collapses person-period data to
+## one-row-per-id, fits cause-specific Cox models (CSC) for all causes, and
+## returns the standardised CIF under each treatment arm via ate(). Requires
+## the riskRegression package (Suggests). Treatment is coerced to factor
+## because ate() enforces this.
+##
+## Returns a data.table with columns: cause, time, treatment (factor), cif.
+## `treatment` levels match the original 0/1 coding cast as character ("0"/"1").
+rr_ate_cif_oracle <- function(
+  pp,
+  times,
+  id = "id",
+  time = "t",
+  event = "event",
+  treatment = "A",
+  confounders = "L"
+) {
+  dt <- data.table::as.data.table(pp)
+  data.table::setkeyv(dt, c(id, time))
+  K <- max(dt[[time]])
+  ## Collapse PP to one row per id: first-event time + cause (0 = censored).
+  per_id <- dt[,
+    {
+      ev <- which(.SD[[1L]] != 0L)
+      if (length(ev) > 0L) {
+        list(stop = .SD[[2L]][ev[1L]], event_type = .SD[[1L]][ev[1L]])
+      } else {
+        list(stop = K, event_type = 0L)
+      }
+    },
+    by = c(id),
+    .SDcols = c(event, time)
+  ]
+  ## Merge back baseline covariates (first row per id).
+  baseline <- dt[, .SD[1L], by = id, .SDcols = c(treatment, confounders)]
+  per_id <- merge(per_id, baseline, by = id)
+  ## ate() requires treatment to be a factor.
+  per_id[[treatment]] <- factor(per_id[[treatment]])
+  rhs <- paste(c(treatment, confounders), collapse = " + ")
+  ## Build formula with Hist resolved via an explicit env so the bare name
+  ## "Hist" in the call satisfies riskRegression:::SurvResponseVar's pattern
+  ## check while avoiding a namespace-qualified LHS that breaks the check.
+  fml_env <- new.env(parent = baseenv())
+  fml_env$Hist <- prodlim::Hist
+  fml <- stats::as.formula(
+    paste0("Hist(stop, event_type) ~ ", rhs),
+    env = fml_env
+  )
+  csc_fit <- riskRegression::CSC(fml, data = per_id)
+  ## ate() re-evaluates csc_fit$call$formula; store the object so the lookup
+  ## succeeds outside the function scope.
+  csc_fit$call$formula <- fml
+  causes <- sort(unique(per_id$event_type[per_id$event_type != 0L]))
+  out <- lapply(causes, function(j) {
+    res <- riskRegression::ate(
+      csc_fit,
+      data = per_id,
+      treatment = treatment,
+      times = times,
+      cause = j,
+      se = FALSE,
+      verbose = FALSE
+    )
+    mr <- data.table::as.data.table(res$meanRisk)
+    mr[, cause := j]
+    mr[, .(cause, time, treatment, cif = estimate)]
+  })
+  data.table::rbindlist(out)
+}
+
 ## Aalen-Johansen CIF oracle via `survival::survfit` on the collapsed
 ## (one-row-per-id) data. Returns a long data.frame `cause | time | cif` for the
 ## requested integer event times. Used as an empirical (non-closed-form)
