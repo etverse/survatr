@@ -62,12 +62,11 @@ test_that("bootstrap is reproducible with a fixed seed", {
   expect_equal(r1$estimates$ci_lower, r2$estimates$ci_lower)
 })
 
-## Regression test for R1 (2026-04-22 critical review, round 1): bootstrap
-## `seed` was silently non-reproducible under `parallel = "multicore"`
-## because mclapply ignores the serial RNG state unless
-## RNGkind("L'Ecuyer-CMRG") is set first. Fixed by saving the prior
-## RNGkind, switching to L'Ecuyer-CMRG when parallel != "no", and
-## restoring on exit. Repro: `/tmp/survatr_repro_r1_parallel_seed.R`.
+## Regression test: bootstrap `seed` was silently non-reproducible under
+## `parallel = "multicore"` because mclapply ignores the serial RNG state
+## unless RNGkind("L'Ecuyer-CMRG") is set first. Guarded by saving the prior
+## RNGkind, switching to L'Ecuyer-CMRG when parallel != "no", and restoring on
+## exit.
 test_that("bootstrap is reproducible under parallel = 'multicore' (R1)", {
   skip_on_cran()
   skip_on_os("windows") ## mclapply is POSIX-only; covered by snow separately

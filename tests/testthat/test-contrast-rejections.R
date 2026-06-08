@@ -44,9 +44,8 @@ test_that("contrast rejects non-intervention list elements", {
   )
 })
 
-## Regression test for R3 (2026-04-22 critical review, round 1):
-## `validate_times` previously used `is.numeric(times)`, which returns
-## FALSE for Date / POSIXct / difftime. Users whose hazard model uses a
+## Regression test: `validate_times` previously used `is.numeric(times)`, which
+## returns FALSE for Date / POSIXct / difftime. Users whose hazard model uses a
 ## real-world timestamp column could not evaluate contrasts. Relaxed
 ## to accept numeric and the three common time-like classes, delegating
 ## set-membership to `setdiff()` which works across them.

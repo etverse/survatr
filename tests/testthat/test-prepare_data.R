@@ -56,13 +56,11 @@ test_that("prepare_pp_data rejects wide (one row per id) input", {
   )
 })
 
-## Regression test for B3 / S3 (2026-04-22 critical review, round 1):
-## Ragged PP -- ids missing a row at some time in the unique-time grid --
-## previously crashed the sandwich IF chain with a subscript-OOB at
-## compute_survival_if_matrix line 111. Now rejected at prepare_pp_data
-## with a dedicated class `survatr_ragged_pp`. The classic "one id had
-## the event at t=1 and post-event rows were dropped" case is the target
-## scenario. Repro: `/tmp/survatr_repro_b3_ragged_pp.R`.
+## Regression test: ragged PP -- ids missing a row at some time in the
+## unique-time grid -- previously crashed the sandwich IF chain with a
+## subscript-OOB in the per-time row pull. Now rejected at prepare_pp_data with
+## a dedicated class `survatr_ragged_pp`. The classic "one id had the event at
+## t=1 and post-event rows were dropped" case is the target scenario.
 test_that("prepare_pp_data rejects ragged PP (B3 / S3)", {
   ## Standard ragged case: id 1 event at t=1, only (1, 1) present.
   rect <- data.table::CJ(id = 1:5, t = 1:3)

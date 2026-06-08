@@ -45,7 +45,6 @@ fit_ice_survival <- function(
   ## factor column (a cryptic data.table error), and nominal categories need a
   ## `treatment_form = ~ factor(A)` design that Track B does not yet thread.
   ## Reject with a classed error pointing at the future extended-types chunk.
-  ## Issue #2, 2026-06-03 critical review (/tmp/survatr_repro_cat.R).
   if (!is.numeric(data[[treatment]])) {
     rlang::abort(
       c(
@@ -222,7 +221,6 @@ contrast_track_b <- function(
     ## else `mu_hat` is NA). Aligned to the first-period id order `ice_if_setup`
     ## uses. `n_ids` stays the FULL count: `ice_if_setup` scales Channel 1 by
     ## `n / n_target`, so `crossprod(IF) / n_ids^2` is the correct mean variance.
-    ## Issue #1, 2026-06-03 critical review.
     first_t <- details$time_points[1]
     first_mask <- base$data_lag[[fit$time]] == first_t
     target <- base$fit_rows[first_mask]
@@ -711,7 +709,7 @@ compute_ice_survival_curve <- function(
   ## standardisation -- the consistent g-formula behaviour -- so the mean is
   ## taken with `na.rm` over the at-risk-at-baseline ids. (Without a censoring
   ## column every first-period id is at risk, so `n_eff == n_ids` and this is a
-  ## no-op.) Issue #1, 2026-06-03 critical review (/tmp/survatr_repro_cens.R).
+  ## no-op.)
   first_t <- details$time_points[1]
   first_mask <- base$data_lag[[cols$time]] == first_t
   n_eff <- sum(base$fit_rows[first_mask])
