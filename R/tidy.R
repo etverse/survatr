@@ -73,8 +73,15 @@ tidy.survatr_result <- function(
     risk_difference = "risk_hat",
     risk_ratio = "risk_hat",
     rmst = "rmst_hat",
-    rmst_difference = "rmst_hat"
+    rmst_difference = "rmst_hat",
+    cif = "cif_hat",
+    cif_difference = "cif_hat",
+    cif_ratio = "cif_hat"
   )
+
+  ## Competing-risks results carry a `cause` column; the single-event shape does
+  ## not. Surface it when present so a tidy frame keeps the cause dimension.
+  has_cause <- "cause" %in% names(x$estimates)
 
   ## Per-intervention rows.
   est_long <- NULL
@@ -82,6 +89,7 @@ tidy.survatr_result <- function(
     est_long <- data.table::data.table(
       intervention = x$estimates[["intervention"]],
       contrast = NA_character_,
+      cause = if (has_cause) x$estimates[["cause"]] else NA_integer_,
       time = x$estimates[["time"]],
       estimand = estimand_col,
       estimate = x$estimates[[estimand_col]],
@@ -94,9 +102,11 @@ tidy.survatr_result <- function(
   ## Pairwise contrasts.
   ctr_long <- NULL
   if (which %in% c("all", "contrasts") && nrow(x$contrasts) > 0L) {
+    ctr_has_cause <- "cause" %in% names(x$contrasts)
     ctr_long <- data.table::data.table(
       intervention = NA_character_,
       contrast = x$contrasts[["contrast"]],
+      cause = if (ctr_has_cause) x$contrasts[["cause"]] else NA_integer_,
       time = x$contrasts[["time"]],
       estimand = type,
       estimate = x$contrasts[["estimate"]],
@@ -111,6 +121,11 @@ tidy.survatr_result <- function(
     use.names = TRUE,
     fill = TRUE
   )
+  ## Single-event results have no cause dimension; drop the placeholder column
+  ## so their tidy shape is unchanged. Competing-risks results keep it.
+  if (!has_cause && "cause" %in% names(out)) {
+    out[, cause := NULL]
+  }
   if (!isTRUE(conf.int)) {
     out[, `:=`(ci_lower = NULL, ci_upper = NULL)]
   }

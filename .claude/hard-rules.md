@@ -284,6 +284,52 @@ Do NOT flag these as bugs. Each has a regression test.
   later). A numeric-coded multi-level treatment is modelled linearly by design
   — that is the user's modelling choice, not a bug to "fix".
 
+### Established invariants from 2026-06-08 competing risks (chunk 7)
+
+Do NOT flag these as bugs. Each has a regression test.
+
+- **One shared all-cause risk set; J cause-specific models fit on it.**
+  `surv_fit(competing = <col>)` derives `1{competing ≠ 0}`, calls
+  `build_risk_set()` ONCE, and fits each cause-`j` model with response
+  `1{competing == j}` on those rows (`fit_competing_risks()`). Sharing the risk
+  set is exactly "treat other causes as censored at their event time" — do NOT
+  fit per-cause risk sets, and do NOT cumsum the multi-valued cause column in
+  `build_risk_set` (it expects a 0/1 indicator; `.survatr_any_event` is the
+  derived all-cause one). The cause column is validated by
+  `check_competing_col()` (non-negative integers, ≥ 1 positive cause), the 0/1
+  `check_indicator_col(outcome)` is SKIPPED for the CR path.
+- **The CIF sandwich sensitivity denominator is the all-cause `(1 − H)`, NOT
+  `(1 − h^(j))`.** `s^(j')_l = h^(j')(1−h^(j'))/(1 − H_l)` with `H = Σ_j h^(j)`.
+  The single-event `s = h` cancellation (chunk 3) does not hold because the
+  survival uses the summed hazard; the formula reduces to chunk 3 only when
+  `J = 1` (verified). Do not "simplify" it back to `s = h`.
+- **The CIF derivative uses the LAGGED cumulative sensitivity.** `F^(j)_i(t) =
+  Σ_{k≤t} S(k−1) h^(j)_k`, so `∂F/∂β_{j'}` weights `cumSX^(j')(k−1)` — coded as
+  `cumSX_lag = cumSX − SX`. The all-cause survival IF uses the *inclusive*
+  `cumSX(t)` (it reduces to chunk 3). Mixing the two is a subtle bug.
+- **The bread is block-diagonal across causes; the cross-cause correlation
+  enters via the summed per-individual IF.** Each cause's
+  `causatr:::prepare_model_if()` is independent (a cause model's score involves
+  only its own `β_j`); `crossprod(IF)/n²` on the per-individual IF (summed over
+  causes) captures the within-id cross-cause correlation. Do not try to build a
+  joint cross-cause bread. survatr inverts no matrix of its own here either.
+- **Validated to ~1e-4 against `delicatessen` and to ~2% against the bootstrap.**
+  `data-raw/delicatessen_competing_risks.py` reads the shared
+  `fixtures/python/cr_survival_data.csv`; `test-competing-risks-sandwich.R`
+  pins per-cause `F^(j),a(t)`, all-cause `S^a(t)`, and `RD^(j)(t)` (point + SE).
+  Do not change the IF chain without re-running these pins.
+- **gcomp / Track A only; documented rejections.** CR × ipw/ice →
+  `survatr_competing_estimator`; `outcome ≠ competing` or `< 2` causes →
+  `survatr_competing_misuse`; bad cause column → `survatr_bad_competing`; CIF
+  estimand on a single-event fit (or single-event contrast on a CR fit) →
+  `survatr_competing_type`; unknown `cause` → `survatr_bad_cause`; external
+  `weights` + `competing` → `survatr_competing_weights`. These are deliberate
+  scoping, not bugs. **Fine–Gray / subdistribution hazards stay out of scope.**
+- **Cause-specific CIF contrasts ship a truncation-by-death caveat.** A one-time
+  `rlang::inform(.frequency = "once")` at compute time + a `print` note for
+  `cif_difference` / `cif_ratio` + the vignette. Do not strip the caveat to
+  "clean up" the output — numbers must never be emitted silently.
+
 ### Implementation conventions
 
 - **causatr is the engine.** Import `prepare_model_if()`,

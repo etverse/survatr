@@ -126,7 +126,7 @@ validate_reference <- function(
   type,
   call = rlang::caller_env()
 ) {
-  no_contrast <- type %in% c("survival", "risk", "rmst")
+  no_contrast <- type %in% c("survival", "risk", "rmst", "cif")
   if (no_contrast) {
     return(NULL)
   }
@@ -148,6 +148,69 @@ validate_reference <- function(
     )
   }
   reference
+}
+
+#' Validate the `cause` argument (competing risks)
+#'
+#' For CIF estimands (`cif` / `cif_difference` / `cif_ratio`), `cause` selects
+#' which competing cause(s) to report. `NULL` means all fitted causes. Any
+#' requested cause must be one of the cause labels present in the fit
+#' (`fit$causes`). For the all-cause estimands (`survival` / `risk`) the `cause`
+#' argument is meaningless and is ignored (returns `NULL`).
+#'
+#' @param cause User-supplied cause selection: `NULL` or an integer-valued
+#'   vector.
+#' @param fit_causes The fitted cause labels (`fit$causes`), or `NULL` for a
+#'   single-event fit.
+#' @param type Contrast type.
+#' @param call Caller frame for the error signal.
+#'
+#' @returns Integer vector of the causes to report (sorted, de-duplicated), or
+#'   `NULL` for the all-cause estimands.
+#' @family checks
+#' @noRd
+validate_cause <- function(
+  cause,
+  fit_causes,
+  type,
+  call = rlang::caller_env()
+) {
+  ## All-cause estimands carry no cause dimension.
+  if (type %in% c("survival", "risk")) {
+    return(NULL)
+  }
+  ## Default: report every fitted cause.
+  if (is.null(cause)) {
+    return(fit_causes)
+  }
+  if (!is.numeric(cause) || length(cause) == 0L || anyNA(cause)) {
+    rlang::abort(
+      "`cause` must be `NULL` or a non-empty integer vector with no NA.",
+      class = "survatr_bad_cause",
+      call = call
+    )
+  }
+  cause <- sort(unique(as.integer(round(cause))))
+  unknown <- setdiff(cause, fit_causes)
+  if (length(unknown) > 0L) {
+    rlang::abort(
+      c(
+        paste0(
+          "`cause` contains label(s) not among the fitted causes: ",
+          paste(unknown, collapse = ", "),
+          "."
+        ),
+        i = paste0(
+          "Fitted causes are: ",
+          paste(fit_causes, collapse = ", "),
+          "."
+        )
+      ),
+      class = "survatr_bad_cause",
+      call = call
+    )
+  }
+  cause
 }
 
 #' Validate the `ci_method` argument

@@ -1,6 +1,15 @@
 ## Bookkeeping columns added internally during risk-set construction.
 ## Stripped from `fit$pp_data` before return so downstream code never sees them.
-SURVATR_INTERNAL_COLS <- c(".survatr_prev_event", ".survatr_prev_cens")
+## `.survatr_any_event` / `.survatr_cause_event` are the transient all-cause and
+## per-cause 0/1 event indicators derived from the multi-valued `competing`
+## column in the cause-specific hazards path; like the lagged cumsums they are
+## stripped before return.
+SURVATR_INTERNAL_COLS <- c(
+  ".survatr_prev_event",
+  ".survatr_prev_cens",
+  ".survatr_any_event",
+  ".survatr_cause_event"
+)
 
 #' S3 constructor for `survatr_fit`
 #'
@@ -25,7 +34,16 @@ SURVATR_INTERNAL_COLS <- c(".survatr_prev_event", ".survatr_prev_cens")
 #' @param weights External weights vector passed through, or `NULL`.
 #' @param n_fit,n_total Integers: number of rows used to fit vs total PP rows.
 #' @param competing Column name passed to `surv_fit()`'s `competing` argument,
-#'   or `NULL`. Reserved for the cause-specific hazards + CIF path.
+#'   or `NULL`. When non-`NULL` the fit is a cause-specific hazards + CIF
+#'   competing-risks fit: `model` is `NULL` and the per-cause hazard models live
+#'   in `cause_models`.
+#' @param cause_models Named list of fitted cause-specific hazard models (one
+#'   per competing event type, named by the integer cause label), or `NULL`
+#'   (single-event fit). Each is a pooled-logistic hazard model on the shared
+#'   all-cause risk set with the cause-`j` event indicator as response.
+#' @param causes Integer vector of the competing event-type labels (`1..J`)
+#'   present in the data, or `NULL` (single-event fit). Names of `cause_models`
+#'   are `as.character(causes)`.
 #' @param treatment_model The full `A ~ L` `causatr_treatment_model` under
 #'   `estimator = "ipw"`, or `NULL` (gcomp). Used by the IPW sandwich and
 #'   `diagnose()`.
@@ -79,7 +97,9 @@ new_survatr_fit <- function(
   trim = NULL,
   confounders_tv = NULL,
   history = NULL,
-  ice_details = NULL
+  ice_details = NULL,
+  cause_models = NULL,
+  causes = NULL
 ) {
   structure(
     list(
@@ -109,6 +129,8 @@ new_survatr_fit <- function(
       confounders_tv = confounders_tv,
       history = history,
       ice_details = ice_details,
+      cause_models = cause_models,
+      causes = causes,
       call = call
     ),
     class = "survatr_fit"

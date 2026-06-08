@@ -1,5 +1,32 @@
 # survatr (development version)
 
+## 2026-06-08 — Competing risks: cause-specific hazards + cumulative incidence
+
+`surv_fit(competing = <cause-col>)` adds first-class competing-risks survival
+via parallel **cause-specific hazards + cumulative incidence functions (CIF)**.
+For `J` competing event types (a single multi-valued column: `0` = no event,
+`1..J` = the cause), it fits `J` pooled-logistic cause-specific hazard models on
+a **shared all-cause risk set** (which is exactly "treat the other causes as
+censored at their event time"). `contrast()` gains a `cause` argument and the
+estimands `type = "cif"` / `"cif_difference"` / `"cif_ratio"` (per cause), plus
+all-cause `"survival"` / `"risk"` from the summed hazards. The
+`sum_j F^(j)(t) + S(t) = 1` identity holds numerically.
+
+The sandwich variance stacks the `J` cause-specific hazard scores
+(block-diagonal bread) and propagates them through the CIF / survival cross-time
+delta. The per-cause sensitivity carries the **all-cause** `(1 - H)` denominator
+(`H = sum_j h^(j)`), which does not cancel `mu_eta = h(1 - h)` the way the
+single-event case does; it reduces to the chunk-3 survival IF when `J = 1`. The
+point estimates match a closed-form two-cause constant-hazard CIF and the
+Aalen-Johansen estimator (`survival::survfit`); the sandwich SEs match an
+independent `delicatessen` stacked-EE M-estimator to ~1e-4 and the empirical
+bootstrap to within ~2%. The bootstrap, `print` / `tidy` / `plot` / `forrest`,
+and the contrast surface are all cause-aware. Cause-specific CIF contrasts carry
+a documented truncation-by-death caveat (printed for difference / ratio results,
+emitted once per session, and covered in the vignette). Fine--Gray /
+subdistribution hazards are out of scope (cause-specific only). IPW / ICE
+competing risks, and per-cause RMST / years-of-life-lost, ship in later chunks.
+
 ## 2026-06-03 — Track B: longitudinal survival via ICE hazards (`estimator = "ice"`)
 
 `surv_fit(estimator = "ice")` adds longitudinal causal survival estimation for

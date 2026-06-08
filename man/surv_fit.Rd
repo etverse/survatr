@@ -60,11 +60,17 @@ indicator (\code{1} = censored at this period). \code{NA} or \code{0} means unce
 When \code{NULL}, every uncensored period is treated as at-risk until the
 first event.}
 
-\item{competing}{Reserved for the cause-specific hazards + CIF path.
-Passing anything other than \code{NULL} is an error in the current release --
-competing risks have a dedicated entry point rather than being silently
-folded into \code{surv_fit()} (which would fit a biased cause-deleted
-hazard).}
+\item{competing}{Character scalar or \code{NULL} (the default). When non-\code{NULL},
+activates the \strong{competing-risks} path: \code{competing} names a multi-valued
+event-type column (\code{0} = no event this period, \verb{1..J} = the cause of the
+event this period), and \code{surv_fit()} fits \code{J} parallel cause-specific
+pooled-logistic hazard models on a shared all-cause risk set. It must name
+the \strong{same} column as \code{outcome}; competing risks are gcomp / Track A only
+in this release (a non-\code{"gcomp"} estimator, fewer than two distinct causes,
+or \code{outcome != competing} aborts with \code{survatr_competing_estimator} /
+\code{survatr_competing_misuse}). Cumulative-incidence functions (CIF), CIF
+contrasts, and all-cause survival come from \code{contrast()}. Fine--Gray /
+subdistribution hazards are out of scope (cause-specific only).}
 
 \item{time_formula}{One-sided formula for the baseline hazard
 \code{alpha(t)}. Defaults to \code{~ splines::ns(time, 4)} (4 df natural spline

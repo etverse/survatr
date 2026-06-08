@@ -121,6 +121,17 @@ print.survatr_result <- function(x, n = 10L, ...) {
   cat(sprintf("  Estimates:   %d rows\n", nrow(x$estimates)))
   cat(sprintf("  Contrasts:   %d rows\n", nrow(x$contrasts)))
 
+  ## Competing-risks CIF contrasts condition on surviving the competing events;
+  ## repeat the caveat here so a printed result never shows the numbers silently.
+  if (x$type %in% c("cif_difference", "cif_ratio")) {
+    cat(
+      "  Note:        cause-specific CIF contrasts condition on surviving the\n",
+      "               competing events (truncation by death); see the\n",
+      "               competing-risks vignette.\n",
+      sep = ""
+    )
+  }
+
   show <- if (nrow(x$contrasts) > 0L) x$contrasts else x$estimates
   ## Use `head()` (not `show[seq_len(n)]`) because `show` may carry an
   ## `n` column (the per-time sample count from `compute_survival_curve`)

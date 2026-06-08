@@ -39,7 +39,8 @@ bootstrap_survival <- function(
   n_boot,
   parallel,
   ncpus,
-  seed
+  seed,
+  causes = NULL
 ) {
   id_col <- fit$id
   ## Build a per-id row-index map once. `split()` keys on as.character().
@@ -48,28 +49,41 @@ bootstrap_survival <- function(
   unique_ids <- names(id_to_rows)
   n_ids <- length(unique_ids)
 
-  ## Metadata for column layout.
+  ## Metadata for column layout. The competing-risks CIF estimands add a cause
+  ## dimension between intervention and time (intervention-major, cause-mid,
+  ## time-minor); `causes = NULL` collapses to the single-event layout, so the
+  ## single-event path is byte-for-byte unchanged.
   iv_names <- names(interventions)
   k_t <- length(times)
   n_iv <- length(iv_names)
+  n_cause <- if (is.null(causes)) 1L else length(causes)
   has_contrast <- type %in%
-    c("risk_difference", "risk_ratio", "rmst_difference")
+    c(
+      "risk_difference",
+      "risk_ratio",
+      "rmst_difference",
+      "cif_difference",
+      "cif_ratio"
+    )
   contrast_names <- if (has_contrast) {
     paste0(setdiff(iv_names, reference), " vs ", reference)
   } else {
     character(0)
   }
   n_ctr <- length(contrast_names)
-  n_cols <- n_iv * k_t + n_ctr * k_t
+  block <- n_cause * k_t
+  n_cols <- (n_iv + n_ctr) * block
 
   meta <- list(
     intervention_names = iv_names,
     contrast_names = contrast_names,
     times = times,
     type = type,
-    est_cols = seq_len(n_iv * k_t),
+    causes = causes,
+    n_cause = n_cause,
+    est_cols = seq_len(n_iv * block),
     ctr_cols = if (n_ctr > 0L) {
-      (n_iv * k_t + 1L):(n_iv * k_t + n_ctr * k_t)
+      (n_iv * block + 1L):(n_iv * block + n_ctr * block)
     } else {
       integer(0)
     },
@@ -132,7 +146,11 @@ bootstrap_survival <- function(
         ## Track B (ice) needs the time-varying confounders + lag order; both
         ## are NULL for Track A, where `surv_fit()` ignores them.
         confounders_tv = fit$confounders_tv,
-        history = if (is.null(fit$history)) Inf else fit$history
+        history = if (is.null(fit$history)) Inf else fit$history,
+        ## Competing risks: re-activate the cause-specific path each replicate
+        ## (NULL for single-event fits). The cause models are re-estimated per
+        ## resample, propagating their uncertainty into the bootstrap CI.
+        competing = fit$competing
       ),
       error = function(e) NULL
     )
@@ -146,6 +164,7 @@ bootstrap_survival <- function(
         times = times,
         type = type,
         reference = reference,
+        cause = causes,
         ci_method = "none"
       ),
       error = function(e) NULL
@@ -207,53 +226,80 @@ bootstrap_survival <- function(
   list(t0 = b$t0, t = b$t, meta = meta, n_failed = sum(fail_mask))
 }
 
-#' Flatten a `survatr_result` to the bootstrap's column vector
+#' Map an estimand column to the bootstrap value column
 #'
-#' Column layout:
-#' - First `n_iv * k_t` entries: per-intervention point estimates
-#'   (`s_hat` for `survival`, `risk_hat` for `risk` / `risk_difference`
-#'   / `risk_ratio`, `rmst_hat` for `rmst` / `rmst_difference`).
-#'   Ordered intervention-major, time-minor (all times for iv1, then all
-#'   times for iv2, ...).
-#' - Next `n_ctr * k_t` entries: contrast estimates, same ordering.
+#' @param type Contrast type.
 #'
-#' @param res A `survatr_result` from `contrast(..., ci_method = "none")`.
-#' @param meta The metadata list from the caller's layout.
-#'
-#' @return Numeric vector of length `n_iv * k_t + n_ctr * k_t`.
+#' @returns The name of the per-intervention estimand column for `type`.
 #' @noRd
-flatten_boot_result <- function(res, meta) {
-  estimand_col <- switch(
-    meta$type,
+boot_estimand_col <- function(type) {
+  switch(
+    type,
     survival = "s_hat",
     risk = "risk_hat",
     risk_difference = "risk_hat",
     risk_ratio = "risk_hat",
     rmst = "rmst_hat",
-    rmst_difference = "rmst_hat"
+    rmst_difference = "rmst_hat",
+    cif = "cif_hat",
+    cif_difference = "cif_hat",
+    cif_ratio = "cif_hat"
   )
+}
 
-  est_vec <- numeric(meta$n_iv * meta$k_t)
+#' Flatten a `survatr_result` to the bootstrap's column vector
+#'
+#' Column layout, intervention-major then cause-mid then time-minor:
+#' - First `n_iv * n_cause * k_t` entries: per-intervention point estimates
+#'   (`s_hat` for `survival`, `risk_hat` for `risk` / `risk_difference` /
+#'   `risk_ratio`, `rmst_hat` for `rmst*`, `cif_hat` for `cif*`).
+#' - Next `n_ctr * n_cause * k_t` entries: contrast estimates, same ordering.
+#'
+#' For single-event types `n_cause == 1` (`meta$causes` is `NULL`) and the
+#' layout collapses to the original intervention-major, time-minor order.
+#'
+#' @param res A `survatr_result` from `contrast(..., ci_method = "none")`.
+#' @param meta The metadata list from the caller's layout.
+#'
+#' @returns Numeric vector of length `(n_iv + n_ctr) * n_cause * k_t`.
+#' @noRd
+flatten_boot_result <- function(res, meta) {
+  estimand_col <- boot_estimand_col(meta$type)
+  block <- meta$n_cause * meta$k_t
+
+  ## Extract one (intervention | contrast) block: cause-major, time-minor.
+  ## `meta$causes = NULL` => a single cause slot with no cause filter, i.e. the
+  ## single-event layout.
+  pull <- function(tbl, key_col, key_val, value_col) {
+    out <- numeric(block)
+    for (ci in seq_len(meta$n_cause)) {
+      rows <- if (is.null(meta$causes)) {
+        tbl[get(key_col) == key_val]
+      } else {
+        tbl[get(key_col) == key_val & get("cause") == meta$causes[ci]]
+      }
+      data.table::setkeyv(rows, "time")
+      idx <- ((ci - 1L) * meta$k_t + 1L):(ci * meta$k_t)
+      out[idx] <- rows[[value_col]]
+    }
+    out
+  }
+
+  est_vec <- numeric(meta$n_iv * block)
   for (j in seq_along(meta$intervention_names)) {
     iv <- meta$intervention_names[j]
-    rows <- res$estimates[get("intervention") == iv]
-    data.table::setkeyv(rows, "time")
-    vals <- rows[[estimand_col]]
-    idx <- ((j - 1L) * meta$k_t + 1L):(j * meta$k_t)
-    est_vec[idx] <- vals
+    idx <- ((j - 1L) * block + 1L):(j * block)
+    est_vec[idx] <- pull(res$estimates, "intervention", iv, estimand_col)
   }
 
   if (meta$n_ctr == 0L) {
     return(est_vec)
   }
-  ctr_vec <- numeric(meta$n_ctr * meta$k_t)
+  ctr_vec <- numeric(meta$n_ctr * block)
   for (j in seq_along(meta$contrast_names)) {
     cn <- meta$contrast_names[j]
-    rows <- res$contrasts[get("contrast") == cn]
-    data.table::setkeyv(rows, "time")
-    vals <- rows[["estimate"]]
-    idx <- ((j - 1L) * meta$k_t + 1L):(j * meta$k_t)
-    ctr_vec[idx] <- vals
+    idx <- ((j - 1L) * block + 1L):(j * block)
+    ctr_vec[idx] <- pull(res$contrasts, "contrast", cn, "estimate")
   }
   c(est_vec, ctr_vec)
 }

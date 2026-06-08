@@ -161,4 +161,34 @@ single-model primitives. Confounders split into `confounders` (baseline) +
 
 ## Competing risks (cause-specific hazards + CIF)
 
-Ships in chunk 7.
+`surv_fit(competing = <cause-col>)` fits `J` parallel cause-specific
+pooled-logistic hazards on a **shared all-cause risk set** (other causes
+censored at their event time), then `contrast()` builds per-cause cumulative
+incidence `F^(j),a(t) = Σ_{k≤t} S^a(k−1) ĥ^(j),a(k)` and all-cause survival
+`S^a(t) = ∏(1 − Σ_j ĥ^(j))`. gcomp / Track A only this chunk. Cause-specific
+hazards only — Fine–Gray / subdistribution is out of scope (documented).
+
+| Surface | Status | Test file | Oracle |
+|---|---|---|---|
+| CR fit: `J` cause-specific hazards on a shared all-cause risk set | 🟢 | `test-competing-risks.R` | Structure (`cause_models`, `causes`, `model = NULL`); both cause models fit the same `nobs`. |
+| `type = "cif"` per-cause CIF, `static` interventions | 🟢 | `test-competing-risks.R` | Closed-form two-cause constant-hazard CIF `F^(j)(t) = (h_j/H)(1 − (1−H)^t)` (tol 0.02 at n = 6000); Aalen–Johansen (`survival::survfit`) on a saturated `~ factor(t)` fit (tol 0.02). |
+| All-cause `type = "survival"` / `"risk"` (summed hazards) | 🟢 | `test-competing-risks.R` | Closed-form `(1 − h₁ − h₂)^t` (tol 0.02). |
+| `Σ_j F^(j)(t) + S(t) = 1` identity | 🟢 | `test-competing-risks.R` | Numerical identity to 1e-12 per (intervention, time). |
+| `type = "cif_difference"` | 🟢 | `test-competing-risks.R`, `test-competing-risks-sandwich.R` | No-effect DGP: CIF-diff CI covers 0 at ≥ 88% nominal 95% (150-rep sim, `skip_on_cran`). |
+| `type = "cif_ratio"` (log-scale) | 🟢 | `test-competing-risks-sandwich.R` | Strictly positive, `ci_upper > ci_lower`, covers 1 on a no-effect DGP. |
+| `cause = ` subsetting | 🟢 | `test-competing-risks.R` | `cause = 1` returns only cause-1 rows in estimates + contrasts. |
+| Stacked-EE sandwich (per-cause hazard blocks + CIF/survival delta) | 🟢 | `test-competing-risks-sandwich.R` | IF columns mean ~ 0; sandwich SE matches the empirical bootstrap to ~2%. |
+| CR sandwich vs `delicatessen` (independent analytic M-estimation) | 🟢 | `test-competing-risks-sandwich.R` | Per-cause `F^(j),a(t)`, all-cause `S^a(t)`, and `RD^(j)(t)` point + sandwich SE match a Python `delicatessen` stacked-EE oracle to ~1e-4 on a shared fixture. Reference: `data-raw/delicatessen_competing_risks.py`; both read `fixtures/python/cr_survival_data.csv`. |
+| CR bootstrap (per-replicate dual cause-model refit) | 🟢 | `test-competing-risks.R`, `test-competing-risks-sandwich.R` | Cause models re-estimated per resample; CIs populated, point ∈ CI; SE ≈ sandwich. |
+| CR × `mgcv::gam` baseline hazard | 🟢 | `test-competing-risks-sandwich.R` | lpmatrix-basis per cause; sandwich SE finite / positive on `s(t, k = 4)`. |
+| Cause-aware `print` / `tidy` / `plot` / `forrest` | 🟢 | exercised in `test-competing-risks*.R` + the existing S3 tests | `cause` column threaded; `print` shows the truncation-by-death caveat for difference / ratio; single-event shapes unchanged. |
+| Truncation-by-death caveat | 🟢 | `test-competing-risks.R` (via `suppressMessages`) | One-time `rlang::inform()` + `print` note + vignette. |
+| CR × `estimator = "ipw"` / `"ice"` | 🔴 | `test-competing-risks.R` | `survatr_competing_estimator` (gcomp / Track A only; IPW / ICE CR → later chunks). |
+| `competing != outcome`, or `< 2` distinct causes | 🔴 | `test-competing-risks.R` | `survatr_competing_misuse`. |
+| Non-integer / negative / NA / all-zero cause column | 🔴 | `test-competing-risks.R` | `survatr_bad_competing`. |
+| CIF estimand on a single-event fit; single-event contrast on a CR fit | 🔴 | `test-competing-risks.R` | `survatr_competing_type`. |
+| Unknown `cause` label | 🔴 | `test-competing-risks.R` | `survatr_bad_cause`. |
+| External `weights` + `competing =` | 🔴 | (guarded in `surv_fit()`) | `survatr_competing_weights` (weighted / IPCW competing risks → later chunk). |
+| Fine–Gray / subdistribution hazards | — | — | Out of scope (cause-specific only); documented in roxygen + vignette. |
+| Per-cause RMST / years-of-life-lost | — | — | Out of scope this chunk (deferred to chunk 12). |
+| Competing risks under Track B | — | — | Out of scope this chunk (composes after chunks 6 + 7). |
