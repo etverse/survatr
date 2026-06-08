@@ -40,15 +40,12 @@ test_that("rmst_weights gives a cumulative trapezoid quadrature matrix", {
   }
 })
 
-## Regression test for B1 (2026-04-22 critical review, round 1):
-## `rmst_weights()` previously had off-by-one indexing on the per-interval
-## `dt` contributions AND double-counted `S(0) = 1` onto the first column
-## of every row, inflating the sandwich SE for `rmst` and
-## `rmst_difference` by up to 2x at t_1 and ~57% on irregular grids.
-## Fixed in the same commit as this test. Repro script:
-## `/tmp/survatr_repro_b1_rmst_weights.R`. Contract:
-##   W %*% s_hat + dt[1]/2 == trapezoidal_rmst(times, s_hat)
-## for any `times` (sorted, first > 0) and any `s_hat` in [0, 1].
+## Regression test: `rmst_weights()` must not double-count `S(0) = 1` or
+## off-by-one the per-interval `dt` contributions (which would inflate the
+## sandwich SE for `rmst` / `rmst_difference` by up to 2x at t_1 and ~57% on
+## irregular grids). Contract: the row-weighted survival `W` times `s_hat`,
+## plus the `dt[1]/2` constant, recovers `trapezoidal_rmst(times, s_hat)` for
+## any `times` (sorted, first > 0) and any `s_hat` in [0, 1].
 test_that("rmst_weights matches trapezoidal_rmst on arbitrary grids (B1)", {
   for (times in list(
     1:5,

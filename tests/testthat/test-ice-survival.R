@@ -241,8 +241,7 @@ test_that("Track B sandwich SEs agree with the empirical bootstrap", {
 })
 
 test_that("Track B handles (MCAR) entry censoring without NA-ing the curve", {
-  ## Regression for the 2026-06-03 critical review Issue #1
-  ## (/tmp/survatr_repro_cens.R): individuals censored at the FIRST period are
+  ## Entry-censoring regression: individuals censored at the FIRST period are
   ## never in the period-1 risk set, so they carry NA pseudo-outcomes. Before
   ## the fix, `mean()` without `na.rm` plus a `target` of all ids turned the
   ## entire Track B curve / SE into NA. The fix restricts the standardisation
@@ -316,8 +315,7 @@ test_that("time-varying treatment with Track A warns, pointing to ice", {
 })
 
 test_that("Track B rejects a non-numeric (factor) treatment", {
-  ## Regression for the 2026-06-03 critical review Issue #2
-  ## (/tmp/survatr_repro_cat.R): a factor treatment previously produced a
+  ## Factor-treatment regression: a factor treatment previously produced a
   ## cryptic data.table error (the intervention assigns a numeric value to a
   ## factor column); a numeric-coded categorical was silently modelled linearly.
   ## Track B now requires a numeric treatment and rejects factors with a clear

@@ -8,8 +8,8 @@
   fit,
   interventions,
   times,
-  type = c("risk_difference", "survival", "risk", "risk_ratio", "rmst",
-    "rmst_difference"),
+  type = NULL,
+  cause = NULL,
   reference = NULL,
   ci_method = "none",
   conf_level = 0.95,
@@ -34,13 +34,24 @@ survival curve. Must all be elements of \code{fit$time_grid} — extrapolation
 beyond the observed grid is rejected with
 \code{survatr_time_extrapolation}.}
 
-\item{type}{One of \code{"survival"}, \code{"risk"}, \code{"risk_difference"},
-\code{"risk_ratio"}, \code{"rmst"}, \code{"rmst_difference"}.}
+\item{type}{Estimand. For a single-event fit: one of \code{"survival"},
+\code{"risk"}, \code{"risk_difference"}, \code{"risk_ratio"}, \code{"rmst"},
+\code{"rmst_difference"} (default \code{"risk_difference"}). For a competing-risks
+fit (\code{surv_fit(..., competing = )}): one of \code{"cif"} (per-cause cumulative
+incidence), \code{"cif_difference"}, \code{"cif_ratio"} (default), or all-cause
+\code{"survival"} / \code{"risk"} (from the summed cause-specific hazards). Mixing a
+CIF estimand with a single-event fit (or vice versa) aborts with
+\code{survatr_competing_type}.}
+
+\item{cause}{Competing-risks only. Integer vector selecting which cause(s)
+to report for the \code{cif} estimands, or \code{NULL} (the default) for all causes.
+Validated against the fitted causes; ignored for \code{survival} / \code{risk} and
+for single-event fits.}
 
 \item{reference}{Name of the intervention used as the reference in
 difference / ratio contrasts. Defaults to the first name in
-\code{interventions}. Ignored by \code{type = "survival"}, \code{"risk"}, and
-\code{"rmst"} (no pairwise contrast).}
+\code{interventions}. Ignored by \code{type = "survival"}, \code{"risk"}, \code{"rmst"}, and
+\code{"cif"} (no pairwise contrast).}
 
 \item{ci_method}{One of \code{"none"} (point estimates only), \code{"sandwich"}
 (delta-method cross-time IF aggregation via

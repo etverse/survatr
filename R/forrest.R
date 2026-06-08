@@ -85,12 +85,19 @@ forrest.survatr_result <- function(
   xlab = NULL,
   ...
 ) {
-  if (!x$type %in% c("risk_difference", "risk_ratio", "rmst_difference")) {
+  contrast_types <- c(
+    "risk_difference",
+    "risk_ratio",
+    "rmst_difference",
+    "cif_difference",
+    "cif_ratio"
+  )
+  if (!x$type %in% contrast_types) {
     rlang::abort(
       paste0(
         "`forrest()` requires a contrast-shaped result (",
-        "`type` in {risk_difference, risk_ratio, rmst_difference}). ",
-        "Got type = \"",
+        "`type` in {risk_difference, risk_ratio, rmst_difference, ",
+        "cif_difference, cif_ratio}). Got type = \"",
         x$type,
         "\"."
       ),
@@ -114,7 +121,12 @@ forrest.survatr_result <- function(
       class = "survatr_bad_t_ref"
     )
   }
-  rows <- x$contrasts[get("time") == t_ref]
+  rows <- data.table::copy(x$contrasts[get("time") == t_ref])
+  ## Competing-risks contrasts carry a `cause`: one forest row per (contrast,
+  ## cause), labelled accordingly. Single-event contrasts have no cause column.
+  if ("cause" %in% names(rows) && any(!is.na(rows[["cause"]]))) {
+    rows[, contrast := paste0(get("contrast"), " | cause ", get("cause"))]
+  }
   if (nrow(rows) == 0L) {
     ## Distinct failure from the `survatr_bad_t_ref` guard above: there
     ## `t_ref` is malformed or off-grid; here it is a valid grid time but
@@ -142,7 +154,9 @@ forrest.survatr_result <- function(
       x$type,
       risk_difference = "risk difference",
       risk_ratio = "risk ratio",
-      rmst_difference = "RMST difference"
+      rmst_difference = "RMST difference",
+      cif_difference = "CIF difference",
+      cif_ratio = "CIF ratio"
     )
   }
 
@@ -169,7 +183,7 @@ forrest.survatr_result <- function(
     ylab = "",
     ...
   )
-  ref_line <- if (identical(x$type, "risk_ratio")) 1 else 0
+  ref_line <- if (x$type %in% c("risk_ratio", "cif_ratio")) 1 else 0
   graphics::abline(v = ref_line, lty = 3, col = "grey50")
   graphics::axis(
     2,

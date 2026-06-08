@@ -25,6 +25,19 @@ Python at test time.
   backward survival-tail ICE recursion as a stacked M-estimator, so its
   numerical sandwich independently validates survatr's analytic survival IF
   chain — in particular the `(1 - D_k)` failure carry-forward factor.
+- `cr_survival_data.csv` — shared person-period fixture (`id, t, A, L, event,
+  at_risk`) for competing risks. `event` is the multi-valued cause column
+  (`0` = no event, `1` / `2` = cause); `at_risk` is the shared all-cause risk
+  set. Generated in R from `sim_two_cause_constant_hazard(n = 1200, K = 5,
+  seed = 41, beta1_A = -0.5, beta1_L = 0.6, beta2_L = 0.4, gamma = 0.7)`. Both
+  R and Python read this.
+- `cr_survival_delicatessen.csv` — delicatessen output (`quantity, time,
+  estimate, se`) for per-cause CIF `F{j}_a{a}`, all-cause `S_a{a}`, and the
+  cause-`j` CIF difference `RD{j}` at times 2 and 4, consumed by
+  `test-competing-risks-sandwich.R`. The Python script stacks the two
+  cause-specific hazard scores plus the CIF / survival functionals, so its
+  sandwich independently validates survatr's cause-specific CIF IF — in
+  particular the all-cause `(1 - H)` sensitivity denominator.
 
 ## Environment
 
@@ -61,6 +74,18 @@ Rscript -e 'source("tests/testthat/helper-ice-survival-oracle.R"); \
     "tests/testthat/fixtures/python/ice_survival_data.csv")'
 #   (2) delicatessen reference (Python):
 ../causatr/data-raw/zepid_venv/bin/python data-raw/delicatessen_ice_survival.py
+
+# Competing-risks fixtures:
+#   (1) data fixture (R):
+Rscript -e 'source("tests/testthat/helper-cr-oracle.R"); library(data.table); \
+  dt <- sim_two_cause_constant_hazard(n=1200L, K=5L, h1=0.10, h2=0.07, \
+    seed=41L, beta1_A=-0.5, beta1_L=0.6, beta2_L=0.4, gamma=0.7); \
+  setkeyv(dt, c("id","t")); \
+  dt[, at_risk := as.integer(shift(cumsum(event!=0),1L,fill=0L,"lag")==0L), by=id]; \
+  fwrite(dt[,.(id,t,A,L,event,at_risk)], \
+    "tests/testthat/fixtures/python/cr_survival_data.csv")'
+#   (2) delicatessen reference (Python):
+../causatr/data-raw/zepid_venv/bin/python data-raw/delicatessen_competing_risks.py
 ```
 
 The R fit and the delicatessen stack agree to ~1e-4 on `S^a(t)` and the risk

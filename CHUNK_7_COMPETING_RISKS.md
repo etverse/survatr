@@ -1,6 +1,9 @@
 # Chunk 7 — Competing risks: cause-specific hazards + CIF
 
-> **Status: ⬜ Not started**
+> **Status: ✅ Done.** `R/competing_risks.R` + `R/variance_if_competing.R`;
+> tests `test-competing-risks.R`, `test-competing-risks-sandwich.R`; oracle
+> `helper-cr-oracle.R` + `data-raw/delicatessen_competing_risks.py`. gcomp /
+> Track A only; IPW / ICE competing risks and per-cause RMST / YLL deferred.
 > **Depends on:** Chunk 2 (contrast spine), Chunk 3 (sandwich IF).
 > **Oracle:** closed-form two-cause constant-hazard DGP (analytic CIF);
 > `riskRegression::ate()` / `survtmle` for CIF point estimates;
@@ -112,10 +115,16 @@ result <- contrast(fit, interventions = list(a1 = causatr::static(1),
 - Chunks 2, 3. Reuses `causatr:::prepare_model_if()` per cause-specific model.
 
 ## Acceptance checklist
-- [ ] `J` cause-specific hazards fit; CIF matches the analytic two-cause form.
-- [ ] `Σ_j F^(j)(t) + S(t) = 1` to tolerance.
-- [ ] Stacked-EE sandwich CI for CIF-difference covers 0 under no effect;
-      cross-checked against `delicatessen`.
-- [ ] `competing =` misuse still aborts; proper path works.
-- [ ] Truncation-by-death caveat shipped.
-- [ ] `FEATURE_COVERAGE_MATRIX.md` + handoff §10 + CLAUDE.md updated.
+- [x] `J` cause-specific hazards fit; CIF matches the analytic two-cause form
+      (and the Aalen–Johansen estimator).
+- [x] `Σ_j F^(j)(t) + S(t) = 1` to tolerance (1e-12).
+- [x] Stacked-EE sandwich CI for CIF-difference covers 0 under no effect
+      (≥ 88% nominal 95%); cross-checked against `delicatessen` (~1e-4) and the
+      bootstrap (~2%).
+- [x] `competing =` misuse still aborts (`survatr_competing_misuse` /
+      `survatr_competing_estimator` / `survatr_bad_competing` /
+      `survatr_competing_type`); proper path works.
+- [x] Truncation-by-death caveat shipped (`print` note + one-time `inform` +
+      vignette).
+- [x] `FEATURE_COVERAGE_MATRIX.md` + handoff §10 + CLAUDE.md +
+      `.claude/hard-rules.md` + `NEWS.md` updated.

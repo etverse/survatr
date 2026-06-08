@@ -9,11 +9,21 @@
 ## within-id cumulative product. They live only on the internal copy and
 ## never reach user code, but we reserve the names so a user input with
 ## those columns is caught upfront rather than shadowed inside a copy.
+## `.survatr_any_event` / `.survatr_cause_event`: transient all-cause and
+## per-cause 0/1 event indicators derived from the multi-valued competing column
+## in the cause-specific hazards path. Like the lagged cumsums they live only on
+## internal copies, but the names are reserved so a user input carrying them is
+## caught upfront rather than shadowed inside a copy.
 SURVATR_RESERVED_COLS <- c(
   ".survatr_prev_event",
   ".survatr_prev_cens",
   ".cf_hazard",
-  ".cf_surv"
+  ".cf_surv",
+  ".survatr_any_event",
+  ".survatr_cause_event",
+  ".cf_all_haz",
+  ".cf_surv_lag",
+  ".cf_cif"
 )
 
 #' Validate external weights
@@ -239,6 +249,89 @@ check_indicator_col <- function(
     )
   }
   invisible(NULL)
+}
+
+#' Validate the competing-risks cause column and return its cause labels
+#'
+#' The cause-specific hazards + CIF path encodes the event type in a single
+#' integer-valued column: `0` = no event at this period (the at-risk-continuing
+#' state), `j in {1, ..., J}` = a cause-`j` event at this period. Administrative
+#' censoring is carried separately by the `censoring` column, exactly as for the
+#' single-event path.
+#'
+#' Non-integer, negative, or `NA` values break the cause-specific machinery: the
+#' shared all-cause risk set is built from `cumsum(competing != 0)` lagged within
+#' id, and each cause-`j` model regresses `1{competing == j}`; a fractional or
+#' negative code would silently produce a risk set and per-cause indicators that
+#' bear no relationship to the intended event structure. We reject those at the
+#' boundary rather than fit a meaningless model.
+#'
+#' @param data Person-period `data.table`.
+#' @param competing Column name (character scalar) of the multi-valued cause
+#'   column.
+#' @param call Caller frame for the error signal.
+#'
+#' @returns Integer vector of the distinct **positive** cause labels present
+#'   (sorted ascending). Called for its return value and its validation side
+#'   effect (a classed `survatr_bad_competing` error on invalid input).
+#' @family checks
+#' @noRd
+check_competing_col <- function(data, competing, call = rlang::caller_env()) {
+  v <- data[[competing]]
+  ## NA is rejected: a missing cause code cannot be assigned to "no event" vs a
+  ## specific cause without guessing, and it would poison the lagged cumsum.
+  if (anyNA(v)) {
+    rlang::abort(
+      paste0(
+        "`",
+        competing,
+        "` (competing-risks cause column) contains NA. Recode each row to ",
+        "0 (no event this period) or a positive integer cause label."
+      ),
+      class = "survatr_bad_competing",
+      call = call
+    )
+  }
+  ## Must be whole numbers >= 0. `is.integer()` is too strict (users pass
+  ## doubles like `0`, `1`, `2`), so test integrality numerically.
+  is_whole <- is.numeric(v) && all(abs(v - round(v)) < 1e-8)
+  if (!is_whole || any(v < 0)) {
+    offending <- if (!is.numeric(v)) v else v[v < 0 | abs(v - round(v)) >= 1e-8]
+    bad_vals <- utils::head(unique(offending), 5L)
+    rlang::abort(
+      c(
+        paste0(
+          "`",
+          competing,
+          "` (competing-risks cause column) must contain only non-negative ",
+          "integer cause labels (0 = no event, 1..J = cause)."
+        ),
+        i = paste0(
+          "Got value(s): ",
+          paste(shQuote(bad_vals), collapse = ", "),
+          "."
+        )
+      ),
+      class = "survatr_bad_competing",
+      call = call
+    )
+  }
+  ## The distinct positive labels are the competing causes. A column that is all
+  ## zeros has no events at all -- there is nothing to model.
+  causes <- sort(unique(as.integer(round(v[v > 0]))))
+  if (length(causes) == 0L) {
+    rlang::abort(
+      paste0(
+        "`",
+        competing,
+        "` (competing-risks cause column) has no positive cause labels -- ",
+        "every row is 0 (no event). There are no events to model."
+      ),
+      class = "survatr_bad_competing",
+      call = call
+    )
+  }
+  causes
 }
 
 #' Reject NA values in predictor columns

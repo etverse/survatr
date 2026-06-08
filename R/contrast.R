@@ -65,12 +65,22 @@ contrast <- function(fit, ...) {
 #'   survival curve. Must all be elements of `fit$time_grid` — extrapolation
 #'   beyond the observed grid is rejected with
 #'   `survatr_time_extrapolation`.
-#' @param type One of `"survival"`, `"risk"`, `"risk_difference"`,
-#'   `"risk_ratio"`, `"rmst"`, `"rmst_difference"`.
+#' @param type Estimand. For a single-event fit: one of `"survival"`,
+#'   `"risk"`, `"risk_difference"`, `"risk_ratio"`, `"rmst"`,
+#'   `"rmst_difference"` (default `"risk_difference"`). For a competing-risks
+#'   fit (`surv_fit(..., competing = )`): one of `"cif"` (per-cause cumulative
+#'   incidence), `"cif_difference"`, `"cif_ratio"` (default), or all-cause
+#'   `"survival"` / `"risk"` (from the summed cause-specific hazards). Mixing a
+#'   CIF estimand with a single-event fit (or vice versa) aborts with
+#'   `survatr_competing_type`.
+#' @param cause Competing-risks only. Integer vector selecting which cause(s)
+#'   to report for the `cif` estimands, or `NULL` (the default) for all causes.
+#'   Validated against the fitted causes; ignored for `survival` / `risk` and
+#'   for single-event fits.
 #' @param reference Name of the intervention used as the reference in
 #'   difference / ratio contrasts. Defaults to the first name in
-#'   `interventions`. Ignored by `type = "survival"`, `"risk"`, and
-#'   `"rmst"` (no pairwise contrast).
+#'   `interventions`. Ignored by `type = "survival"`, `"risk"`, `"rmst"`, and
+#'   `"cif"` (no pairwise contrast).
 #' @param ci_method One of `"none"` (point estimates only), `"sandwich"`
 #'   (delta-method cross-time IF aggregation via
 #'   `causatr:::prepare_model_if()`), or `"bootstrap"` (resample
@@ -128,14 +138,8 @@ contrast.survatr_fit <- function(
   fit,
   interventions,
   times,
-  type = c(
-    "risk_difference",
-    "survival",
-    "risk",
-    "risk_ratio",
-    "rmst",
-    "rmst_difference"
-  ),
+  type = NULL,
+  cause = NULL,
   reference = NULL,
   ci_method = "none",
   conf_level = 0.95,
@@ -146,7 +150,57 @@ contrast.survatr_fit <- function(
   seed = NULL,
   ...
 ) {
-  type <- match.arg(type)
+  ## A competing-risks fit (J cause-specific hazards) and a single-event fit
+  ## support disjoint estimand sets. Resolve the `type` default per fit kind --
+  ## `cif_difference` for competing risks, `risk_difference` for single event --
+  ## so `contrast(fit, ...)` with no `type` does the natural thing for each.
+  is_competing <- !is.null(fit$cause_models)
+  single_event_types <- c(
+    "risk_difference",
+    "survival",
+    "risk",
+    "risk_ratio",
+    "rmst",
+    "rmst_difference"
+  )
+  competing_types <- c("cif", "cif_difference", "cif_ratio", "survival", "risk")
+  if (is.null(type)) {
+    type <- if (is_competing) "cif_difference" else "risk_difference"
+  }
+  type <- match.arg(
+    type,
+    c(single_event_types, "cif", "cif_difference", "cif_ratio")
+  )
+
+  ## Cross-check estimand vs fit kind. CIF estimands need a competing-risks
+  ## fit; the single-event contrast estimands (risk_difference / risk_ratio /
+  ## rmst*) are not defined per cause and are rejected for competing-risks fits
+  ## (use cif_difference / cif_ratio, or all-cause survival / risk instead).
+  if (type %in% c("cif", "cif_difference", "cif_ratio") && !is_competing) {
+    rlang::abort(
+      c(
+        paste0("`type = \"", type, "\"` requires a competing-risks fit."),
+        i = "Fit with `surv_fit(..., competing = <cause-col>)` first."
+      ),
+      class = "survatr_competing_type"
+    )
+  }
+  if (is_competing && !type %in% competing_types) {
+    rlang::abort(
+      c(
+        paste0(
+          "`type = \"",
+          type,
+          "\"` is not defined for a competing-risks fit."
+        ),
+        i = paste0(
+          "Use \"cif\", \"cif_difference\", or \"cif_ratio\" (per cause), or ",
+          "\"survival\" / \"risk\" (all-cause)."
+        )
+      ),
+      class = "survatr_competing_type"
+    )
+  }
 
   validate_interventions(interventions)
   ## IPSI (`causatr::ipsi()`) is an IPW-only intervention that reweights the
@@ -180,7 +234,13 @@ contrast.survatr_fit <- function(
   ## contrasts table or erroring deep in the replicate pipeline.
   if (
     type %in%
-      c("risk_difference", "risk_ratio", "rmst_difference") &&
+      c(
+        "risk_difference",
+        "risk_ratio",
+        "rmst_difference",
+        "cif_difference",
+        "cif_ratio"
+      ) &&
       length(interventions) < 2L
   ) {
     rlang::abort(
@@ -189,7 +249,7 @@ contrast.survatr_fit <- function(
         type,
         "\"` requires at least two interventions (one reference + one ",
         "comparator). Pass a second intervention, or use a curve-only ",
-        "type like \"survival\", \"risk\", or \"rmst\"."
+        "type like \"survival\", \"risk\", \"rmst\", or \"cif\"."
       ),
       class = "survatr_bad_interventions"
     )
@@ -201,6 +261,29 @@ contrast.survatr_fit <- function(
   validate_n_boot(n_boot)
   validate_boot_ci(boot_ci)
   validate_parallel(parallel, ncpus)
+
+  ## Competing risks (cause-specific hazards + CIF). Builds per-cause cumulative
+  ## incidence (or all-cause survival) from the J cause-specific models and a
+  ## stacked-EE sandwich across them. Carries a `cause` dimension the
+  ## single-event curve path does not, so it takes a dedicated branch.
+  if (is_competing) {
+    return(contrast_competing(
+      fit = fit,
+      interventions = interventions,
+      times = times,
+      type = type,
+      reference = reference,
+      cause = cause,
+      ci_method = ci_method,
+      conf_level = conf_level,
+      n_boot = n_boot,
+      boot_ci = boot_ci,
+      parallel = parallel,
+      ncpus = ncpus,
+      seed = seed,
+      call = match.call()
+    ))
+  }
 
   ## Track B (longitudinal ICE-hazard survival). The curve is built by a
   ## per-(intervention, horizon) backward sequential regression on the

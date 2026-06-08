@@ -62,9 +62,9 @@ test_that("check_dots_na_action rejects na.exclude (function and string)", {
   )
 })
 
-## Regression test for S1 (2026-04-22 critical review, round 1):
-## `.cf_hazard` / `.cf_surv` are now also reserved -- used as temporary
-## columns on counterfactual PP copies in `compute_survival_curve()` and
+## Regression test: `.cf_hazard` / `.cf_surv` are also reserved -- used as
+## temporary columns on counterfactual PP copies in `compute_survival_curve()`
+## and
 ## `compute_survival_if_matrix()`. A user data column with either name
 ## would have been silently overwritten in the internal copy; the
 ## reserved-col guard at the boundary now catches that upfront.

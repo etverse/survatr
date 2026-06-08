@@ -268,8 +268,8 @@ quasibinomial at k < K.
 chunk has a `CHUNK_<N>_*.md` doc at the repo root. Status legend: ✅ done
 (commit pinned) · 🚧 in progress · ⬜ not started.
 
-At a glance: **done = 1–6** (Track A gcomp + IPW; Track B ICE); **next = 7**
-(competing risks).
+At a glance: **done = 1–7** (Track A gcomp + IPW; Track B ICE; competing risks);
+**next = 8** (matching rejection).
 Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext = 19–25 (deferred IPW /
 intervention work + missing-data MI). When a chunk flips status, update the
 handoff §10 table (the only copy).
@@ -334,3 +334,28 @@ notes" for the style).
   `fit_ice()`. Stochastic / `ipsi()` interventions and external/IPCW weights are
   rejected (later chunks). Full invariants in `.claude/hard-rules.md` and
   `CHUNK_6_ICE_B.md`.
+- **Competing risks (chunk 7): J cause-specific hazards on ONE shared all-cause
+  risk set; the CIF sandwich is a block-diagonal stacked EE with an all-cause
+  `(1−H)` sensitivity denominator.** `surv_fit(competing = <col>)` derives the
+  all-cause event indicator `1{competing ≠ 0}`, builds the risk set once
+  (`build_risk_set`), and fits each cause-`j` model with response
+  `1{competing == j}` on those same rows (`fit_competing_risks` → reuses
+  `fit_hazard_gcomp` per cause). Sharing the risk set *is* "treat other causes as
+  censored at their event time" — do not fit per-cause risk sets. `contrast()`
+  builds `S^a_i(k) = ∏(1 − Σ_j h^(j))`, lagged `S(k−1)`, and
+  `F^(j)_i(t) = Σ_{k≤t} S_i(k−1) h^(j)_{i,k}`, averaged across ids
+  (`cr_augment_pp` / `compute_cif_curves`). The sandwich
+  (`R/variance_if_competing.R`) stacks the J cause scores (bread is
+  block-diagonal — each cause's `prepare_model_if()` is independent) and
+  propagates them through a cross-cause cross-time delta: the per-cause
+  sensitivity is `s^(j')_l = h^(j')(1−h^(j'))/(1 − H_l)` with the **all-cause**
+  `(1−H)` denominator — the single-event `s = h` cancellation (chunk 3) does NOT
+  hold (it reduces to chunk 3 only when `J = 1`). The CIF derivative weights by
+  `S(k−1)` so it uses the *lagged* cumulative sensitivity
+  `cumSX_lag = cumSX − SX`. Per-individual IFs (summed over causes) are
+  cross-multiplied (`crossprod(IF)/n²`), capturing the within-id cross-cause
+  correlation. Validated by exact agreement with an independent `delicatessen`
+  stacked-EE oracle (`data-raw/delicatessen_competing_risks.py`) and the
+  bootstrap. gcomp / Track A only; IPW / ICE / per-cause RMST deferred; Fine–Gray
+  out of scope. Full invariants in `.claude/hard-rules.md` and
+  `CHUNK_7_COMPETING_RISKS.md`.

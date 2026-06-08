@@ -37,11 +37,17 @@
 #'   indicator (`1` = censored at this period). `NA` or `0` means uncensored.
 #'   When `NULL`, every uncensored period is treated as at-risk until the
 #'   first event.
-#' @param competing Reserved for the cause-specific hazards + CIF path.
-#'   Passing anything other than `NULL` is an error in the current release --
-#'   competing risks have a dedicated entry point rather than being silently
-#'   folded into `surv_fit()` (which would fit a biased cause-deleted
-#'   hazard).
+#' @param competing Character scalar or `NULL` (the default). When non-`NULL`,
+#'   activates the **competing-risks** path: `competing` names a multi-valued
+#'   event-type column (`0` = no event this period, `1..J` = the cause of the
+#'   event this period), and `surv_fit()` fits `J` parallel cause-specific
+#'   pooled-logistic hazard models on a shared all-cause risk set. It must name
+#'   the **same** column as `outcome`; competing risks are gcomp / Track A only
+#'   in this release (a non-`"gcomp"` estimator, fewer than two distinct causes,
+#'   or `outcome != competing` aborts with `survatr_competing_estimator` /
+#'   `survatr_competing_misuse`). Cumulative-incidence functions (CIF), CIF
+#'   contrasts, and all-cause survival come from `contrast()`. Fine--Gray /
+#'   subdistribution hazards are out of scope (cause-specific only).
 #' @param time_formula One-sided formula for the baseline hazard
 #'   `alpha(t)`. Defaults to `~ splines::ns(time, 4)` (4 df natural spline
 #'   on the time variable). Pass `~ factor(time)` for period dummies or
@@ -160,24 +166,63 @@ surv_fit <- function(
 
   check_dots_na_action(...)
 
-  if (!is.null(competing)) {
-    rlang::abort(
-      c(
-        paste0(
-          "Competing-risks survival is not handled by `surv_fit()` -- the ",
-          "`competing` argument is reserved for a dedicated cause-specific ",
-          "hazards + cumulative-incidence path."
+  ## Competing-risks entry point. `competing = <col>` activates the
+  ## cause-specific hazards + CIF path. Two guards fire here (before touching
+  ## the data) so the misuse cases keep aborting:
+  ##   - CR is gcomp / Track A only this release (IPW / ICE competing risks are
+  ##     later chunks): a non-gcomp estimator is a structural mismatch.
+  ##   - The documented API passes the same multi-valued cause column to both
+  ##     `outcome` and `competing`; a mismatch is ambiguous (which column is the
+  ##     event?) so we reject rather than guess.
+  is_competing <- !is.null(competing)
+  if (is_competing) {
+    if (!identical(estimator, "gcomp")) {
+      rlang::abort(
+        c(
+          paste0(
+            "Competing-risks (`competing =`) is supported only with ",
+            "`estimator = \"gcomp\"` (Track A) in this release."
+          ),
+          i = paste0(
+            "IPW / ICE competing-risks survival ship in later chunks. Got ",
+            "`estimator = \"",
+            estimator,
+            "\"`."
+          )
         ),
-        i = paste0(
-          "Passing `competing = NULL` (the default) to `surv_fit()` with ",
-          "competing events present in `data[[",
-          outcome,
-          "]]` would fit a ",
-          "biased cause-deleted hazard."
-        )
-      ),
-      class = "survatr_competing_misuse"
-    )
+        class = "survatr_competing_estimator"
+      )
+    }
+    if (!identical(outcome, competing)) {
+      rlang::abort(
+        c(
+          paste0(
+            "When `competing` is set it must name the same multi-valued ",
+            "event-type column as `outcome` (0 = no event, 1..J = cause)."
+          ),
+          i = paste0(
+            "Got `outcome = \"",
+            outcome,
+            "\"`, `competing = \"",
+            competing,
+            "\"`. Pass the cause column to both, or drop `competing` for the ",
+            "single-event path."
+          )
+        ),
+        class = "survatr_competing_misuse"
+      )
+    }
+    if (!is.null(weights)) {
+      rlang::abort(
+        c(
+          "External `weights` are not yet supported with `competing =`.",
+          i = paste0(
+            "Weighted / IPCW competing-risks survival ships in a later chunk."
+          )
+        ),
+        class = "survatr_competing_weights"
+      )
+    }
   }
 
   check_reserved_cols(data)
@@ -211,11 +256,39 @@ surv_fit <- function(
   ))
   check_no_na_in_predictors(data, predictor_cols)
 
-  ## Outcome and censoring columns must be 0/1 indicators. `build_risk_set`
-  ## and `is_uncensored()` interpret any non-binary value as if it were
-  ## censored / event-positive, which produces a risk set that disagrees
-  ## with the user's intent without a warning.
-  check_indicator_col(data, outcome, role = "outcome", allow_na = FALSE)
+  ## Outcome / censoring columns must be 0/1 indicators. `build_risk_set` and
+  ## `is_uncensored()` interpret any non-binary value as if it were censored /
+  ## event-positive, which produces a risk set that disagrees with the user's
+  ## intent without a warning. In the competing-risks path the event column is
+  ## multi-valued (0..J) by design, so it is validated by
+  ## `check_competing_col()` instead and the single-event 0/1 check is skipped.
+  if (is_competing) {
+    causes <- check_competing_col(data, competing)
+    ## Fewer than two competing causes is not a competing-risks problem -- it is
+    ## the single-event path with extra ceremony. Treat it as misuse of the CR
+    ## entry point rather than silently fitting one cause-specific hazard.
+    if (length(causes) < 2L) {
+      rlang::abort(
+        c(
+          paste0(
+            "`competing = \"",
+            competing,
+            "\"` has only ",
+            length(causes),
+            " distinct positive cause label(s); competing risks needs >= 2."
+          ),
+          i = paste0(
+            "With a single event type use the single-event path: drop ",
+            "`competing` and pass a 0/1 `outcome`."
+          )
+        ),
+        class = "survatr_competing_misuse"
+      )
+    }
+  } else {
+    causes <- NULL
+    check_indicator_col(data, outcome, role = "outcome", allow_na = FALSE)
+  }
   if (!is.null(censoring)) {
     check_indicator_col(data, censoring, role = "censoring", allow_na = TRUE)
   }
@@ -258,23 +331,70 @@ surv_fit <- function(
     )
   }
 
-  fit_rows <- build_risk_set(
-    data = data,
-    outcome = outcome,
-    id = id,
-    censoring = censoring
-  )
+  ## Risk set. The single-event path keys on the 0/1 outcome; the
+  ## competing-risks path keys on a derived all-cause event indicator
+  ## `1{competing != 0}` so an individual leaves the risk set at the first event
+  ## of *any* cause -- the shared risk set every cause-specific model fits on.
+  if (is_competing) {
+    data[, .survatr_any_event := as.integer(data[[competing]] != 0)]
+    fit_rows <- build_risk_set(
+      data = data,
+      outcome = ".survatr_any_event",
+      id = id,
+      censoring = censoring
+    )
+  } else {
+    fit_rows <- build_risk_set(
+      data = data,
+      outcome = outcome,
+      id = id,
+      censoring = censoring
+    )
+  }
 
-  ## Estimator dispatch. gcomp fits the pooled-logistic hazard on the at-risk
-  ## rows directly; ipw fits a baseline treatment model, forms stabilized
-  ## weights, and fits a weighted marginal hazard MSM (alpha(t) + A); ice
-  ## (Track B) fits no model here -- the per-step models are fit lazily per
-  ## (intervention, horizon) inside contrast() -- and only assembles the
-  ## per-step metadata (terms, families, lag order). gcomp / ipw return
-  ## `model` / `family_name` / `n_fit`; ipw additionally returns the treatment
-  ## models, broadcast weights, and resolved trim cutoff; ice returns
+  ## Estimator dispatch. Competing risks (gcomp on a multi-cause column) fits J
+  ## cause-specific hazards on the shared risk set and returns
+  ## `cause_models` / `causes` (with `model = NULL`). gcomp fits the
+  ## pooled-logistic hazard on the at-risk rows directly; ipw fits a baseline
+  ## treatment model, forms stabilized weights, and fits a weighted marginal
+  ## hazard MSM (alpha(t) + A); ice (Track B) fits no model here -- the per-step
+  ## models are fit lazily per (intervention, horizon) inside contrast() -- and
+  ## only assembles the per-step metadata (terms, families, lag order). gcomp /
+  ## ipw return `model` / `family_name` / `n_fit`; ipw additionally returns the
+  ## treatment models, broadcast weights, and resolved trim cutoff; ice returns
   ## `ice_details` (and `model = NULL`).
-  if (identical(estimator, "ice")) {
+  if (is_competing) {
+    ## Competing risks is point-treatment Track A; the same single-`beta_A`
+    ## caveat as gcomp applies to a within-id-varying treatment.
+    if (treatment_is_time_varying(data, treatment, id)) {
+      rlang::warn(
+        c(
+          paste0(
+            "Treatment `",
+            treatment,
+            "` varies within `",
+            id,
+            "`, but competing-risks fits point-treatment cause-specific ",
+            "hazards (a single `beta_A` per cause)."
+          ),
+          i = "Time-varying-treatment competing risks ship in a later chunk."
+        ),
+        class = "survatr_tv_treatment_track_a"
+      )
+    }
+    fit <- fit_competing_risks(
+      data = data,
+      fit_rows = fit_rows,
+      competing = competing,
+      treatment = treatment,
+      confounders = confounders,
+      time_formula = time_formula,
+      model_fn = model_fn,
+      causes = causes,
+      ...
+    )
+    track <- "A"
+  } else if (identical(estimator, "ice")) {
     fit <- fit_ice_survival(
       data = data,
       fit_rows = fit_rows,
@@ -394,6 +514,10 @@ surv_fit <- function(
     confounders_tv = if (identical(estimator, "ice")) confounders_tv else NULL,
     history = if (identical(estimator, "ice")) history else NULL,
     ice_details = fit$ice_details,
+    ## Competing-risks metadata; both NULL for the single-event path (the fit
+    ## lists from gcomp / ipw / ice carry no `cause_models` / `causes` keys).
+    cause_models = fit$cause_models,
+    causes = fit$causes,
     call = match.call()
   )
 }

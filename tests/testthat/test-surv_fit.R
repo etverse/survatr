@@ -120,13 +120,11 @@ test_that("surv_fit rejects na.exclude via ... gate", {
   )
 })
 
-## Regression test for B2 (2026-04-22 critical review, round 1):
-## `na.action = na.omit` (the default) combined with NA values in a
-## predictor column silently misaligned `prep$X_fit` (post-NA-drop)
-## against `fit_idx` (pre-NA-drop) in the sandwich IF chain, producing
-## a subscript-out-of-bounds error. Fixed by rejecting NA in predictor
-## columns upfront at surv_fit() via check_no_na_in_predictors(). Repro:
-## `/tmp/survatr_repro_b2_na_drop.R`.
+## Regression test: `na.action = na.omit` (the default) combined with NA in a
+## predictor column silently misaligned `prep$X_fit` (post-NA-drop) against
+## `fit_idx` (pre-NA-drop) in the sandwich IF chain, producing a
+## subscript-out-of-bounds error. Guarded by rejecting NA in predictor columns
+## upfront at surv_fit() via check_no_na_in_predictors().
 test_that("surv_fit rejects NA in predictor columns (B2)", {
   dt <- sim_constant_hazard(n = 200L, K = 4L, h = 0.1, seed = 441L)
   dt[, L := rnorm(.N)]
@@ -161,9 +159,8 @@ test_that("surv_fit rejects NA in predictor columns (B2)", {
   )))
 })
 
-## Regression test for R2 (2026-04-22 critical review, round 1):
-## Outcome and censoring columns must be 0/1 indicators. Non-binary
-## values (e.g. a stray 2 from `survival::Surv`'s `status`, or a -1 /
+## Regression test: outcome and censoring columns must be 0/1 indicators.
+## Non-binary values (e.g. a stray 2 from `survival::Surv`'s `status`, or a -1 /
 ## 99 code in user data) previously slipped through -- `build_risk_set`
 ## cumsum-ed over them and `is_uncensored` treated non-zero-non-NA as
 ## "censored", producing a risk set unrelated to the user's intent.

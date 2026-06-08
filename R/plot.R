@@ -59,14 +59,15 @@ plot.survatr_result <- function(
   ...
 ) {
   which <- match.arg(which)
+  contrast_types <- c(
+    "risk_difference",
+    "risk_ratio",
+    "rmst_difference",
+    "cif_difference",
+    "cif_ratio"
+  )
   if (identical(which, "auto")) {
-    which <- if (
-      x$type %in% c("risk_difference", "risk_ratio", "rmst_difference")
-    ) {
-      "contrasts"
-    } else {
-      "curves"
-    }
+    which <- if (x$type %in% contrast_types) "contrasts" else "curves"
   }
   if (identical(which, "contrasts") && nrow(x$contrasts) == 0L) {
     rlang::abort(
@@ -81,6 +82,7 @@ plot.survatr_result <- function(
   }
 
   tbl <- if (identical(which, "contrasts")) x$contrasts else x$estimates
+  tbl <- data.table::copy(tbl)
   group_col <- if (identical(which, "contrasts")) "contrast" else "intervention"
   value_col <- if (identical(which, "contrasts")) {
     "estimate"
@@ -92,8 +94,25 @@ plot.survatr_result <- function(
       rmst = "rmst_hat",
       risk_difference = "risk_hat",
       risk_ratio = "risk_hat",
-      rmst_difference = "rmst_hat"
+      rmst_difference = "rmst_hat",
+      cif = "cif_hat",
+      cif_difference = "cif_hat",
+      cif_ratio = "cif_hat"
     )
+  }
+
+  ## Competing-risks results carry a `cause` dimension: draw one line per
+  ## (group, cause) pair and label it accordingly. The combined `.plot_group`
+  ## column collapses to the plain group label when there is no (non-NA) cause.
+  if ("cause" %in% names(tbl) && any(!is.na(tbl[["cause"]]))) {
+    tbl[,
+      .plot_group := paste0(
+        get(group_col),
+        " | cause ",
+        get("cause")
+      )
+    ]
+    group_col <- ".plot_group"
   }
 
   groups <- unique(tbl[[group_col]])
@@ -116,7 +135,10 @@ plot.survatr_result <- function(
       rmst = "RMST(t)",
       risk_difference = "risk difference",
       risk_ratio = "risk ratio",
-      rmst_difference = "RMST difference"
+      rmst_difference = "RMST difference",
+      cif = "F(t)",
+      cif_difference = "CIF difference",
+      cif_ratio = "CIF ratio"
     )
   }
 
@@ -137,9 +159,9 @@ plot.survatr_result <- function(
     ...
   )
 
-  if (x$type %in% c("risk_difference", "rmst_difference")) {
+  if (x$type %in% c("risk_difference", "rmst_difference", "cif_difference")) {
     graphics::abline(h = 0, lty = 3, col = "grey50")
-  } else if (identical(x$type, "risk_ratio")) {
+  } else if (x$type %in% c("risk_ratio", "cif_ratio")) {
     graphics::abline(h = 1, lty = 3, col = "grey50")
   }
 
