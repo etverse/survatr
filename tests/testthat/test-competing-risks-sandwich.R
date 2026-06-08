@@ -77,6 +77,27 @@ test_that("CR sandwich matches the delicatessen oracle on shared data", {
   }
 })
 
+test_that("the per-time row guard returns one row per id per time", {
+  ## Defensive parity with the single-event `compute_survival_if_matrix()`
+  ## guard. Track A PP is rectangular so the public path never trips this, but a
+  ## future ragged-PP / left-truncation path must abort loudly rather than
+  ## `colMeans` over the wrong row set. (2026-06-08 critical review, Issue #1.)
+  ## A valid (id, time) layout: 3 ids x 2 times -> 3 rows at each time.
+  t_ok <- c(1L, 2L, 1L, 2L, 1L, 2L)
+  rows <- cr_rows_by_time(t_ok, times = c(1L, 2L), n_ids = 3L)
+  expect_length(rows, 2L)
+  expect_identical(lengths(rows), c(3L, 3L))
+})
+
+test_that("the per-time row guard aborts on a length mismatch", {
+  ## time 2 has only 2 rows but n_ids = 3 -> classed abort.
+  t_bad <- c(1L, 2L, 1L, 2L, 1L)
+  expect_error(
+    cr_rows_by_time(t_bad, times = c(1L, 2L), n_ids = 3L),
+    class = "survatr_if_failed"
+  )
+})
+
 test_that("per-cause CIF influence-function columns have mean ~ 0", {
   pp <- sim_two_cause_constant_hazard(
     n = 2000L,

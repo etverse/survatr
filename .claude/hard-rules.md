@@ -329,6 +329,11 @@ Do NOT flag these as bugs. Each has a regression test.
   `rlang::inform(.frequency = "once")` at compute time + a `print` note for
   `cif_difference` / `cif_ratio` + the vignette. Do not strip the caveat to
   "clean up" the output — numbers must never be emitted silently.
+- **The CR IF per-time pulls are guarded by `cr_rows_by_time()`** (one row per id
+  per requested time, else `survatr_if_failed`), mirroring the single-event
+  `compute_survival_if_matrix()` check. It is unreachable on Track A (rectangular
+  PP) so it is NOT dead code to delete — it is the boundary a future ragged-PP /
+  left-truncation chunk must keep. (2026-06-08 critical review, Issue #1.)
 
 ### Implementation conventions
 

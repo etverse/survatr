@@ -153,6 +153,45 @@ cr_intervention_if_pieces <- function(fit, intervention, shared) {
   )
 }
 
+#' Guarded per-time row indices for the competing-risks IF pulls
+#'
+#' Returns, for each requested time, the row indices of `t_pp` at that time, and
+#' asserts there is exactly one row per id (`n_ids`). The IF assembly pulls one
+#' row per id at each time and `colMeans` over them; a wrong-length pull would
+#' silently corrupt the variance. Track A (including competing risks) PP is
+#' rectangular by construction so this never fires today, but the guard mirrors
+#' the single-event check in `compute_survival_if_matrix()` and protects a
+#' future ragged-PP / left-truncation path.
+#'
+#' @param t_pp Integer/numeric vector of the time value per PP row.
+#' @param times The requested time grid.
+#' @param n_ids Number of individuals (expected rows per time).
+#'
+#' @returns A list (length `length(times)`) of integer row-index vectors, one
+#'   per requested time. Aborts with class `survatr_if_failed` on a mismatch.
+#' @family competing-risks
+#' @noRd
+cr_rows_by_time <- function(t_pp, times, n_ids) {
+  lapply(times, function(tt) {
+    rows_tt <- which(t_pp == tt)
+    if (length(rows_tt) != n_ids) {
+      rlang::abort(
+        paste0(
+          "competing-risks sandwich expected ",
+          n_ids,
+          " rows at time = ",
+          tt,
+          ", got ",
+          length(rows_tt),
+          "."
+        ),
+        class = "survatr_if_failed"
+      )
+    }
+    rows_tt
+  })
+}
+
 #' Per-individual IF matrix for the cause-`j` CIF `F^(j),a(t)`
 #'
 #' Implements the stacked cross-time delta chain for the cumulative incidence
@@ -163,8 +202,8 @@ cr_intervention_if_pieces <- function(fit, intervention, shared) {
 #'         + sum_{j'} IF_beta^(j')_i %*% J_bar^(j')(t)        ## Ch2
 #' ```
 #'
-#' with the per-cause population derivative `J_bar^(j')(t) = mean_i d F^(j)_i(t) /
-#' d beta_{j'}` assembled from
+#' with the per-cause population derivative
+#' `J_bar^(j')(t) = mean_i d F^(j)_i(t) / d beta_{j'}` assembled from
 #' `d F^(j)_i(t)/d beta_{j'} = sum_{k<=t} [ -S(k-1) cumSX^(j')(k-1) h^(j)_k +
 #' 1{j'=j} S(k-1) mu^(j)_k X_k ]`.
 #'
@@ -187,6 +226,14 @@ compute_cif_if_matrix <- function(pieces, cause_j, times) {
   n_ids <- pieces$n_ids
   n_t <- length(times)
   p <- ncol(X_pp)
+
+  ## Per-time row indices, guarded once. Mirrors the single-event check in
+  ## `compute_survival_if_matrix()`: every requested time must have exactly one
+  ## row per id, or the `colMeans` / per-time pulls below silently average over
+  ## the wrong row set. Track A (incl. competing risks) PP is rectangular by
+  ## construction so this never fires today, but the guard keeps a future
+  ## ragged-PP / left-truncation path from corrupting the variance.
+  rows_by_t <- cr_rows_by_time(t_pp, times, n_ids)
 
   ## Per-individual CIF F^(j)_i(k): cumulative within id of S(k-1) h^(j)_k.
   f_inc <- surv_lag * h_j
@@ -211,8 +258,7 @@ compute_cif_if_matrix <- function(pieces, cause_j, times) {
     cum_D <- apply(D, 2L, function(v) stats::ave(v, id_pp, FUN = cumsum))
     J_bar <- matrix(0, p, n_t)
     for (tj in seq_len(n_t)) {
-      rows_tj <- which(t_pp == times[tj])
-      J_bar[, tj] <- colMeans(cum_D[rows_tj, , drop = FALSE])
+      J_bar[, tj] <- colMeans(cum_D[rows_by_t[[tj]], , drop = FALSE])
     }
     Ch2 <- Ch2 + pieces$IF_beta[[jpc]] %*% J_bar
   }
@@ -221,8 +267,7 @@ compute_cif_if_matrix <- function(pieces, cause_j, times) {
   Ch1 <- matrix(0, n_ids, n_t)
   f_hat <- numeric(n_t)
   for (tj in seq_len(n_t)) {
-    rows_tj <- which(t_pp == times[tj])
-    f_at <- cum_f[rows_tj]
+    f_at <- cum_f[rows_by_t[[tj]]]
     f_hat[tj] <- mean(f_at)
     Ch1[, tj] <- f_at - f_hat[tj]
   }
@@ -253,6 +298,9 @@ compute_cr_survival_if_matrix <- function(pieces, times) {
   n_t <- length(times)
   p <- ncol(pieces$X_pp)
 
+  ## Guarded per-time row indices (see `compute_cif_if_matrix()`).
+  rows_by_t <- cr_rows_by_time(t_pp, times, n_ids)
+
   Ch1 <- matrix(0, n_ids, n_t)
   s_hat <- numeric(n_t)
   ## J_bar_S^(j')(t) per derivative cause, accumulated.
@@ -260,7 +308,7 @@ compute_cr_survival_if_matrix <- function(pieces, times) {
   names(J_bar) <- as.character(pieces$causes)
 
   for (tj in seq_len(n_t)) {
-    rows_tj <- which(t_pp == times[tj])
+    rows_tj <- rows_by_t[[tj]]
     s_at <- surv[rows_tj]
     s_hat[tj] <- mean(s_at)
     Ch1[, tj] <- s_at - s_hat[tj]
