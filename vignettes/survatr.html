@@ -227,6 +227,12 @@ window.Quarto = {
  <span class="menu-text">ICE / longitudinal (Track B)</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../vignettes/competing-risks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Competing risks (CIF)</span></a>
+  </div>
+</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -726,11 +732,12 @@ window.Quarto = {
 <span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">seed      =</span> <span class="dv">42</span>L</span>
 <span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(res_boot<span class="sc">$</span>contrasts, <span class="dv">3</span>)</span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    contrast  time     estimate          se    ci_lower    ci_upper</span></span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      &lt;char&gt; &lt;int&gt;        &lt;num&gt;       &lt;num&gt;       &lt;num&gt;       &lt;num&gt;</span></span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1: a1 vs a0     1 -0.002041379 0.004091117 -0.01035280 0.006202343</span></span>
-<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2: a1 vs a0     2 -0.004171571 0.008360997 -0.02275464 0.012317831</span></span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3: a1 vs a0     3 -0.005770166 0.011535107 -0.03143288 0.016800506</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Key: &lt;contrast, time&gt;</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    contrast  time     estimate          se    ci_lower    ci_upper</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      &lt;char&gt; &lt;int&gt;        &lt;num&gt;       &lt;num&gt;       &lt;num&gt;       &lt;num&gt;</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1: a1 vs a0     1 -0.002041379 0.004091117 -0.01035280 0.006202343</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2: a1 vs a0     2 -0.004171571 0.008360997 -0.02275464 0.012317831</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3: a1 vs a0     3 -0.005770166 0.011535107 -0.03143288 0.016800506</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <p>Sandwich and bootstrap SEs match each other — and the true sampling SD — to within 1–2% on this DGP at n = 1500 (confirmed via a 300-replicate empirical-SD oracle; see <code>tests/testthat/test-bootstrap-survival.R</code>).</p>

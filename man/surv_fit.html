@@ -198,6 +198,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text">ICE / longitudinal (Track B)</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../vignettes/competing-risks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Competing risks (CIF)</span></a>
+  </div>
+</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -410,7 +416,7 @@ Character scalar or <code>NULL</code>. Column name of the censoring indicator (<
 <code id="competing">competing</code>
 </td>
 <td>
-Reserved for the cause-specific hazards + CIF path. Passing anything other than <code>NULL</code> is an error in the current release – competing risks have a dedicated entry point rather than being silently folded into <code>surv_fit()</code> (which would fit a biased cause-deleted hazard).
+Character scalar or <code>NULL</code> (the default). When non-<code>NULL</code>, activates the <strong>competing-risks</strong> path: <code>competing</code> names a multi-valued event-type column (<code>0</code> = no event this period, <code style="white-space: pre;">1..J</code> = the cause of the event this period), and <code>surv_fit()</code> fits <code>J</code> parallel cause-specific pooled-logistic hazard models on a shared all-cause risk set. It must name the <strong>same</strong> column as <code>outcome</code>; competing risks are gcomp / Track A only in this release (a non-<code>“gcomp”</code> estimator, fewer than two distinct causes, or <code>outcome != competing</code> aborts with <code>survatr_competing_estimator</code> / <code>survatr_competing_misuse</code>). Cumulative-incidence functions (CIF), CIF contrasts, and all-cause survival come from <code>contrast()</code>. Fine–Gray / subdistribution hazards are out of scope (cause-specific only).
 </td>
 </tr>
 <tr>
