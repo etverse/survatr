@@ -305,4 +305,53 @@ test_that("CIF estimands require a competing-risks fit and vice versa", {
     ),
     class = "survatr_bad_cause"
   )
+  ## Non-numeric cause selection.
+  expect_error(
+    contrast(
+      cr_fit,
+      interventions = list(a1 = causatr::static(1), a0 = causatr::static(0)),
+      times = 2L,
+      type = "cif_difference",
+      cause = "x"
+    ),
+    class = "survatr_bad_cause"
+  )
+})
+
+test_that("external weights + competing aborts", {
+  pp <- sim_two_cause_constant_hazard(n = 150L, K = 3L, seed = 14L)
+  expect_error(
+    surv_fit(
+      pp,
+      outcome = "event",
+      treatment = "A",
+      confounders = ~1,
+      id = "id",
+      time = "t",
+      competing = "event",
+      time_formula = ~1,
+      weights = rep(1, nrow(pp))
+    ),
+    class = "survatr_competing_weights"
+  )
+})
+
+test_that("competing risks warns on a within-id time-varying treatment", {
+  ## Competing risks is point-treatment Track A; a treatment that varies within
+  ## id gets the same single-`beta_A` caveat as gcomp.
+  pp <- sim_two_cause_constant_hazard(n = 200L, K = 3L, seed = 13L)
+  pp[get("t") == 3L, A := 1L - A] # flip A at the last period -> time-varying
+  expect_warning(
+    surv_fit(
+      pp,
+      outcome = "event",
+      treatment = "A",
+      confounders = ~1,
+      id = "id",
+      time = "t",
+      competing = "event",
+      time_formula = ~1
+    ),
+    class = "survatr_tv_treatment_track_a"
+  )
 })
