@@ -25,6 +25,7 @@ Imports:
     sandwich,
     stats
 Suggests:
+    causaldata,
     gfoRmula,
     knitr,
     lmtp,

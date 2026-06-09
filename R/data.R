@@ -1,0 +1,61 @@
+#' NHEFS survival data in monthly person-period format
+#'
+#' @description
+#' The NHEFS (National Health and Nutrition Examination Survey
+#' Epidemiologic Follow-up Study) cohort in rectangular monthly person-period
+#' format. Each of the 1629 participants contributes exactly 120 rows
+#' (one per calendar month from January 1983 to December 1992), forming the
+#' rectangular grid required by `surv_fit()`. The event indicator is 1 only
+#' in the month of death for the 318 participants who died before the end of
+#' follow-up; it is 0 elsewhere.
+#'
+#' The primary use of this dataset is to reproduce the Hernán & Robins
+#' Chapter 17 causal survival analysis: the standardised 120-month survival
+#' under smoking cessation vs. no cessation, and the corresponding risk
+#' difference (≈ 0.2 pp, essentially null).
+#'
+#' @format A `data.table` with 195 480 rows and 13 columns:
+#' \describe{
+#'   \item{seqn}{Participant identifier (integer).}
+#'   \item{time}{Calendar month of follow-up, 1 = January 1983, 120 = December
+#'     1992 (integer).}
+#'   \item{event}{Binary event indicator: 1 = death in this month, 0 = alive
+#'     or censored (integer).}
+#'   \item{qsmk}{Smoking cessation between the baseline and follow-up
+#'     interviews: 1 = quit, 0 = did not quit (numeric).}
+#'   \item{sex}{Sex: factor with levels 0 (male) and 1 (female).}
+#'   \item{race}{Race: factor with levels 0 (white) and 1 (non-white).}
+#'   \item{age}{Age at baseline interview in years (numeric).}
+#'   \item{education}{Highest education level: factor with levels 1
+#'     (8th grade or less), 2 (HS dropout), 3 (HS graduate), 4 (some college),
+#'     5 (college or more).}
+#'   \item{smokeintensity}{Average number of cigarettes per day at baseline
+#'     (numeric).}
+#'   \item{smokeyrs}{Number of years smoked at baseline (numeric).}
+#'   \item{exercise}{Recreational exercise: factor with levels 0 (much), 1
+#'     (moderate), 2 (little or none).}
+#'   \item{active}{Activity level at usual occupation: factor with levels 0
+#'     (very active), 1 (moderately active), 2 (inactive).}
+#'   \item{wt71}{Body weight at the 1971 baseline interview in kg (numeric).}
+#' }
+#'
+#' @source
+#' Assembled from `causaldata::nhefs` (Huntington-Klein 2021) by the
+#' `data-raw/nhefs_surv.R` script. The NHEFS data are publicly distributed by
+#' Hernán & Robins at
+#' \url{https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/}.
+#'
+#' @references
+#' Hernán MA, Robins JM (2024). *Causal Inference: What If.* Chapman &
+#' Hall / CRC. Chapter 17: Causal survival analysis.
+#'
+#' Huntington-Klein N et al. (2021). causaldata: Example Datasets for
+#' Causal Inference Textbooks. R package.
+#'
+#' @seealso [surv_fit()], [contrast()]
+#'
+#' @examples
+#' data(nhefs_surv)
+#' nhefs_surv[, .N, by = "seqn"][, range(N)]  # all 120 periods per id
+#' sum(nhefs_surv$event)                       # 318 deaths
+"nhefs_surv"

@@ -132,6 +132,12 @@ person-period rows, and fit a weighted marginal MSM `logit h(t|A) = α(t) + β_A
 | `trim` validation | 🔴 | `test-checks.R` | `survatr_bad_trim` (NULL or scalar in (0, 1]). |
 | causatr IPW internal-API contract (`fit_treatment_model`, `evaluate_density`, `truncate_weights`, `apply_model_correction`) | 🟢 | `test-causatr-integration.R` | Pins formals + return shapes of the IPW `causatr:::` internals survatr reuses. |
 
+### End-to-end acceptance test
+
+| Surface | Status | Test file | Oracle |
+|---|---|---|---|
+| NHEFS Ch. 17 replication (Track A gcomp, 120-mo survival) | 🟢 | `test-nhefs-replication.R` | H&R 2024 published targets: 120-mo S^a(t) ≈ 80.7% (qsmk=1) / 80.5% (qsmk=0) within ±0.03; RD ≈ 0.2% within ±0.01; sandwich CI spans 0; unadjusted KM in the 75–90% ballpark. Dataset: `nhefs_surv` (1629 × 120 rectangular PP, 318 events). Skipped on CRAN. |
+
 ## Track B — Longitudinal survival (ICE hazards)
 
 Time-varying treatment + time-to-event via backward iterated conditional
