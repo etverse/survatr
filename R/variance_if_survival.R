@@ -50,6 +50,10 @@
 #'   `estimator = "ipw"`, or `NULL` (gcomp). When non-`NULL`, the
 #'   treatment-model correction (stacked-EE cross block) is added to the IF
 #'   matrix so the sandwich accounts for the estimated weights.
+#' @param ipcw_corr Output of `prepare_ipcw_correction()` under IPCW, or
+#'   `NULL` (no IPCW). When non-`NULL`, the censoring-model correction
+#'   (third stacked-EE block) is added; omitting it would treat the IPCW
+#'   weights as known, which is anticonservative.
 #'
 #' @return A list with `s_hat` (length `|times|`) and `IF_mat`
 #'   (`n_ids x |times|` matrix of per-individual IFs on `S^a(t)`).
@@ -62,7 +66,8 @@ compute_survival_if_matrix <- function(
   fit_idx,
   id_vec,
   unique_ids,
-  ipw_corr = NULL
+  ipw_corr = NULL,
+  ipcw_corr = NULL
 ) {
   pp_cf <- apply_intervention_pp(fit$pp_data, fit$treatment, intervention)
 
@@ -211,6 +216,23 @@ compute_survival_if_matrix <- function(
     IF_mat <- IF_mat + TC
   }
 
+  ## IPCW: add the stacked-EE censoring-model correction (third block). The
+  ## per-period cumulative censoring weights `W^C_{i,k}` depend on the
+  ## estimated censoring model parameters gamma, so the survival IF gains a
+  ## third (subtracted) term. Ignoring it treats the IPCW weights as known,
+  ## which is anticonservative (the censoring model contributes additional
+  ## variance through the running product).
+  if (!is.null(ipcw_corr)) {
+    CC <- compute_censoring_correction(
+      J_bar_mat = J_bar_mat,
+      B_inv = prep$B_inv,
+      n_fit = nrow(prep$X_fit),
+      ipcw_corr = ipcw_corr,
+      n_ids = n_ids
+    )
+    IF_mat <- IF_mat + CC
+  }
+
   list(s_hat = s_hat, IF_mat = IF_mat)
 }
 
@@ -279,11 +301,28 @@ prepare_sandwich_shared <- function(fit) {
     )
   }
 
+  ## Under IPCW, build the intervention-independent censoring-model correction
+  ## pieces (cross-derivative + per-id censoring IF) once, shared across
+  ## interventions. This is the third stacked-EE block alongside the treatment
+  ## block above.
+  ipcw_corr <- NULL
+  if (!is.null(fit$censoring_model)) {
+    ipcw_corr <- prepare_ipcw_correction(
+      fit = fit,
+      prep = prep,
+      fit_idx = fit_idx,
+      id_vec = id_vec,
+      unique_ids = unique_ids,
+      pp_work = pp_work
+    )
+  }
+
   list(
     prep = prep,
     fit_idx = fit_idx,
     id_vec = id_vec,
     unique_ids = unique_ids,
-    ipw_corr = ipw_corr
+    ipw_corr = ipw_corr,
+    ipcw_corr = ipcw_corr
   )
 }

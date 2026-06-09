@@ -150,7 +150,17 @@ bootstrap_survival <- function(
         ## Competing risks: re-activate the cause-specific path each replicate
         ## (NULL for single-event fits). The cause models are re-estimated per
         ## resample, propagating their uncertainty into the bootstrap CI.
-        competing = fit$competing
+        competing = fit$competing,
+        ## IPCW: re-estimate the censoring model per replicate. `ipcw = NULL`
+        ## when IPCW was not requested; the arguments are ignored by surv_fit()
+        ## when NULL. Per-replicate IPCW trim re-quantiles the weights within
+        ## the replicate (matching the per-replicate treatment-weight trim).
+        ipcw = fit$ipcw,
+        censoring_model_fn = if (!is.null(fit$ipcw)) {
+          fit$censoring_model_fn
+        } else {
+          stats::glm
+        }
       ),
       error = function(e) NULL
     )

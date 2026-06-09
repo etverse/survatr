@@ -215,6 +215,220 @@ fit_ipw_survival <- function(
     treatment_model = full_tm,
     marginal_model = marginal_model,
     weights = weights_pp,
-    trim_threshold = wres$trim_threshold
+    trim_threshold = wres$trim_threshold,
+    ## IPCW fields: NULL for the standard IPW-only path.
+    censoring_model = NULL,
+    ipcw_numerator_model = NULL,
+    ipcw_weights = NULL,
+    ipcw_trim_thresholds = NULL,
+    ipw_treatment_weights_pp = NULL
+  )
+}
+
+#' Fit the IPW + IPCW weighted hazard MSM (Track A, ipw + built-in IPCW)
+#'
+#' @description
+#' Extends `fit_ipw_survival()` with a per-period inverse-probability-of-
+#' censoring weight. When censoring depends on measured covariates, the
+#' pure row-filter path produces a biased curve; the IPCW weight
+#' `W^C_{i,k} = prod_{m <= k} P(C_m = 0 | A) / P(C_m = 0 | A, L, m)`
+#' up-weights survivors at each period so the weighted hazard MSM estimates
+#' the uncensored potential-outcome curve.
+#'
+#' The procedure:
+#' 1. Estimate the stabilized treatment weight `w_i = f(A_i) / f(A_i | L_i)`
+#'    (same as `fit_ipw_survival()`).
+#' 2. Fit the censoring hazard model `P(C_k = 1 | A, L, time)` on the
+#'    at-risk, not-yet-censored rows.
+#' 3. Compute the per-period cumulative IPCW weight `W^C_{i,k}` as a running
+#'    product.
+#' 4. Combine: row weight for PP row `(i, k)` = `w_i * W^C_{i,k}`.
+#' 5. Fit the weighted marginal hazard MSM with the combined weight.
+#'
+#' The two weight components are stored separately in the returned list so the
+#' sandwich variance can fix the treatment component while perturbing the
+#' censoring-model parameters (and vice versa).
+#'
+#' @param data Full person-period `data.table` (validated, sorted, with
+#'   `.survatr_prev_*` columns already written by `build_risk_set()`).
+#' @param fit_rows Logical mask from `build_risk_set()`.
+#' @param outcome,treatment,censoring Column names.
+#' @param confounders One-sided formula for the treatment model.
+#' @param id,time Column names.
+#' @param time_formula One-sided time-basis formula.
+#' @param propensity_model_fn Fitting function for the treatment model.
+#' @param trim Quantile for per-id treatment weight winsorization AND
+#'   per-period IPCW weight winsorization.
+#' @param model_fn Fitting function for the hazard MSM.
+#' @param ipcw_formula One-sided formula for the censoring-model covariates.
+#' @param censoring_model_fn Fitting function for the censoring hazard.
+#' @param ... Forwarded to `model_fn` and `censoring_model_fn`.
+#'
+#' @returns A list with `model`, `family_name`, `n_fit`, `treatment_model`,
+#'   `marginal_model`, `weights` (combined per-PP-row weight),
+#'   `trim_threshold`, `censoring_model`, `ipcw_numerator_model`,
+#'   `ipcw_weights` (per-PP-row cumulative censoring weights),
+#'   `ipcw_trim_thresholds`, and `ipw_treatment_weights_pp`
+#'   (treatment-only broadcast weights).
+#' @family survatr_fit functions
+#' @noRd
+fit_ipw_survival_ipcw <- function(
+  data,
+  fit_rows,
+  outcome,
+  treatment,
+  confounders,
+  id,
+  time,
+  time_formula,
+  propensity_model_fn,
+  trim,
+  model_fn,
+  ipcw_formula,
+  censoring_model_fn,
+  censoring,
+  ...
+) {
+  ## Step 1: treatment weights (same as fit_ipw_survival()).
+  baseline_idx <- data[, .I[1L], by = c(id)]$V1
+  baseline <- data[baseline_idx]
+
+  trt_uniq <- data[,
+    list(.nuniq = data.table::uniqueN(.SD[[1L]])),
+    by = c(id),
+    .SDcols = treatment
+  ]
+  if (any(trt_uniq$.nuniq > 1L)) {
+    rlang::abort(
+      c(
+        paste0(
+          "IPW + IPCW requires a point treatment that is constant within `",
+          id,
+          "`, but `",
+          treatment,
+          "` varies within at least one id."
+        ),
+        i = "Time-varying treatment is a longitudinal-IPW problem."
+      ),
+      class = "survatr_ipw_time_varying_treatment"
+    )
+  }
+  if (data.table::uniqueN(baseline[[treatment]]) < 2L) {
+    rlang::abort(
+      c(
+        paste0(
+          "IPW requires variation in `",
+          treatment,
+          "`, but every individual shares the same treatment value."
+        ),
+        i = paste0(
+          "With no treated/untreated contrast the inverse-probability ",
+          "weights are undefined (a positivity violation)."
+        )
+      ),
+      class = "survatr_ipw_no_treatment_variation"
+    )
+  }
+
+  full_tm <- causatr:::fit_treatment_model(
+    data = baseline,
+    treatment = treatment,
+    confounders = confounders,
+    model_fn = propensity_model_fn
+  )
+  if (!identical(full_tm$family, "bernoulli")) {
+    rlang::abort(
+      c(
+        paste0(
+          "IPW + IPCW currently supports a binary treatment only; `",
+          treatment,
+          "` was detected as family \"",
+          full_tm$family,
+          "\"."
+        ),
+        i = paste0(
+          "Continuous / categorical / count treatment IPW ships in a ",
+          "dedicated extended-types path."
+        )
+      ),
+      class = "survatr_ipw_treatment_unsupported"
+    )
+  }
+  marginal_model <- causatr:::fit_treatment_model(
+    data = baseline,
+    treatment = treatment,
+    confounders = ~1,
+    model_fn = propensity_model_fn
+  )
+  wres <- compute_ipw_stabilized_weights(
+    full_tm = full_tm,
+    marginal_model = marginal_model,
+    baseline = baseline,
+    treatment = treatment,
+    trim = trim
+  )
+  ## Broadcast per-id treatment weight onto all PP rows (constant within id).
+  ipw_weights_pp <- broadcast_weights_to_pp(
+    w_by_id = wres$weights,
+    baseline_ids = baseline[[id]],
+    pp_ids = data[[id]]
+  )
+
+  ## Step 2: fit the censoring hazard model and compute per-period IPCW weights.
+  ## `build_risk_set()` has already been called by surv_fit() and written
+  ## `.survatr_prev_*` columns onto `data` in-place, so we can call
+  ## `fit_censoring_model()` directly.
+  cres <- fit_censoring_model(
+    data = data,
+    censoring = censoring,
+    treatment = treatment,
+    ipcw_formula = ipcw_formula,
+    time_formula = time_formula,
+    censoring_model_fn = censoring_model_fn,
+    id = id,
+    time = time,
+    ...
+  )
+  wc_res <- compute_ipcw_running_weights(
+    data = data,
+    cens_model = cres$cens_model,
+    num_model = cres$num_model,
+    id = id,
+    time = time,
+    trim = trim
+  )
+
+  ## Step 3: combine treatment weight × IPCW weight for each PP row.
+  combined_weights_pp <- ipw_weights_pp * wc_res$weights
+
+  ## Step 4: fit the weighted marginal hazard MSM with the combined weight.
+  haz <- fit_hazard_gcomp(
+    data = data,
+    fit_rows = fit_rows,
+    outcome = outcome,
+    treatment = treatment,
+    confounders = ~1,
+    time_formula = time_formula,
+    weights = combined_weights_pp,
+    model_fn = model_fn,
+    ...
+  )
+
+  list(
+    model = haz$model,
+    family_name = haz$family_name,
+    n_fit = haz$n_fit,
+    treatment_model = full_tm,
+    marginal_model = marginal_model,
+    ## Combined weight stored in `weights` (used by the hazard MSM) so
+    ## existing contrast / variance machinery reads it unchanged.
+    weights = combined_weights_pp,
+    trim_threshold = wres$trim_threshold,
+    ## IPCW-specific outputs stored separately for the censoring sandwich block.
+    censoring_model = cres$cens_model,
+    ipcw_numerator_model = cres$num_model,
+    ipcw_weights = wc_res$weights,
+    ipcw_trim_thresholds = wc_res$trim_thresholds,
+    ipw_treatment_weights_pp = ipw_weights_pp
   )
 }
