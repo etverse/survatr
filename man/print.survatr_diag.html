@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>contrast – survatr</title>
+<title>print.survatr_diag – survatr</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -142,7 +142,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../man/contrast.html">Reference</a></li><li class="breadcrumb-item"><a href="../man/contrast.html">contrast</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../man/contrast.html">Reference</a></li><li class="breadcrumb-item"><a href="../man/print.survatr_diag.html">print.survatr_diag</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -217,7 +217,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../man/contrast.html" class="sidebar-item-text sidebar-link active">
+  <a href="../man/contrast.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">contrast</span></a>
   </div>
 </li>
@@ -259,7 +259,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../man/print.survatr_diag.html" class="sidebar-item-text sidebar-link">
+  <a href="../man/print.survatr_diag.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">print.survatr_diag</span></a>
   </div>
 </li>
@@ -323,7 +323,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#contrast-generic" id="toc-contrast-generic" class="nav-link active" data-scroll-target="#contrast-generic">Contrast generic</a>
+  <li><a href="#print-a-survatr_diag" id="toc-print-a-survatr_diag" class="nav-link active" data-scroll-target="#print-a-survatr_diag">Print a <code>survatr_diag</code></a>
   <ul class="collapse">
   <li><a href="#description" id="toc-description" class="nav-link" data-scroll-target="#description">Description</a></li>
   <li><a href="#usage" id="toc-usage" class="nav-link" data-scroll-target="#usage">Usage</a></li>
@@ -336,21 +336,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="quarto-code-links"><h2>Code Links</h2><ul><li><a href="undefined"><i class="bi bi-link-45deg"></i></a></li></ul></div></nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../man/contrast.html">Reference</a></li><li class="breadcrumb-item"><a href="../man/contrast.html">contrast</a></li></ol></nav></header>
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../man/contrast.html">Reference</a></li><li class="breadcrumb-item"><a href="../man/print.survatr_diag.html">print.survatr_diag</a></li></ol></nav></header>
 
 
 
 
-<section id="contrast-generic" class="level2 unnumbered">
-<h2 class="unnumbered anchored" data-anchor-id="contrast-generic">Contrast generic</h2>
+<section id="print-a-survatr_diag" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="print-a-survatr_diag">Print a <code>survatr_diag</code></h2>
 <section id="description" class="level3">
 <h3 class="anchored" data-anchor-id="description">Description</h3>
-<p>S3 generic dispatched on the class of <code>fit</code>. survatr ships <code>contrast.survatr_fit()</code> for time-indexed survival / risk / RMST contrasts.</p>
-<p><code>causatr::contrast()</code> (same symbol name in causatr, but not an S3 generic there) handles scalar-outcome causatr_fit objects. If both packages are attached, this generic shadows <code>causatr::contrast()</code>; users who need the causatr path should call <code>causatr::contrast()</code> explicitly.</p>
+<p>Compact per-panel summary for the diagnostic object returned by <code>diagnose()</code>. Reports how many periods have positivity flags, the range of SMDs in the balance panel, IPW weight summary (if applicable), and the competing-risks identity-check result (if applicable).</p>
 </section>
 <section id="usage" class="level3">
 <h3 class="anchored" data-anchor-id="usage">Usage</h3>
-<pre><code class="language-R">contrast(fit, ...)
+<pre><code class="language-R">## S3 method for class 'survatr_diag'
+print(x, ...)
 </code></pre>
 </section>
 <section id="arguments" class="level3">
@@ -358,10 +358,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <table role="presentation">
 <tbody><tr>
 <td style="white-space: collapse; font-family: monospace; vertical-align: top">
-<code id="fit">fit</code>
+<code id="x">x</code>
 </td>
 <td>
-A fitted model object.
+A <code>survatr_diag</code>.
 </td>
 </tr>
 <tr>
@@ -369,59 +369,40 @@ A fitted model object.
 <code id="...">…</code>
 </td>
 <td>
-Arguments passed to methods.
+Unused.
 </td>
 </tr>
 </tbody></table>
 </section>
 <section id="value" class="level3">
 <h3 class="anchored" data-anchor-id="value">Value</h3>
-<p>Method-dependent.</p>
+<p>The diagnostic object, invisibly.</p>
 </section>
 <section id="see-also" class="level3">
 <h3 class="anchored" data-anchor-id="see-also">See Also</h3>
-<p>Other survatr_result methods: <code>contrast.survatr_fit()</code>, <code>forrest()</code>, <code>forrest.survatr_result()</code>, <code>plot.survatr_result()</code>, <code>print.survatr_result()</code>, <code>tidy.survatr_result()</code></p>
+<p>Other survatr_fit functions: <code>diagnose()</code>, <code>print.survatr_fit()</code>, <code>surv_fit()</code></p>
 </section>
 <section id="examples" class="level3">
 <h3 class="anchored" data-anchor-id="examples">Examples</h3>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"survatr"</span>)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Small rectangular person-period dataset: 30 ids over 4 periods.</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>n_id <span class="ot">&lt;-</span> <span class="dv">30</span>L</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>K <span class="ot">&lt;-</span> <span class="dv">4</span>L</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>pp <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">id =</span> <span class="fu">rep</span>(<span class="fu">seq_len</span>(n_id), <span class="at">each =</span> K),</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">t =</span> <span class="fu">rep</span>(<span class="fu">seq_len</span>(K), <span class="at">times =</span> n_id),</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">A =</span> <span class="fu">rep</span>(<span class="fu">rbinom</span>(n_id, <span class="dv">1</span>L, <span class="fl">0.5</span>), <span class="at">each =</span> K),</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">Y =</span> <span class="fu">rbinom</span>(n_id <span class="sc">*</span> K, <span class="dv">1</span>L, <span class="fl">0.1</span>)</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">surv_fit</span>(pp, <span class="st">"Y"</span>, <span class="st">"A"</span>, <span class="sc">~</span><span class="dv">1</span>, <span class="st">"id"</span>, <span class="st">"t"</span>, <span class="at">time_formula =</span> <span class="sc">~</span> <span class="fu">factor</span>(t))</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Contrast two static interventions; dispatches to contrast.survatr_fit().</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="fu">contrast</span>(</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  fit,</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">interventions =</span> <span class="fu">list</span>(<span class="at">a1 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">1</span>), <span class="at">a0 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">0</span>)),</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">times =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>,</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">"risk_difference"</span></span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">4</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>n_id <span class="ot">&lt;-</span> <span class="dv">40</span>L; K <span class="ot">&lt;-</span> <span class="dv">3</span>L</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>pp <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">id =</span> <span class="fu">rep</span>(<span class="fu">seq_len</span>(n_id), <span class="at">each =</span> K),</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">t  =</span> <span class="fu">rep</span>(<span class="fu">seq_len</span>(K), <span class="at">times =</span> n_id),</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">A  =</span> <span class="fu">rep</span>(<span class="fu">rbinom</span>(n_id, <span class="dv">1</span>L, <span class="fl">0.5</span>), <span class="at">each =</span> K),</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">L  =</span> <span class="fu">rep</span>(<span class="fu">rnorm</span>(n_id), <span class="at">each =</span> K),</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">Y  =</span> <span class="fu">rbinom</span>(n_id <span class="sc">*</span> K, <span class="dv">1</span>L, <span class="fl">0.05</span>)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">surv_fit</span>(pp, <span class="st">"Y"</span>, <span class="st">"A"</span>, <span class="sc">~</span>L, <span class="st">"id"</span>, <span class="st">"t"</span>, <span class="at">time_formula =</span> <span class="sc">~</span><span class="dv">1</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">diagnose</span>(fit))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>&lt;survatr_result&gt;
-  Type:        risk_difference
-  Reference:   a1
-  CI method:   none
-  Time grid:   [1, 4] (4 unique times)
-  Estimates:   8 rows
-  Contrasts:   4 rows
-
-   contrast  time    estimate    se ci_lower ci_upper
-     &lt;char&gt; &lt;int&gt;       &lt;num&gt; &lt;num&gt;    &lt;num&gt;    &lt;num&gt;
-1: a0 vs a1     1 -0.06035855    NA       NA       NA
-2: a0 vs a1     2 -0.09674334    NA       NA       NA
-3: a0 vs a1     3 -0.14352823    NA       NA       NA
-4: a0 vs a1     4 -0.14352823    NA       NA       NA</code></pre>
+<pre><code>&lt;survatr_diag&gt;
+  Positivity:  3 periods, hazards [0.0091, 0.2397]
+  Balance:     1 variable(s), SMD range [-0.265, -0.177]
+  Censoring:   (no censoring column supplied)</code></pre>
 </div>
 </div>
 

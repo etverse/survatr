@@ -194,6 +194,12 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./man/diagnose.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">diagnose</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./man/forrest.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">forrest</span></a>
   </div>
@@ -214,6 +220,12 @@ ul.task-list li input[type="checkbox"] {
   <div class="sidebar-item-container"> 
   <a href="./man/plot.survatr_result.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">plot.survatr_result</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/print.survatr_diag.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">print.survatr_diag</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -278,6 +290,9 @@ ul.task-list li input[type="checkbox"] {
   <ul>
   <li><a href="#survatr-development-version" id="toc-survatr-development-version" class="nav-link active" data-scroll-target="#survatr-development-version">survatr (development version)</a>
   <ul class="collapse">
+  <li><a href="#critical-review-diagnose-matching-rejection-fixes" id="toc-critical-review-diagnose-matching-rejection-fixes" class="nav-link" data-scroll-target="#critical-review-diagnose-matching-rejection-fixes">2026-06-09 — Critical review: diagnose + matching-rejection fixes</a></li>
+  <li><a href="#chunk-10-survival-aware-diagnose" id="toc-chunk-10-survival-aware-diagnose" class="nav-link" data-scroll-target="#chunk-10-survival-aware-diagnose">2026-06-09 — Chunk 10: survival-aware <code>diagnose()</code></a></li>
+  <li><a href="#chunk-8-full-matching-rejection-surface" id="toc-chunk-8-full-matching-rejection-surface" class="nav-link" data-scroll-target="#chunk-8-full-matching-rejection-surface">2026-06-09 — Chunk 8: full matching rejection surface</a></li>
   <li><a href="#p3-oracle-hardening-gformula-survrm2-rmst-sanity" id="toc-p3-oracle-hardening-gformula-survrm2-rmst-sanity" class="nav-link" data-scroll-target="#p3-oracle-hardening-gformula-survrm2-rmst-sanity">2026-06-09 — P3 oracle hardening: gfoRmula 🟡→🟢, survRM2 RMST sanity</a></li>
   <li><a href="#competing-risks-cause-specific-hazards-cumulative-incidence" id="toc-competing-risks-cause-specific-hazards-cumulative-incidence" class="nav-link" data-scroll-target="#competing-risks-cause-specific-hazards-cumulative-incidence">2026-06-08 — Competing risks: cause-specific hazards + cumulative incidence</a></li>
   <li><a href="#track-b-longitudinal-survival-via-ice-hazards-estimator-ice" id="toc-track-b-longitudinal-survival-via-ice-hazards-estimator-ice" class="nav-link" data-scroll-target="#track-b-longitudinal-survival-via-ice-hazards-estimator-ice">2026-06-03 — Track B: longitudinal survival via ICE hazards (<code>estimator = "ice"</code>)</a></li>
@@ -302,6 +317,21 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="survatr-development-version" class="level1">
 <h1>survatr (development version)</h1>
+<section id="critical-review-diagnose-matching-rejection-fixes" class="level2">
+<h2 class="anchored" data-anchor-id="critical-review-diagnose-matching-rejection-fixes">2026-06-09 — Critical review: diagnose + matching-rejection fixes</h2>
+<p><strong><code>$censoring</code> column renamed <code>n_at_risk</code> → <code>n_pp_rows</code>.</strong> The old name was misleading: the denominator in the censoring panel is the full person-period row count, not the hazard-model at-risk set. Post-event rows are included so the censoring event at the period it occurs is always visible. <code>$positivity</code> still uses <code>n_at_risk</code> (risk-set rows), and the docstring now clarifies the difference. The <code>print.survatr_diag</code> output is unchanged (wording was already “person-periods”).</p>
+<p><strong>Missing snapshot for <code>method = "match"</code> rejection added.</strong> The <code>test-matching-rejection.R</code> test for <code>method = "match"</code> was missing <code>expect_snapshot(error = TRUE)</code>; the snapshot file now covers all 5 rejection routes.</p>
+</section>
+<section id="chunk-10-survival-aware-diagnose" class="level2">
+<h2 class="anchored" data-anchor-id="chunk-10-survival-aware-diagnose">2026-06-09 — Chunk 10: survival-aware <code>diagnose()</code></h2>
+<p><strong><code>diagnose.survatr_fit()</code> returns a <code>survatr_diag</code> with five per-period diagnostic panels.</strong> <code>$positivity</code> summarises the predicted hazard distribution at each time point (model-predicted for gcomp/IPW, all-cause summed for competing risks, empirical for ICE) and flags periods with h &lt; 0.001 or h &gt; 0.999. <code>$balance</code> computes per-period standardised mean differences (or treatment–confounder correlation for continuous treatment) across all supplied confounders. <code>$weights</code> (IPW only) reports per-id effective sample size, maximum weight, and top-5% weight share. <code>$censoring</code> (when a censoring column is supplied) reports per-arm censoring incidence by period. <code>$competing</code> (competing- risks fits only) computes the marginal per-cause CIF and checks the partition-of- unity identity <code>Σ F^(j)(t) + S(t) = 1</code> (maximum observed deviation ≈ 0); the truncation-by-death caveat is attached as a text attribute.</p>
+<p><code>print.survatr_diag</code> renders a compact per-panel banner. 40 new assertions in <code>test-diagnose.R</code>. <strong>Completes v1 (chunks 1–10).</strong></p>
+</section>
+<section id="chunk-8-full-matching-rejection-surface" class="level2">
+<h2 class="anchored" data-anchor-id="chunk-8-full-matching-rejection-surface">2026-06-09 — Chunk 8: full matching rejection surface</h2>
+<p><strong>All matching entry routes now hard-abort with <code>survatr_matching_rejected</code>.</strong> Previously only <code>estimator = "matching"</code> / <code>"match"</code> was caught. Chunk 8 closes the remaining two routes: (1) <code>method = "matching"</code> or <code>"match"</code> in <code>...</code> (a causatr-style API mis-call, intercepted before model dispatch); (2) a <code>matchit</code> object (MatchIt output) passed directly as <code>data</code> (caught before any column lookup). All three routes emit the same classed error and redirect to <code>survival::coxph(..., weights = match_weights, cluster = subclass)</code>.</p>
+<p>New test file <code>test-matching-rejection.R</code> with 9 assertions covering all routes and snapshot-pinning the error message for each.</p>
+</section>
 <section id="p3-oracle-hardening-gformula-survrm2-rmst-sanity" class="level2">
 <h2 class="anchored" data-anchor-id="p3-oracle-hardening-gformula-survrm2-rmst-sanity">2026-06-09 — P3 oracle hardening: gfoRmula 🟡→🟢, survRM2 RMST sanity</h2>
 <p><strong>gfoRmula oracle hardened (🟡→🟢, <code>test-ice-survival-oracle.R</code>).</strong> The <code>gfoRmula::gformula_survival()</code> cross-check for Track B ICE survival was previously a loose <code>expect_lt(max(abs(...)), 0.05)</code> with <code>nsimul = 30 000</code>, flagged 🟡 due to Monte Carlo noise. <code>nsimul</code> is raised to 100 000 (reducing MC noise to &lt; 0.001 per estimate) and the assertion is tightened to an absolute bound of 0.04 (matching the known ~0.02–0.04 systematic inter-estimator offset: gfoRmula under-estimates risk on the feedback DGP while ICE tracks the analytic forward-sim truth to ~0.001–0.013). A directional structural pin (<code>ICE ≥ gfoRmula − 0.01</code>) is added to document the bias direction. Row promoted 🟡→🟢 in <code>FEATURE_COVERAGE_MATRIX.md</code>.</p>
