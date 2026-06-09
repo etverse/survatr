@@ -1,5 +1,51 @@
 # survatr (development version)
 
+## 2026-06-09 — Critical review: diagnose + matching-rejection fixes
+
+**`$censoring` column renamed `n_at_risk` → `n_pp_rows`.** The old name was
+misleading: the denominator in the censoring panel is the full person-period
+row count, not the hazard-model at-risk set. Post-event rows are included so
+the censoring event at the period it occurs is always visible. `$positivity`
+still uses `n_at_risk` (risk-set rows), and the docstring now clarifies the
+difference. The `print.survatr_diag` output is unchanged (wording was already
+"person-periods").
+
+**Missing snapshot for `method = "match"` rejection added.** The
+`test-matching-rejection.R` test for `method = "match"` was missing
+`expect_snapshot(error = TRUE)`; the snapshot file now covers all 5 rejection
+routes.
+
+## 2026-06-09 — Chunk 10: survival-aware `diagnose()`
+
+**`diagnose.survatr_fit()` returns a `survatr_diag` with five per-period diagnostic
+panels.** `$positivity` summarises the predicted hazard distribution at each
+time point (model-predicted for gcomp/IPW, all-cause summed for competing risks,
+empirical for ICE) and flags periods with h < 0.001 or h > 0.999.
+`$balance` computes per-period standardised mean differences (or
+treatment–confounder correlation for continuous treatment) across all supplied
+confounders. `$weights` (IPW only) reports per-id effective sample size, maximum
+weight, and top-5% weight share. `$censoring` (when a censoring column is
+supplied) reports per-arm censoring incidence by period. `$competing` (competing-
+risks fits only) computes the marginal per-cause CIF and checks the partition-of-
+unity identity `Σ F^(j)(t) + S(t) = 1` (maximum observed deviation ≈ 0);
+the truncation-by-death caveat is attached as a text attribute.
+
+`print.survatr_diag` renders a compact per-panel banner. 40 new assertions in
+`test-diagnose.R`. **Completes v1 (chunks 1–10).**
+
+## 2026-06-09 — Chunk 8: full matching rejection surface
+
+**All matching entry routes now hard-abort with `survatr_matching_rejected`.**
+Previously only `estimator = "matching"` / `"match"` was caught. Chunk 8 closes
+the remaining two routes: (1) `method = "matching"` or `"match"` in `...` (a
+causatr-style API mis-call, intercepted before model dispatch); (2) a `matchit`
+object (MatchIt output) passed directly as `data` (caught before any column
+lookup). All three routes emit the same classed error and redirect to
+`survival::coxph(..., weights = match_weights, cluster = subclass)`.
+
+New test file `test-matching-rejection.R` with 9 assertions covering all routes
+and snapshot-pinning the error message for each.
+
 ## 2026-06-09 — P3 oracle hardening: gfoRmula 🟡→🟢, survRM2 RMST sanity
 
 **gfoRmula oracle hardened (🟡→🟢, `test-ice-survival-oracle.R`).** The

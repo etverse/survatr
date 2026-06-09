@@ -395,3 +395,21 @@ Do NOT flag these as bugs. Each has a regression test.
   so CI shows the actual deviations. RMST values ~12–14 are less affected:
   `tolerance = 0.05` → ~0.65 absolute, which is usually appropriate for a
   cross-estimator sanity check.
+
+### Once-per-session `rlang::inform` and test ordering
+
+- **`rlang::inform(.frequency = "once", .frequency_id = "...")` fires exactly
+  once per R session regardless of how many times the call site executes.**
+  Tests that `expect_message(class = "...")` for a once-per-session inform
+  will fail if any earlier test file (alphabetical order) already triggered
+  that inform, because the rlang once-tracking state persists across test
+  files in the same session.
+- **Fix: in non-targeted tests, avoid calling code that fires the once-per-
+  session inform.** If a test only needs to verify *structural* behaviour
+  (e.g. "weights panel is NULL for ICE"), choose a DGP that doesn't trigger
+  the inform (e.g. use a time-varying treatment DGP like `sim_ice_feedback`
+  instead of a static-treatment DGP for ICE) so the slot stays unconsumed.
+- **The targeted test that `expect_message(...)`s the inform should be the
+  only test to trigger it.** Currently `survatr_ice_static_treatment` is
+  tested in `test-ice-survival.R:289`; no other test file should call
+  `surv_fit(estimator = "ice")` with a constant-within-id treatment.

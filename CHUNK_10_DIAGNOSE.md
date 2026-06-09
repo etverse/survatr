@@ -1,6 +1,6 @@
 # Chunk 10 — Survival-aware `diagnose()`
 
-> **Status: ⬜ Not started**
+> **Status: ✅ Done — `75bbe1f`**
 > **Depends on:** Chunk 2 (fit + curve), Chunk 7 (competing-risks decomposition);
 > Chunk 5 (IPW weight diagnostics).
 > **Oracle:** n/a (diagnostic summaries; assert structure + known-DGP signals).

@@ -157,6 +157,8 @@ fit
 \code{causatr::to_person_period()} for reshaping wide data.
 
 Other survatr_fit functions: 
+\code{\link{diagnose}()},
+\code{\link{print.survatr_diag}()},
 \code{\link{print.survatr_fit}()}
 }
 \concept{survatr_fit functions}

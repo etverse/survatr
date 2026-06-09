@@ -246,6 +246,32 @@ head(res_td, 6)
 forrest(res_rd, t_ref = 10, main = "Risk difference at t = 10")
 ```
 
+## Model diagnostics
+
+`diagnose()` returns a `survatr_diag` with five panels that operate on the
+same at-risk rows the hazard model was fit on:
+
+```{r}
+dx <- diagnose(fit)
+print(dx)
+```
+
+The panels are accessible as plain `data.table`s:
+
+```{r}
+## Per-period hazard distribution: h_min / h_mean / h_max, flag_low / flag_high
+dx$positivity
+
+## Standardized mean differences (or cor(A, L) for continuous A)
+dx$balance
+```
+
+`$weights` is non-`NULL` for IPW fits and holds the per-id ESS, maximum
+weight, and top-5%-share. `$censoring` is populated when a `censoring`
+column was supplied and reports per-arm censoring incidence (denominator is
+the full person-period row count, `n_pp_rows`). `$competing` appears for
+competing-risks fits and includes the partition-of-unity identity check.
+
 ## Reserved columns and error surface
 
 survatr reserves column names prefixed with `.survatr_*` for internal
@@ -281,14 +307,14 @@ implemented and have dedicated vignettes:
   (Zivich et al. 2024), with the hazard indicator at the final period and
   a survival-tail pseudo-outcome at earlier periods.
 
-survatr's full scope is laid out in `SURVIVAL_PACKAGE_HANDOFF.md`. Upcoming
-chunks will add:
+survatr's full scope is laid out in `SURVIVAL_PACKAGE_HANDOFF.md`. v1 is now
+complete (chunks 1–10). v1.x will add:
 
-- **Competing risks** — parallel cause-specific hazards + cumulative
-  incidence decomposition.
-- **NHEFS Chapter 17 replication** — the Hernán & Robins running
-  example with the 120-month survival curves and the ≈ 0.2% risk
-  difference target.
+- **IPCW** — per-period cumulative censoring weights wired into the hazard MSM.
+- **Extended estimands** — survival quantiles / median, RMTL, per-cause
+  years-of-life-lost.
+- **Cluster-robust sandwich** — `cluster=` IF aggregation.
+- **Left-truncation / delayed entry.**
 
 ## References
 

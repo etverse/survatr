@@ -133,12 +133,45 @@ surv_fit <- function(
   history = Inf,
   ...
 ) {
+  ## Reject a `MatchIt` output object passed as `data`. Users sometimes feed
+  ## the `matchit` result directly; detecting it here gives a clear redirect
+  ## rather than a confusing "column not found" error later.
+  if (inherits(data, "matchit")) {
+    rlang::abort(
+      c(
+        "Matching + survival is out of scope for survatr.",
+        i = paste0(
+          "Use `survival::coxph(..., weights = match_weights, ",
+          "cluster = subclass)` directly on the `MatchIt` output."
+        )
+      ),
+      class = "survatr_matching_rejected"
+    )
+  }
+
   ## Estimator gating. Matching is structurally invalid for survival (see
-  ## hard-rules.md) and gets its own classed error. "ipw" and "ice" land on
-  ## a separate classed error so downstream chunks can pattern-match when
-  ## they wire them up. Anything else falls through to a generic bad-estimator
-  ## error.
+  ## hard-rules.md) and gets its own classed error. A `method = "matching"`
+  ## mis-call (causatr-style API confusion) is also caught here. "ipw" and
+  ## "ice" land on a separate classed error so downstream chunks can
+  ## pattern-match when they wire them up. Anything else falls through to a
+  ## generic bad-estimator error.
   if (identical(estimator, "matching") || identical(estimator, "match")) {
+    rlang::abort(
+      c(
+        "Matching + survival is out of scope for survatr.",
+        i = paste0(
+          "Use `survival::coxph(..., weights = match_weights, ",
+          "cluster = subclass)` directly on the `MatchIt` output."
+        )
+      ),
+      class = "survatr_matching_rejected"
+    )
+  }
+  dots <- list(...)
+  if (
+    identical(dots[["method"]], "matching") ||
+      identical(dots[["method"]], "match")
+  ) {
     rlang::abort(
       c(
         "Matching + survival is out of scope for survatr.",
