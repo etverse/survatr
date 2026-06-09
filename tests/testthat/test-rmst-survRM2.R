@@ -7,10 +7,11 @@
 ##   constant-hazard DGP with no confounders and small per-period hazard
 ##   (h = 0.05), the two agree closely: the pooled-logistic model recovers
 ##   the discrete (1-h)^t curve, whose trapezoidal integral approximates the
-##   KM area with a bias of order h²/12 per interval — well below the 0.05
-##   tolerance used here. This is a sanity check that the RMST *scale* is
-##   correct; tight precision pins live in test-rmst.R (closed-form
-##   trapezoidal oracle) and test-gcomp-delicatessen.R (delicatessen).
+##   KM area with a bias of order h²/12 per interval (~0.05 total over K=20).
+##   `expect_equal` uses waldo's relative tolerance, so tolerance = 0.05
+##   corresponds to ~0.65 absolute for RMST ≈ 12–14 — generous enough for a
+##   cross-estimator sanity check. Tight precision pins live in test-rmst.R
+##   (closed-form trapezoidal oracle) and test-gcomp-delicatessen.R.
 ##
 ## DGP:
 ##   n = 3000, K = 20, h = 0.05 (constant, no treatment effect, no covariates).
