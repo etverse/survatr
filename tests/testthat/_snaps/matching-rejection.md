@@ -25,6 +25,15 @@
       ! Matching + survival is out of scope for survatr.
       i Use `survival::coxph(..., weights = match_weights, cluster = subclass)` directly on the `MatchIt` output.
 
+# rejects method = 'match' in ... (causatr-style alias)
+
+    Code
+      surv_fit(dt, "Y", "A", ~L, "id", "t", method = "match")
+    Condition
+      Error in `surv_fit()`:
+      ! Matching + survival is out of scope for survatr.
+      i Use `survival::coxph(..., weights = match_weights, cluster = subclass)` directly on the `MatchIt` output.
+
 # rejects a `matchit` object passed as data
 
     Code

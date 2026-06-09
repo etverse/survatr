@@ -16,8 +16,11 @@
 #' }
 #'
 #' @details
-#' All panels operate on the at-risk rows as defined by `build_risk_set()` —
-#' the same rows the hazard model was fit on. For Track B (ICE) the hazard
+#' Most panels operate on the at-risk rows from `build_risk_set()` (the rows
+#' the hazard model was fit on). **Exception:** `$censoring` uses the full
+#' person-period grid so that the censoring event itself is visible at the
+#' period it occurs; its `n_pp_rows` denominator therefore includes post-event
+#' rows and differs from `$positivity$n_at_risk`. For Track B (ICE) the hazard
 #' model is fit lazily inside `contrast()`, so the positivity panel reports
 #' the empirical per-period event rate rather than model-predicted hazards.
 #'
@@ -264,13 +267,21 @@ diag_weights <- function(fit) {
 #' Per-period censoring incidence panel
 #'
 #' Computes, for each period and each treatment arm, the number and proportion
-#' of at-risk individuals who were censored. A large arm imbalance in the
-#' censoring rate signals potential informative censoring that motivates IPCW.
+#' of person-period rows that are censored. The denominator `n_pp_rows` is the
+#' full person-period row count (not the hazard-model at-risk set), so rows of
+#' individuals who already had an event prior to period `k` are included but
+#' contribute 0 to `n_censored`. A large arm imbalance in `prop_censored`
+#' signals potential informative censoring that motivates IPCW.
+#'
+#' `n_pp_rows` differs from `n_at_risk` in `$positivity` (which is filtered to
+#' the risk-set rows that the hazard model sees). Use `$positivity$n_at_risk`
+#' for model-effective sample sizes; use `$censoring$n_pp_rows` for censoring
+#' incidence counts.
 #'
 #' @param fit A `survatr_fit` with a non-`NULL` `censoring` column.
 #' @param pp Copy of `fit$pp_data`.
 #'
-#' @returns `data.table` with columns `time | arm | n_at_risk | n_censored |
+#' @returns `data.table` with columns `time | arm | n_pp_rows | n_censored |
 #'   prop_censored`.
 #' @noRd
 diag_censoring <- function(fit, pp) {
@@ -280,9 +291,13 @@ diag_censoring <- function(fit, pp) {
 
   ## Use the full PP grid (before risk-set filtering) to see all censoring
   ## events, including the one at the period when censoring occurs.
+  ## `n_pp_rows` (not `n_at_risk`) because the denominator includes post-event
+  ## rows that are NOT in the hazard-model risk set but DO appear in the PP grid.
+  ## Using the risk-set would silently exclude the censored row itself, making
+  ## censoring rates uninterpretable at the period of censoring.
   cens_dt <- pp[,
     .(
-      n_at_risk = .N,
+      n_pp_rows = .N,
       n_censored = sum(get(cens_col) == 1L, na.rm = TRUE),
       prop_censored = mean(get(cens_col) == 1L, na.rm = TRUE)
     ),

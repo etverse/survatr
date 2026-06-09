@@ -36,8 +36,11 @@ censoring column was supplied.}
 }
 }
 \details{
-All panels operate on the at-risk rows as defined by \code{build_risk_set()} —
-the same rows the hazard model was fit on. For Track B (ICE) the hazard
+Most panels operate on the at-risk rows from \code{build_risk_set()} (the rows
+the hazard model was fit on). \strong{Exception:} \verb{$censoring} uses the full
+person-period grid so that the censoring event itself is visible at the
+period it occurs; its \code{n_pp_rows} denominator therefore includes post-event
+rows and differs from \verb{$positivity$n_at_risk}. For Track B (ICE) the hazard
 model is fit lazily inside \code{contrast()}, so the positivity panel reports
 the empirical per-period event rate rather than model-predicted hazards.
 }

@@ -216,7 +216,7 @@ test_that("censoring panel is a data.table with expected columns when C supplied
   expect_false(is.null(cens))
   expect_true(data.table::is.data.table(cens))
   expect_true(all(
-    c("time", "arm", "n_at_risk", "n_censored", "prop_censored") %in%
+    c("time", "arm", "n_pp_rows", "n_censored", "prop_censored") %in%
       names(cens)
   ))
   ## All proportions in [0, 1]

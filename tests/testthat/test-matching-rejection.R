@@ -53,6 +53,10 @@ test_that("rejects method = 'match' in ... (causatr-style alias)", {
     surv_fit(dt, "Y", "A", ~L, "id", "t", method = "match"),
     class = "survatr_matching_rejected"
   )
+  expect_snapshot(
+    surv_fit(dt, "Y", "A", ~L, "id", "t", method = "match"),
+    error = TRUE
+  )
 })
 
 test_that("rejects a `matchit` object passed as data", {

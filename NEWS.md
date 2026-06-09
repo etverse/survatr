@@ -1,5 +1,20 @@
 # survatr (development version)
 
+## 2026-06-09 — Critical review: diagnose + matching-rejection fixes
+
+**`$censoring` column renamed `n_at_risk` → `n_pp_rows`.** The old name was
+misleading: the denominator in the censoring panel is the full person-period
+row count, not the hazard-model at-risk set. Post-event rows are included so
+the censoring event at the period it occurs is always visible. `$positivity`
+still uses `n_at_risk` (risk-set rows), and the docstring now clarifies the
+difference. The `print.survatr_diag` output is unchanged (wording was already
+"person-periods").
+
+**Missing snapshot for `method = "match"` rejection added.** The
+`test-matching-rejection.R` test for `method = "match"` was missing
+`expect_snapshot(error = TRUE)`; the snapshot file now covers all 5 rejection
+routes.
+
 ## 2026-06-09 — Chunk 10: survival-aware `diagnose()`
 
 **`diagnose.survatr_fit()` returns a `survatr_diag` with five per-period diagnostic

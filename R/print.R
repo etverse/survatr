@@ -226,12 +226,12 @@ print.survatr_diag <- function(x, ...) {
   cens <- x$censoring
   if (!is.null(cens) && nrow(cens) > 0L) {
     total_cens <- sum(cens$n_censored, na.rm = TRUE)
-    total_ar <- sum(cens$n_at_risk, na.rm = TRUE)
+    total_pp <- sum(cens$n_pp_rows, na.rm = TRUE)
     cat(sprintf(
       "  Censoring:   %d events over %d person-periods (%.1f%%)\n",
       total_cens,
-      total_ar,
-      100 * total_cens / max(total_ar, 1L)
+      total_pp,
+      100 * total_cens / max(total_pp, 1L)
     ))
   } else if (is.null(x$censoring)) {
     cat("  Censoring:   (no censoring column supplied)\n")
