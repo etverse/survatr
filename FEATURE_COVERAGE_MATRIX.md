@@ -53,6 +53,7 @@ reflects **current** state, not planned scope. Planned scope lives in
 | `type = "risk_difference"` | 🟢 | `test-contrast.R` | DGP with no treatment effect: RD ≈ 0 across time, tolerance 0.02 at n = 5000. |
 | `type = "risk_ratio"` | 🟢 | `test-contrast.R` | DGP with no treatment effect: RR ≈ 1, tolerance 0.15. |
 | `type = "rmst"` | 🟢 | `test-rmst.R`, `test-contrast.R` | Closed-form trapezoidal integral of `(1-h)^t` matched to 1e-12; curve-only shape verified. |
+| RMST cross-check vs `survRM2::rmst2()` (unadjusted KM) | 🟢 | `test-rmst-survRM2.R` | Constant-hazard DGP (n = 3000, K = 20, h = 0.05, no covariates): per-arm pooled-logistic trapezoidal RMST at t = 20 agrees with KM-based RMST from `survRM2::rmst2()` within 0.05. Validates the RMST scale (pooled-logistic ≈ KM for small h). `skip_if_not_installed("survRM2")`. |
 | `type = "rmst_difference"` | 🟢 | `test-contrast.R` | DGP with no effect: RMST-diff ≈ 0, tolerance 0.1. |
 | Oracle cross-check vs `lmtp::lmtp_tmle(outcome_type = "survival")` | 🟢 | `test-contrast-lmtp-oracle.R` | gcomp `S^a(t)` (a1 and a0) on a confounded DGP (n = 2000) matches lmtp's TMLE survival within 0.05 at t ∈ {3, 5}. lmtp 1.5.3: one fit per horizon, `ife@x` estimate (the prior `folds`/`$theta` form silently skipped). |
 | Per-individual cumulative product (Jensen-safe) | 🟢 | `test-survival_curve.R` | Cumulative product within id before averaging across ids; monotone non-increasing in t on random DGPs. |
@@ -157,7 +158,7 @@ single-model primitives. Confounders split into `confounders` (baseline) +
 | ICE sandwich ≈ empirical bootstrap | 🟢 | `test-ice-survival.R` | Per-time sandwich vs bootstrap SE within 20% (n = 1200, 400 reps). Guards against regressing to causatr's verbatim chain (which over-covers, growing in t). |
 | Bootstrap variance (per-replicate ICE refit) | 🟢 | `test-ice-survival.R` | `bootstrap_survival()` refits Track B per replicate (lags rebuilt, `confounders_tv` / `history` threaded). |
 | External point-estimate oracle: `lmtp::lmtp_tmle(survival)` | 🟢 | `test-ice-survival-oracle.R` | Static strategies: lmtp and ICE both within 0.03 of the forward-sim truth (`skip_if_not_installed`). |
-| External oracle: `gfoRmula::gformula_survival()` | 🟡 | `test-ice-survival-oracle.R` | Cross-check when installed; `skip_if_not_installed` + defensive `tryCatch` (API-sensitive). |
+| External oracle: `gfoRmula::gformula_survival()` | 🟢 | `test-ice-survival-oracle.R` | Cross-check when installed; `skip_if_not_installed` + defensive `tryCatch` (API-sensitive). nsimul = 100 000; `expect_equal` tolerance 0.04 (known ~0.02–0.04 gfoRmula under-estimation vs ICE and analytic truth). Directional pin: ICE ≥ gfoRmula − 0.01. |
 | `estimator = "ice"` with constant-within-id treatment | 🟢 | `test-ice-survival.R` | Informs `survatr_ice_static_treatment` (Track A cheaper) but proceeds. |
 | Time-varying treatment under Track A (gcomp/ipw) | 🟢 | `test-ice-survival.R` | Warns `survatr_tv_treatment_track_a`, points to `estimator = "ice"`. |
 | Non-numeric (factor / categorical k>2) treatment under Track B | 🔴 | `test-ice-survival.R` | `survatr_ice_treatment_unsupported`. Numeric (binary / linear dose) only; treatment-design-formula path → later chunk. |
