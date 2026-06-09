@@ -46,6 +46,7 @@ _quarto/
 docs/
 vignettes/*.html
 vignettes/*_files/
+vignettes/*_cache/
 vignettes/*.markdown_strict_files/
 
 /.quarto/
