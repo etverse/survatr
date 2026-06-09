@@ -34,7 +34,9 @@ reflects **current** state, not planned scope. Planned scope lives in
 | Reserved-column guard (`.survatr_prev_event`, `.survatr_prev_cens`) | 🔴 | `test-checks.R`, `test-surv_fit.R` | `survatr_reserved_col`. |
 | External weights validation (NA / Inf / NaN / negative / mis-sized / non-numeric) | 🔴 | `test-checks.R`, `test-surv_fit-weighted.R` | `survatr_bad_weights`. Zero weights allowed. |
 | `na.action = na.exclude` | 🔴 | `test-checks.R`, `test-surv_fit.R` | `survatr_bad_na_action`. Inherited rationale from causatr (residuals padding vs `model.matrix` drop misalignment). |
-| `estimator = "matching"` / `"match"` | 🔴 | `test-surv_fit.R` | `survatr_matching_rejected`. Points to `survival::coxph(..., weights = match_weights, cluster = subclass)`. |
+| `estimator = "matching"` / `"match"` | 🔴 | `test-matching-rejection.R`, `test-surv_fit.R` | `survatr_matching_rejected`. Points to `survival::coxph(..., weights = match_weights, cluster = subclass)`. |
+| `method = "matching"` / `"match"` in `...` (causatr-style mis-call) | 🔴 | `test-matching-rejection.R` | `survatr_matching_rejected`. Caught before model dispatch. |
+| `data` is a `matchit` object (MatchIt output) | 🔴 | `test-matching-rejection.R` | `survatr_matching_rejected`. Detected before column lookup. |
 | `estimator = "ipw"` (weighted marginal hazard MSM) | 🟢 | `test-ipw-survival.R` | See the IPW section below. |
 | `estimator = "ice"` (longitudinal ICE hazards) | 🟢 | `test-ice-survival.R` | See the Track B section below. `track = "B"`, `model = NULL` (per-step models fit lazily in `contrast()`). |
 | `estimator = <unknown>` | 🔴 | `test-surv_fit.R` | `survatr_bad_estimator`. |

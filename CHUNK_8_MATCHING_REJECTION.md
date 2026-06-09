@@ -1,6 +1,6 @@
 # Chunk 8 — Matching + survival rejection surface
 
-> **Status: ⬜ Not started** (partially wired in Chunk 1)
+> **Status: ✅ Done**
 > **Depends on:** — (independent).
 > **Oracle:** n/a (rejection path; `MatchIt` in `Suggests` only for the test).
 

@@ -1,5 +1,18 @@
 # survatr (development version)
 
+## 2026-06-09 — Chunk 8: full matching rejection surface
+
+**All matching entry routes now hard-abort with `survatr_matching_rejected`.**
+Previously only `estimator = "matching"` / `"match"` was caught. Chunk 8 closes
+the remaining two routes: (1) `method = "matching"` or `"match"` in `...` (a
+causatr-style API mis-call, intercepted before model dispatch); (2) a `matchit`
+object (MatchIt output) passed directly as `data` (caught before any column
+lookup). All three routes emit the same classed error and redirect to
+`survival::coxph(..., weights = match_weights, cluster = subclass)`.
+
+New test file `test-matching-rejection.R` with 9 assertions covering all routes
+and snapshot-pinning the error message for each.
+
 ## 2026-06-09 — P3 oracle hardening: gfoRmula 🟡→🟢, survRM2 RMST sanity
 
 **gfoRmula oracle hardened (🟡→🟢, `test-ice-survival-oracle.R`).** The
