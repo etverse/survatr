@@ -303,3 +303,72 @@ test_that("print.survatr_diag shows competing line for CR fit", {
   out <- capture.output(print(diagnose(fit)))
   expect_true(any(grepl("Competing:", out)))
 })
+
+## ── Additional coverage: continuous treatment + print edge branches ───────────
+
+test_that("balance panel uses Pearson correlation for continuous treatment", {
+  set.seed(70L)
+  n <- 150L
+  K <- 3L
+  pp <- data.table::data.table(
+    id = rep(seq_len(n), each = K),
+    t = rep(seq_len(K), times = n),
+    A = rep(stats::rnorm(n), each = K), # continuous treatment
+    L = rep(stats::rnorm(n), each = K),
+    Y = stats::rbinom(n * K, 1L, 0.07)
+  )
+  fit <- surv_fit(pp, "Y", "A", ~L, "id", "t", time_formula = ~1)
+  dx <- diagnose(fit)
+  bal <- dx$balance
+
+  ## Continuous path: n_a1 / n_a0 are NA; smd is a Pearson correlation in [-1, 1].
+  expect_true(all(is.na(bal$n_a1)))
+  expect_true(all(is.na(bal$n_a0)))
+  expect_true(all(abs(bal$smd) <= 1 | is.na(bal$smd)))
+})
+
+test_that("print.survatr_diag shows [!] flag line when positivity flags fire", {
+  ## Very low hazard forces flag_low; use large n so glm converges.
+  pp <- sim_constant_hazard(n = 600L, K = 3L, h = 5e-5, seed = 71L)
+  fit <- withCallingHandlers(
+    surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~1),
+    warning = function(w) {
+      if (
+        grepl(
+          "algorithm did not converge|fitted probabilities",
+          conditionMessage(w)
+        )
+      ) {
+        invokeRestart("muffleWarning")
+      }
+    }
+  )
+  out <- capture.output(print(diagnose(fit)))
+  expect_true(any(grepl("\\[!\\]", out)))
+})
+
+test_that("print.survatr_diag shows 'no confounders' message when balance is empty", {
+  ## confounders = ~1 → no variables → empty balance data.table → else branch.
+  pp <- sim_constant_hazard(n = 200L, K = 3L, h = 0.07, seed = 72L)
+  fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~1)
+  out <- capture.output(print(diagnose(fit)))
+  expect_true(any(grepl("no confounders", out, ignore.case = TRUE)))
+})
+
+test_that("print.survatr_diag shows censoring line when censoring column supplied", {
+  pp <- fixture_diag_cens()
+  fit <- surv_fit(
+    pp,
+    "Y",
+    "A",
+    ~L,
+    "id",
+    "t",
+    censoring = "C",
+    time_formula = ~1
+  )
+  out <- capture.output(print(diagnose(fit)))
+  expect_true(any(grepl("Censoring:", out)))
+  ## Should NOT show the "no censoring column" fallback message.
+  expect_false(any(grepl("no censoring column", out, ignore.case = TRUE)))
+})
