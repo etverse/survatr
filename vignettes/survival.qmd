@@ -1,0 +1,154 @@
+---
+title: "Causal survival analysis: NHEFS Ch. 17 walkthrough"
+code-fold: show
+code-tools: true
+vignette: >
+  %\VignetteIndexEntry{Causal survival analysis: NHEFS Ch. 17 walkthrough}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r}
+#| include: false
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+## Skip heavy computations on CRAN (NOT_CRAN not set).
+NOT_CRAN <- identical(Sys.getenv("NOT_CRAN"), "true")
+knitr::opts_chunk$set(eval = NOT_CRAN)
+```
+
+This vignette walks through the Hernán & Robins *Causal Inference: What If*
+Chapter 17 analysis using survatr's two-step API. The analysis estimates the
+effect of smoking cessation (`qsmk`) on 10-year all-cause mortality in the
+NHEFS cohort.
+
+**Reference target** (H&R 2024, Program 17.2): 120-month standardised survival
+≈ 80.7% under cessation, ≈ 80.5% under no cessation; risk difference ≈ 0.2%
+(95% CI −4.1% to 3.7% — essentially null).
+
+## Data
+
+The `nhefs_surv` dataset ships with survatr. It was assembled from
+`causaldata::nhefs` (Huntington-Klein 2021) by expanding each of the 1629
+participants to a rectangular person-period grid of 120 monthly rows.
+
+```{r}
+library(survatr)
+library(causatr)
+
+data(nhefs_surv)
+nhefs_surv
+```
+
+Each row is one *person-period*: one individual in one calendar month. The
+`event` column is 1 only in the month of death for the 318 participants who died
+before December 1992; it is 0 in all other rows. The nine confounders from
+Table 17.1 are carried as baseline values across all rows for each participant.
+
+## Step 1 — Fit the hazard model
+
+The discrete-time hazard model follows Program 17.2: a pooled logistic
+regression of `event` on `qsmk`, the nine confounders, a quadratic time
+baseline, and treatment-by-time interactions.
+
+```{r}
+#| cache: true
+fit <- surv_fit(
+  nhefs_surv,
+  outcome      = "event",
+  treatment    = "qsmk",
+  confounders  = ~ sex + race + age + I(age^2) +
+    education +
+    smokeintensity + I(smokeintensity^2) +
+    smokeyrs + I(smokeyrs^2) +
+    exercise + active + wt71 + I(wt71^2),
+  id           = "seqn",
+  time         = "time",
+  ## Quadratic time baseline + treatment-by-time interactions (H&R Ch. 17).
+  time_formula = ~ time + I(time^2) + qsmk:time + qsmk:I(time^2),
+  estimator    = "gcomp"
+)
+fit
+```
+
+## Step 2 — Survival curves and risk difference
+
+`contrast()` takes the fitted model and returns time-indexed estimates and
+contrasts under each intervention.
+
+```{r}
+#| cache: true
+times <- seq(12L, 120L, by = 12L)
+
+res <- contrast(
+  fit,
+  interventions = list(
+    cessation    = static(1),
+    no_cessation = static(0)
+  ),
+  times     = times,
+  type      = "survival",
+  ci_method = "sandwich"
+)
+
+## Standardised survival curves at each annual checkpoint.
+res$estimates
+```
+
+The risk difference under cessation vs. no cessation at 120 months:
+
+```{r}
+#| cache: true
+rd <- contrast(
+  fit,
+  interventions = list(
+    cessation    = static(1),
+    no_cessation = static(0)
+  ),
+  times     = 120L,
+  type      = "risk_difference",
+  ci_method = "sandwich"
+)
+rd$contrasts
+```
+
+The point estimate (≈ 0.2 pp) and the sandwich 95% CI both agree with the
+published analysis: smoking cessation has essentially no detectable effect on
+10-year mortality in this observational cohort after confounder adjustment.
+
+## RMST
+
+The restricted mean survival time (RMST) up to 120 months summarises the
+survival curve as a single number: the area under $\hat{S}^a(t)$ from 0 to
+$t^* = 120$.
+
+```{r}
+#| cache: true
+rmst <- contrast(
+  fit,
+  interventions = list(
+    cessation    = static(1),
+    no_cessation = static(0)
+  ),
+  times     = times,
+  type      = "rmst_difference",
+  ci_method = "sandwich"
+)
+rmst$contrasts
+```
+
+## Plot
+
+```{r}
+#| fig-alt: "Standardised survival curves under smoking cessation and no cessation."
+plot(res)
+```
+
+## References
+
+- Hernán MA, Robins JM (2024). *Causal Inference: What If.* Boca Raton: Chapman
+  & Hall / CRC. Chapter 17: Causal survival analysis.
+- Huntington-Klein N et al. (2021). causaldata: Example datasets for causal
+  inference textbooks. *R package version 0.1.*
+- D'Agostino RB et al. (1990). Relation of pooled logistic regression to
+  time dependent Cox regression analysis: the Framingham Heart Study. *Statistics
+  in Medicine* 9:1501–1515.

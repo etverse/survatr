@@ -1,6 +1,6 @@
 # Chunk 9 — NHEFS Ch. 17 replication + survival vignette
 
-> **Status: ⬜ Not started**
+> **Status: ✅ Done**
 > **Depends on:** Chunks 2–7 (the full Track A surface; IPW for the weighted
 > arm; CR optional).
 > **Oracle:** Hernán & Robins *Causal Inference: What If* Ch. 17 published
