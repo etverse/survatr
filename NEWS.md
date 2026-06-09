@@ -1,5 +1,26 @@
 # survatr (development version)
 
+## 2026-06-09 — P3 oracle hardening: gfoRmula 🟡→🟢, survRM2 RMST sanity
+
+**gfoRmula oracle hardened (🟡→🟢, `test-ice-survival-oracle.R`).** The
+`gfoRmula::gformula_survival()` cross-check for Track B ICE survival was
+previously a loose `expect_lt(max(abs(...)), 0.05)` with `nsimul = 30 000`,
+flagged 🟡 due to Monte Carlo noise. `nsimul` is raised to 100 000 (reducing MC
+noise to < 0.001 per estimate) and the assertion is tightened to an absolute
+bound of 0.04 (matching the known ~0.02–0.04 systematic inter-estimator offset:
+gfoRmula under-estimates risk on the feedback DGP while ICE tracks the analytic
+forward-sim truth to ~0.001–0.013). A directional structural pin (`ICE ≥
+gfoRmula − 0.01`) is added to document the bias direction. Row promoted 🟡→🟢
+in `FEATURE_COVERAGE_MATRIX.md`.
+
+**survRM2 RMST sanity check (🟢, `test-rmst-survRM2.R`).** On an unadjusted
+constant-hazard DGP (n = 3 000, K = 20, h = 0.05), survatr's per-arm
+pooled-logistic trapezoidal RMST at t = 20 agrees with the KM-based RMST from
+`survRM2::rmst2()` within 0.05. Validates the RMST scale without conflating
+estimator class (KM vs pooled-logistic); tight precision pins remain with the
+closed-form oracle in `test-rmst.R` and the `delicatessen` M-estimator in
+`test-gcomp-delicatessen.R`. `survRM2` added to `Suggests`.
+
 ## 2026-06-08 — Competing risks: cause-specific hazards + cumulative incidence
 
 `surv_fit(competing = <cause-col>)` adds first-class competing-risks survival

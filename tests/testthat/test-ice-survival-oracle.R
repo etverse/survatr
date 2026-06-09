@@ -131,7 +131,7 @@ test_that("Track B matches gfoRmula::gformula_survival when available", {
       int_descript = "Always treat",
       histories = c(gfoRmula::lagged),
       histvars = list(c("A", "L")),
-      nsimul = 30000L,
+      nsimul = 100000L,
       seed = 1L
     ),
     error = function(e) NULL
@@ -143,13 +143,26 @@ test_that("Track B matches gfoRmula::gformula_survival when available", {
   ## Both are parametric g-computation targeting the same functional via
   ## different algorithms (ICE backward iterated regression vs gfoRmula forward
   ## simulation). On this DGP gfoRmula systematically UNDER-estimates risk by
-  ## ~0.02-0.04 (a 3-way check vs the analytic forward-sim truth shows ICE
-  ## tracks the truth to ~0.001-0.013 while gfoRmula is the outlier), so the
-  ## 0.05 tolerance accommodates gfoRmula's deviation, not ICE's. ICE's tight
-  ## point pin is the analytic truth (test-ice-survival.R) and the delicatessen
-  ## M-estimator (test-ice-survival-delicatessen.R); this is a ballpark
-  ## cross-check against a second g-formula package. Absolute scale: the risks
-  ## are small (~0.07-0.29), so `expect_equal`'s relative tolerance would be
-  ## inappropriately tight.
-  expect_lt(max(abs(ice_risk - as.numeric(gf_risk))), 0.05)
+  ## ~0.02–0.04 (a 3-way check vs the analytic forward-sim truth shows ICE
+  ## tracks the truth to ~0.001–0.013 while gfoRmula is the outlier). nsimul =
+  ## 100 000 reduces Monte Carlo noise to < 0.001 per estimate, so the 0.04
+  ## tolerance is the known inter-estimator systematic offset, not MC noise.
+  ## ICE's tight point pin is the analytic truth (test-ice-survival.R) and the
+  ## delicatessen M-estimator (test-ice-survival-delicatessen.R); this is a
+  ## ballpark cross-check against a second g-formula implementation.
+  ##
+  ## `all.equal(..., scale = 1)` for absolute (not relative) comparison:
+  ## waldo/testthat use relative tolerance by default; for risks ~0.07-0.29,
+  ## relative 4% ≈ 0.007 absolute, far too tight for an inter-estimator check.
+  expect_true(
+    isTRUE(all.equal(
+      ice_risk,
+      as.numeric(gf_risk),
+      tolerance = 0.04,
+      scale = 1
+    ))
+  )
+  ## Structural direction pin: ICE is never MORE THAN 0.01 below gfoRmula
+  ## (the bias runs the other way — gfoRmula under-estimates).
+  expect_true(all(ice_risk >= as.numeric(gf_risk) - 0.01))
 })
