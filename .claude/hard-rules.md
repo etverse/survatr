@@ -384,3 +384,14 @@ Do NOT flag these as bugs. Each has a regression test.
   agree to high precision (Hernán & Robins TP 17.1; D'Agostino et al.
   1990). Don't flag disagreement at larger hazards as a bug without
   checking the grid spacing.
+- **`expect_equal(tolerance = t)` uses RELATIVE tolerance (waldo 0.6+).** The
+  effective absolute threshold is `t × mean(|target|)`. For survival
+  estimates in the 0.07–0.30 range, `tolerance = 0.04` gives an absolute
+  threshold of only ~0.007 — not 0.04. For inter-estimator cross-checks
+  where the known systematic offset is ~0.02–0.04, use
+  `all.equal(..., scale = 1, tolerance = 0.04)` for an absolute comparison
+  (verified: `waldo::compare` delegates to `all.equal` and inherits the
+  `scale` arg). Emit the `all.equal` result on failure via `testthat::fail()`
+  so CI shows the actual deviations. RMST values ~12–14 are less affected:
+  `tolerance = 0.05` → ~0.65 absolute, which is usually appropriate for a
+  cross-estimator sanity check.
