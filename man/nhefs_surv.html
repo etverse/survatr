@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>tidy – survatr</title>
+<title>nhefs_surv – survatr</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -22,6 +22,41 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -107,7 +142,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../man/contrast.html">Reference</a></li><li class="breadcrumb-item"><a href="../man/tidy.html">tidy</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../man/contrast.html">Reference</a></li><li class="breadcrumb-item"><a href="../man/nhefs_surv.html">nhefs_surv</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -206,7 +241,7 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../man/nhefs_surv.html" class="sidebar-item-text sidebar-link">
+  <a href="../man/nhefs_surv.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">nhefs_surv</span></a>
   </div>
 </li>
@@ -236,7 +271,7 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../man/tidy.html" class="sidebar-item-text sidebar-link active">
+  <a href="../man/tidy.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">tidy</span></a>
   </div>
 </li>
@@ -276,24 +311,149 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#tidy-generic-re-exported-from-generics" id="toc-tidy-generic-re-exported-from-generics" class="nav-link active" data-scroll-target="#tidy-generic-re-exported-from-generics">Tidy generic re-exported from <code>generics</code></a>
+  <li><a href="#nhefs-survival-data-in-monthly-person-period-format" id="toc-nhefs-survival-data-in-monthly-person-period-format" class="nav-link active" data-scroll-target="#nhefs-survival-data-in-monthly-person-period-format">NHEFS survival data in monthly person-period format</a>
   <ul class="collapse">
   <li><a href="#description" id="toc-description" class="nav-link" data-scroll-target="#description">Description</a></li>
+  <li><a href="#usage" id="toc-usage" class="nav-link" data-scroll-target="#usage">Usage</a></li>
+  <li><a href="#format" id="toc-format" class="nav-link" data-scroll-target="#format">Format</a></li>
+  <li><a href="#source" id="toc-source" class="nav-link" data-scroll-target="#source">Source</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  <li><a href="#see-also" id="toc-see-also" class="nav-link" data-scroll-target="#see-also">See Also</a></li>
+  <li><a href="#examples" id="toc-examples" class="nav-link" data-scroll-target="#examples">Examples</a></li>
   </ul></li>
   </ul>
 <div class="quarto-code-links"><h2>Code Links</h2><ul><li><a href="undefined"><i class="bi bi-link-45deg"></i></a></li></ul></div></nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../man/contrast.html">Reference</a></li><li class="breadcrumb-item"><a href="../man/tidy.html">tidy</a></li></ol></nav></header>
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../man/contrast.html">Reference</a></li><li class="breadcrumb-item"><a href="../man/nhefs_surv.html">nhefs_surv</a></li></ol></nav></header>
 
 
 
 
-<section id="tidy-generic-re-exported-from-generics" class="level2 unnumbered">
-<h2 class="unnumbered anchored" data-anchor-id="tidy-generic-re-exported-from-generics">Tidy generic re-exported from <code>generics</code></h2>
+<section id="nhefs-survival-data-in-monthly-person-period-format" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="nhefs-survival-data-in-monthly-person-period-format">NHEFS survival data in monthly person-period format</h2>
 <section id="description" class="level3">
 <h3 class="anchored" data-anchor-id="description">Description</h3>
-<p>Tidy generic re-exported from <code>generics</code></p>
+<p>The NHEFS (National Health and Nutrition Examination Survey Epidemiologic Follow-up Study) cohort in rectangular monthly person-period format. Each of the 1629 participants contributes exactly 120 rows (one per calendar month from January 1983 to December 1992), forming the rectangular grid required by <code>surv_fit()</code>. The event indicator is 1 only in the month of death for the 318 participants who died before the end of follow-up; it is 0 elsewhere.</p>
+<p>The primary use of this dataset is to reproduce the Hernán &amp; Robins Chapter 17 causal survival analysis: the standardised 120-month survival under smoking cessation vs.&nbsp;no cessation, and the corresponding risk difference (≈ 0.2 pp, essentially null).</p>
+</section>
+<section id="usage" class="level3">
+<h3 class="anchored" data-anchor-id="usage">Usage</h3>
+<pre><code class="language-R">nhefs_surv
+</code></pre>
+</section>
+<section id="format" class="level3">
+<h3 class="anchored" data-anchor-id="format">Format</h3>
+<p>A <code>data.table</code> with 195 480 rows and 13 columns:</p>
+<dl>
+<dt>
+seqn
+</dt>
+<dd>
+Participant identifier (integer).
+</dd>
+<dt>
+time
+</dt>
+<dd>
+Calendar month of follow-up, 1 = January 1983, 120 = December 1992 (integer).
+</dd>
+<dt>
+event
+</dt>
+<dd>
+Binary event indicator: 1 = death in this month, 0 = alive or censored (integer).
+</dd>
+<dt>
+qsmk
+</dt>
+<dd>
+Smoking cessation between the baseline and follow-up interviews: 1 = quit, 0 = did not quit (numeric).
+</dd>
+<dt>
+sex
+</dt>
+<dd>
+Sex: factor with levels 0 (male) and 1 (female).
+</dd>
+<dt>
+race
+</dt>
+<dd>
+Race: factor with levels 0 (white) and 1 (non-white).
+</dd>
+<dt>
+age
+</dt>
+<dd>
+Age at baseline interview in years (numeric).
+</dd>
+<dt>
+education
+</dt>
+<dd>
+Highest education level: factor with levels 1 (8th grade or less), 2 (HS dropout), 3 (HS graduate), 4 (some college), 5 (college or more).
+</dd>
+<dt>
+smokeintensity
+</dt>
+<dd>
+Average number of cigarettes per day at baseline (numeric).
+</dd>
+<dt>
+smokeyrs
+</dt>
+<dd>
+Number of years smoked at baseline (numeric).
+</dd>
+<dt>
+exercise
+</dt>
+<dd>
+Recreational exercise: factor with levels 0 (much), 1 (moderate), 2 (little or none).
+</dd>
+<dt>
+active
+</dt>
+<dd>
+Activity level at usual occupation: factor with levels 0 (very active), 1 (moderately active), 2 (inactive).
+</dd>
+<dt>
+wt71
+</dt>
+<dd>
+Body weight at the 1971 baseline interview in kg (numeric).
+</dd>
+</dl>
+</section>
+<section id="source" class="level3">
+<h3 class="anchored" data-anchor-id="source">Source</h3>
+<p>Assembled from <code>causaldata::nhefs</code> (Huntington-Klein 2021) by the <code>data-raw/nhefs_surv.R</code> script. The NHEFS data are publicly distributed by Hernán &amp; Robins at <a href="https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/">https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/</a>.</p>
+</section>
+<section id="references" class="level3">
+<h3 class="anchored" data-anchor-id="references">References</h3>
+<p>Hernán MA, Robins JM (2024). <em>Causal Inference: What If.</em> Chapman &amp; Hall / CRC. Chapter 17: Causal survival analysis.</p>
+<p>Huntington-Klein N et al.&nbsp;(2021). causaldata: Example Datasets for Causal Inference Textbooks. R package.</p>
+</section>
+<section id="see-also" class="level3">
+<h3 class="anchored" data-anchor-id="see-also">See Also</h3>
+<p><code>surv_fit()</code>, <code>contrast()</code></p>
+</section>
+<section id="examples" class="level3">
+<h3 class="anchored" data-anchor-id="examples">Examples</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"survatr"</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(nhefs_surv)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>nhefs_surv[, .N, by <span class="ot">=</span> <span class="st">"seqn"</span>][, <span class="fu">range</span>(N)]  <span class="co"># all 120 periods per id</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 120 120</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(nhefs_surv<span class="sc">$</span>event)                       <span class="co"># 318 deaths</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 318</code></pre>
+</div>
+</div>
 
 
 </section>
