@@ -268,8 +268,9 @@ quasibinomial at k < K.
 chunk has a `CHUNK_<N>_*.md` doc at the repo root. Status legend: ✅ done
 (commit pinned) · 🚧 in progress · ⬜ not started.
 
-At a glance: **done = 1–9** (Track A gcomp + IPW; Track B ICE; competing risks;
-matching rejection; NHEFS Ch. 17 acceptance test); **next = 10** (`diagnose()`).
+At a glance: **done = 1–10** (Track A gcomp + IPW; Track B ICE; competing risks;
+matching rejection; NHEFS Ch. 17 acceptance test; `diagnose()`). **v1 complete.**
+Next = 11 (IPCW).
 Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext = 19–25 (deferred IPW /
 intervention work + missing-data MI). When a chunk flips status, update the
 handoff §10 table (the only copy).

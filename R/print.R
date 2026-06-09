@@ -145,3 +145,117 @@ print.survatr_result <- function(x, n = 10L, ...) {
   }
   invisible(x)
 }
+
+#' Print a `survatr_diag`
+#'
+#' @description
+#' Compact per-panel summary for the diagnostic object returned by
+#' `diagnose()`. Reports how many periods have positivity flags, the range
+#' of SMDs in the balance panel, IPW weight summary (if applicable), and the
+#' competing-risks identity-check result (if applicable).
+#'
+#' @param x A `survatr_diag`.
+#' @param ... Unused.
+#'
+#' @returns The diagnostic object, invisibly.
+#' @family survatr_fit functions
+#' @examples
+#' set.seed(4)
+#' n_id <- 40L; K <- 3L
+#' pp <- data.frame(
+#'   id = rep(seq_len(n_id), each = K),
+#'   t  = rep(seq_len(K), times = n_id),
+#'   A  = rep(rbinom(n_id, 1L, 0.5), each = K),
+#'   L  = rep(rnorm(n_id), each = K),
+#'   Y  = rbinom(n_id * K, 1L, 0.05)
+#' )
+#' fit <- surv_fit(pp, "Y", "A", ~L, "id", "t", time_formula = ~1)
+#' print(diagnose(fit))
+#' @export
+print.survatr_diag <- function(x, ...) {
+  cat("<survatr_diag>\n")
+
+  ## Positivity panel
+  pos <- x$positivity
+  if (!is.null(pos) && nrow(pos) > 0L) {
+    n_flag_low <- sum(pos$flag_low, na.rm = TRUE)
+    n_flag_high <- sum(pos$flag_high, na.rm = TRUE)
+    cat(sprintf(
+      "  Positivity:  %d periods, hazards [%.4f, %.4f]",
+      nrow(pos),
+      min(pos$h_min, na.rm = TRUE),
+      max(pos$h_max, na.rm = TRUE)
+    ))
+    if (n_flag_low + n_flag_high > 0L) {
+      cat(sprintf(
+        " [!] %d low, %d high",
+        n_flag_low,
+        n_flag_high
+      ))
+    }
+    cat("\n")
+  }
+
+  ## Balance panel
+  bal <- x$balance
+  if (!is.null(bal) && nrow(bal) > 0L) {
+    smd_range <- range(bal$smd, na.rm = TRUE)
+    cat(sprintf(
+      "  Balance:     %d variable(s), SMD range [%.3f, %.3f]\n",
+      length(unique(bal$variable)),
+      smd_range[1L],
+      smd_range[2L]
+    ))
+  } else {
+    cat("  Balance:     (no confounders or not applicable)\n")
+  }
+
+  ## Weights panel (IPW only)
+  wt <- x$weights
+  if (!is.null(wt)) {
+    cat(sprintf(
+      "  Weights:     ESS = %.1f / %d, max = %.3f, top5%% share = %.3f\n",
+      wt$ess,
+      wt$n_ids,
+      wt$max_weight,
+      wt$top5_share
+    ))
+  }
+
+  ## Censoring panel
+  cens <- x$censoring
+  if (!is.null(cens) && nrow(cens) > 0L) {
+    total_cens <- sum(cens$n_censored, na.rm = TRUE)
+    total_ar <- sum(cens$n_at_risk, na.rm = TRUE)
+    cat(sprintf(
+      "  Censoring:   %d events over %d person-periods (%.1f%%)\n",
+      total_cens,
+      total_ar,
+      100 * total_cens / max(total_ar, 1L)
+    ))
+  } else if (is.null(x$censoring)) {
+    cat("  Censoring:   (no censoring column supplied)\n")
+  }
+
+  ## Competing panel
+  cr <- x$competing
+  if (!is.null(cr)) {
+    id_chk <- attr(cr, "identity_check")
+    max_dev <- if (!is.null(id_chk)) {
+      max(id_chk$abs_dev, na.rm = TRUE)
+    } else {
+      NA_real_
+    }
+    cat(sprintf(
+      "  Competing:   %d cause(s), max identity deviation = %.2e\n",
+      length(unique(cr$cause[!is.na(cr$cause)])),
+      max_dev
+    ))
+    cat(
+      "  Note:        CIFs condition on surviving competing events",
+      "(truncation by death).\n"
+    )
+  }
+
+  invisible(x)
+}

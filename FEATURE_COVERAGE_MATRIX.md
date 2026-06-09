@@ -203,3 +203,28 @@ hazards only — Fine–Gray / subdistribution is out of scope (documented).
 | Fine–Gray / subdistribution hazards | — | — | Out of scope (cause-specific only); documented in roxygen + vignette. |
 | Per-cause RMST / years-of-life-lost | — | — | Out of scope this chunk (deferred to chunk 12). |
 | Competing risks under Track B | — | — | Out of scope this chunk (composes after chunks 6 + 7). |
+
+## `diagnose()` — survival-aware diagnostics (Chunk 10)
+
+`diagnose.survatr_fit()` returns a `survatr_diag` with five panels, all operating on
+the at-risk rows from `build_risk_set()`. For Track B (ICE), the positivity panel
+uses the empirical event rate (no fitted model at `surv_fit()` time).
+
+| Surface | Status | Test file | Oracle |
+|---|---|---|---|
+| `diagnose()` returns `survatr_diag` with five named panels | 🟢 | `test-diagnose.R` | Structure check; `expect_s3_class`; null panels asserted. |
+| `$positivity` columns (`time`, `n_at_risk`, `h_min/h_mean/h_max`, `flag_low/high`) | 🟢 | `test-diagnose.R` | Column names; row count = number of time periods. |
+| `flag_low` does NOT fire on moderate-hazard DGP | 🟢 | `test-diagnose.R` | `sim_constant_hazard(h = 0.08)`; all flags FALSE. |
+| `flag_low` fires when h < 0.001 | 🟢 | `test-diagnose.R` | `sim_constant_hazard(h = 1e-4)`; at least one period flagged. |
+| `$balance` SMDs ≈ 0 on randomized DGP | 🟢 | `test-diagnose.R` | `sim_confounded_survival(gamma = 0)`; all `|SMD| < 0.3`. |
+| `$balance` SMDs non-trivial on confounded DGP | 🟢 | `test-diagnose.R` | `sim_confounded_survival(gamma = 1.5)`; some `|SMD| > 0.1`. |
+| `$weights` non-NULL for IPW; ESS < n | 🟢 | `test-diagnose.R` | IPW fit on confounded DGP; `ess < n_ids`. |
+| `$weights` NULL for gcomp | 🟢 | `test-diagnose.R` | Structural assertion. |
+| `$weights` NULL for ICE | 🟢 | `test-diagnose.R` | Structural assertion. |
+| `$censoring` NULL when no censoring column | 🟢 | `test-diagnose.R` | Structural assertion. |
+| `$censoring` populated with correct columns when `censoring=` supplied | 🟢 | `test-diagnose.R` | Column names; proportions in [0, 1]. |
+| `$competing` present with CR fit; correct causes; `Σ F^(j) + S = 1` | 🟢 | `test-diagnose.R` | Identity check to < 1e-6; caveat attribute non-empty. |
+| `$competing` NULL for single-event fit | 🟢 | `test-diagnose.R` | Structural assertion. |
+| `print.survatr_diag` runs without error | 🟢 | `test-diagnose.R` | Output contains `"survatr_diag"`. |
+| `print` shows Weights line for IPW | 🟢 | `test-diagnose.R` | `grepl("Weights:", ...)`. |
+| `print` shows Competing line for CR fit | 🟢 | `test-diagnose.R` | `grepl("Competing:", ...)`. |
