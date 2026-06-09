@@ -32,8 +32,11 @@ The `nhefs_surv` dataset ships with survatr. It was assembled from
 participants to a rectangular person-period grid of 120 monthly rows.
 
 ```{r}
-library(survatr)
+## Load causatr first so survatr::contrast() shadows causatr's scalar-outcome
+## contrast() and dispatches correctly on survatr_fit objects.
 library(causatr)
+library(survatr)
+library(data.table)
 
 data(nhefs_surv)
 nhefs_surv
