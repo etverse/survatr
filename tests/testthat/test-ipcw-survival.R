@@ -459,3 +459,154 @@ test_that("snapshot: ipcw error messages are informative", {
     error = TRUE
   )
 })
+
+test_that("IPCW + time-varying treatment is rejected (survatr_ipw_time_varying_treatment)", {
+  ## Build a dataset where treatment flips within an id so the check fires.
+  dt <- sim_informative_censoring(n = 100L, K = 3L, seed = 1L)
+  dt <- data.table::copy(dt)
+  dt[t == 2L, A := 1L - A]
+  expect_error(
+    surv_fit(
+      dt,
+      outcome = "Y",
+      treatment = "A",
+      confounders = ~L,
+      id = "id",
+      time = "t",
+      censoring = "C",
+      time_formula = ~ factor(t),
+      estimator = "ipw",
+      ipcw = ~L
+    ),
+    class = "survatr_ipw_time_varying_treatment"
+  )
+})
+
+test_that("IPCW + no treatment variation is rejected (survatr_ipw_no_treatment_variation)", {
+  dt <- sim_informative_censoring(n = 100L, K = 3L, seed = 1L)
+  dt <- data.table::copy(dt)
+  dt[, A := 1L]
+  expect_error(
+    surv_fit(
+      dt,
+      outcome = "Y",
+      treatment = "A",
+      confounders = ~L,
+      id = "id",
+      time = "t",
+      censoring = "C",
+      time_formula = ~ factor(t),
+      estimator = "ipw",
+      ipcw = ~L
+    ),
+    class = "survatr_ipw_no_treatment_variation"
+  )
+})
+
+test_that("IPCW + continuous treatment is rejected (survatr_ipw_treatment_unsupported)", {
+  dt <- sim_informative_censoring(n = 100L, K = 3L, seed = 1L)
+  dt <- data.table::copy(dt)
+  ## Replace binary treatment with a continuous per-id value so the
+  ## bernoulli-family check fires.
+  set.seed(42L)
+  n_ids <- data.table::uniqueN(dt, by = "id")
+  id_vals <- unique(dt$id)
+  a_cont <- stats::rnorm(n_ids)
+  dt[, A := a_cont[match(id, id_vals)]]
+  expect_error(
+    surv_fit(
+      dt,
+      outcome = "Y",
+      treatment = "A",
+      confounders = ~L,
+      id = "id",
+      time = "t",
+      censoring = "C",
+      time_formula = ~ factor(t),
+      estimator = "ipw",
+      ipcw = ~L
+    ),
+    class = "survatr_ipw_treatment_unsupported"
+  )
+})
+
+test_that("ipcw = ~1 (treatment-only censoring denominator) fits and runs contrast()", {
+  ## When ipcw_formula is ~1 the censoring model conditions only on time and
+  ## treatment; the covariates term in fit_censoring_model is dropped (NULL
+  ## branch at line 68). This is the minimal valid IPCW spec.
+  dt <- sim_informative_censoring(n = 300L, K = 4L, seed = 5L)
+  fit <- surv_fit(
+    dt,
+    outcome = "Y",
+    treatment = "A",
+    confounders = ~L,
+    id = "id",
+    time = "t",
+    censoring = "C",
+    time_formula = ~ factor(t),
+    estimator = "ipw",
+    ipcw = ~1
+  )
+  expect_false(is.null(fit$censoring_model))
+  res <- contrast(
+    fit,
+    interventions = list(a1 = causatr::static(1), a0 = causatr::static(0)),
+    times = 1:4,
+    type = "risk_difference",
+    ci_method = "sandwich"
+  )
+  expect_true(all(is.finite(res$contrasts$se)))
+})
+
+test_that("trim + sandwich hits the per-period cap branch in the weight closure", {
+  ## contrast() with ci_method = 'sandwich' evaluates the numDeriv closure
+  ## that applies per-period trim caps (lines 269-271 of ipcw_survival.R).
+  dt <- sim_informative_censoring(n = 300L, K = 4L, seed = 5L, delta_cens = 1.5)
+  fit <- surv_fit(
+    dt,
+    outcome = "Y",
+    treatment = "A",
+    confounders = ~L,
+    id = "id",
+    time = "t",
+    censoring = "C",
+    time_formula = ~ factor(t),
+    estimator = "ipw",
+    ipcw = ~L,
+    trim = 0.9
+  )
+  res <- contrast(
+    fit,
+    interventions = list(a1 = causatr::static(1), a0 = causatr::static(0)),
+    times = 1:4,
+    type = "survival",
+    ci_method = "sandwich"
+  )
+  expect_true(all(is.finite(res$estimates$se)))
+})
+
+test_that("compute_ipcw_running_weights: unstabilized path (num_model = NULL)", {
+  ## With num_model = NULL the per-row factor is 1 / (1 - g_den), so the
+  ## cumulative product is >= 1 everywhere (each factor >= 1 when g_den < 1).
+  dt <- sim_informative_censoring(n = 200L, K = 3L, seed = 5L)
+  fit <- surv_fit(
+    dt,
+    outcome = "Y",
+    treatment = "A",
+    confounders = ~L,
+    id = "id",
+    time = "t",
+    censoring = "C",
+    time_formula = ~ factor(t),
+    estimator = "ipw",
+    ipcw = ~L
+  )
+  w_unstab <- survatr:::compute_ipcw_running_weights(
+    data = fit$pp_data,
+    cens_model = fit$censoring_model,
+    num_model = NULL,
+    id = "id",
+    time = "t"
+  )
+  expect_true(all(w_unstab$weights >= 1 - 1e-8))
+})

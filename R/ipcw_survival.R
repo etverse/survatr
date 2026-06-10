@@ -371,7 +371,12 @@ prepare_ipcw_correction <- function(
     )
     numer_factor_all <- 1 - g_num_all
   } else {
+    # nocov start
+    ## Unstabilized path: numerator = 1 everywhere. Reachable when the public
+    ## API exposes stabilize_ipcw = FALSE (not yet in v1); preserved for
+    ## forward-compatibility with the compute_ipcw_running_weights contract.
     numer_factor_all <- rep(1, nrow(pp_work))
+    # nocov end
   }
 
   ## Treatment weights at MSM fit rows (fixed in the gamma perturbation;
