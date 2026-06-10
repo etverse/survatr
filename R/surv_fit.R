@@ -74,10 +74,12 @@
 #'   fit on the baseline rows (one per id) with `confounders` as predictors;
 #'   the hazard MSM then uses `A` only.
 #' @param trim Numeric scalar in `(0, 1]` or `NULL` (the default). Under
-#'   `estimator = "ipw"`, the per-id stabilized weights are winsorized at the
-#'   `trim`-th quantile (Cole & Hernán 2008) before being broadcast onto the
-#'   person-period rows. `NULL` / `1` means no truncation. The resolved fixed
-#'   cutoff is reused by the sandwich variance.
+#'   `estimator = "ipw"`, the per-id stabilized treatment weights are
+#'   winsorized at the `trim`-th quantile (Cole & Hernán 2008) before
+#'   broadcast. Under IPCW (`ipcw` non-`NULL`), the same quantile is used for
+#'   the **per-period** censoring weights (applied separately at each time
+#'   period, targeting the heaviest late-time tails). `NULL` / `1` means no
+#'   truncation. All resolved fixed cutoffs are reused by the sandwich.
 #' @param confounders_tv A one-sided formula of **time-varying** confounders
 #'   for Track B (`estimator = "ice"`), lag-expanded at each backward step
 #'   (e.g. `~ L` builds `L + lag1_L + ...`). `NULL` (the default) means no
@@ -86,6 +88,23 @@
 #'   full available history (capped at `n_times - 1`); an integer restricts
 #'   the lag structure (e.g. `history = 1` for first-order Markov). Ignored by
 #'   Track A.
+#' @param ipcw One-sided formula for the **censoring-model covariates** (e.g.
+#'   `~ L1 + L2`) or `NULL` (the default, no built-in IPCW). When non-`NULL`,
+#'   survatr fits a per-period censoring hazard on the person-period grid and
+#'   forms stabilized **per-period cumulative** inverse-probability-of-
+#'   censoring weights `W^C_{i,k}`. These are multiplied into the IPW weighted
+#'   hazard MSM row weight, so the combined row weight is
+#'   `w_i * W^C_{i,k}` (treatment weight × censoring weight). Requires
+#'   `estimator = "ipw"` and a non-`NULL` `censoring` column; activating IPCW
+#'   with any other estimator or without a censoring column aborts with a
+#'   classed error. The censoring column (`censoring =`) switches from a pure
+#'   row filter to the modelled path: the at-risk row set is unchanged (hazard
+#'   MSM still fit on uncensored rows), but the IPCW weights reweight
+#'   survivors to account for informative censoring.
+#' @param censoring_model_fn Fitting function for the censoring hazard model
+#'   under `ipcw` (default `stats::glm`, same `stats::glm`-style interface as
+#'   `model_fn`). Ignored when `ipcw = NULL`. Stored in the fit so the
+#'   bootstrap can refit the censoring model per replicate.
 #' @param ... Forwarded to `model_fn`. `na.action = na.exclude` is rejected
 #'   with class `survatr_bad_na_action` -- `na.exclude` pads working
 #'   residuals with `NA`s while `model.matrix()` drops them, which silently
@@ -131,6 +150,8 @@ surv_fit <- function(
   trim = NULL,
   confounders_tv = NULL,
   history = Inf,
+  ipcw = NULL,
+  censoring_model_fn = stats::glm,
   ...
 ) {
   ## Reject a `MatchIt` output object passed as `data`. Users sometimes feed
@@ -328,6 +349,7 @@ surv_fit <- function(
 
   check_weights(weights, nrow(data))
   check_trim(trim)
+  check_ipcw(ipcw, estimator, censoring)
 
   ## Composing external (survey / design) weights with the stabilized IPW
   ## weights is a target-population transport problem (causatr handles it for
@@ -470,20 +492,48 @@ surv_fit <- function(
       )
     }
     if (identical(estimator, "ipw")) {
-      fit <- fit_ipw_survival(
-        data = data,
-        fit_rows = fit_rows,
-        outcome = outcome,
-        treatment = treatment,
-        confounders = confounders,
-        id = id,
-        time = time,
-        time_formula = time_formula,
-        propensity_model_fn = propensity_model_fn,
-        trim = trim,
-        model_fn = model_fn,
-        ...
-      )
+      ## When IPCW is active, the censoring hazard is modelled (not just a
+      ## row filter) and its cumulative inverse-probability weight multiplies
+      ## the treatment weight. The IPW fit runs first (treatment weights
+      ## only), then the censoring model is fit and the combined weight is
+      ## passed back to the hazard MSM. Because `fit_ipw_survival()` calls
+      ## `fit_hazard_gcomp()` internally, we need to intercept after the
+      ## treatment weight is formed but before the MSM fit. We do this by
+      ## fitting the censoring model here in surv_fit() and composing.
+      if (!is.null(ipcw)) {
+        fit <- fit_ipw_survival_ipcw(
+          data = data,
+          fit_rows = fit_rows,
+          outcome = outcome,
+          treatment = treatment,
+          confounders = confounders,
+          id = id,
+          time = time,
+          time_formula = time_formula,
+          propensity_model_fn = propensity_model_fn,
+          trim = trim,
+          model_fn = model_fn,
+          ipcw_formula = ipcw,
+          censoring_model_fn = censoring_model_fn,
+          censoring = censoring,
+          ...
+        )
+      } else {
+        fit <- fit_ipw_survival(
+          data = data,
+          fit_rows = fit_rows,
+          outcome = outcome,
+          treatment = treatment,
+          confounders = confounders,
+          id = id,
+          time = time,
+          time_formula = time_formula,
+          propensity_model_fn = propensity_model_fn,
+          trim = trim,
+          model_fn = model_fn,
+          ...
+        )
+      }
     } else {
       fit <- fit_hazard_gcomp(
         data = data,
@@ -523,8 +573,9 @@ surv_fit <- function(
     family = fit$family_name,
     model_fn = model_fn,
     time_formula = time_formula,
-    ## For ipw, `weights` holds the per-PP-row broadcast stabilized weight;
-    ## for gcomp it is the user's external weights (or NULL).
+    ## For ipw, `weights` holds the per-PP-row combined weight (treatment *
+    ## IPCW when IPCW is active, or treatment only otherwise); for gcomp it
+    ## is the user's external weights (or NULL).
     weights = if (identical(estimator, "ipw")) fit$weights else weights,
     n_fit = fit$n_fit,
     n_total = nrow(data),
@@ -551,6 +602,14 @@ surv_fit <- function(
     ## lists from gcomp / ipw / ice carry no `cause_models` / `causes` keys).
     cause_models = fit$cause_models,
     causes = fit$causes,
+    ## IPCW metadata; populated only when `ipcw != NULL`.
+    censoring_model = fit$censoring_model,
+    ipcw_numerator_model = fit$ipcw_numerator_model,
+    ipcw_weights = fit$ipcw_weights,
+    ipcw_trim_thresholds = fit$ipcw_trim_thresholds,
+    ipw_treatment_weights_pp = fit$ipw_treatment_weights_pp,
+    ipcw = if (!is.null(ipcw)) ipcw else NULL,
+    censoring_model_fn = if (!is.null(ipcw)) censoring_model_fn else NULL,
     call = match.call()
   )
 }

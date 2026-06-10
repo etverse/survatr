@@ -1,6 +1,6 @@
 # Chunk 11 — Built-in IPCW (per-period censoring weights)
 
-> **Status: ⬜ Not started**
+> **Status: ✅ Done (`cdcdbae`; delicatessen oracle `15ea801`)**
 > **Depends on:** Chunk 5 (IPW machinery: density-ratio weights, stacked-EE
 > treatment block, `trim`), Chunk 3 (sandwich IF), Chunk 2 (contrast spine).
 > **Oracle:** `lmtp::lmtp_tmle(outcome_type = "survival", cens = <col>)` (point
@@ -164,13 +164,22 @@ result <- contrast(fit, interventions = list(a1 = causatr::static(1),
   `test-causatr-integration.R`.
 
 ## Acceptance checklist
-- [ ] Censoring hazard model fits on the PP grid; per-period cumulative IPCW
+- [x] Censoring hazard model fits on the PP grid; per-period cumulative IPCW
       weight `W^C_{i,k}` is a running product (asserted to grow within id).
-- [ ] Under informative censoring the IPCW curve matches the `lmtp` point
-      estimate within tolerance; the uncorrected row-filter fit is biased.
-- [ ] `weights ≡ 1` (non-informative censoring) reproduces the chunk-2 curve.
-- [ ] Three-block stacked SE > treatment-only SE > hazard-only SE (censoring
-      block verified).
-- [ ] Per-period `trim` winsorizes the cumulative weights; sandwich uses a
-      fixed cutoff.
-- [ ] `FEATURE_COVERAGE_MATRIX.md` + handoff §10 + CLAUDE.md updated.
+- [x] Under informative censoring the IPCW curve matches the `lmtp` point
+      estimate within tolerance; the uncorrected row-filter fit is biased
+      (direction test: naive > IPCW in >70% of 25 runs, δ=0.8).
+- [x] `weights ≡ 1` (non-informative censoring, δ=0) reproduces the naive
+      row-filter IPW curve (within 0.03); IPCW weights cluster around 1.
+- [x] Censoring block wired: `A_beta_gamma ≠ 0`; `IF_gamma_per_id ≠ 0`;
+      three-block IF matrix differs from two-block by >1e-6. *(Note: the
+      original spec said three-block SE > two-block SE > hazard-only SE, but
+      the censoring correction has no guaranteed sign direction — see
+      hard-rules.md. The IF-matrix difference check is the correct assertion.
+      Validated to <2% against the delicatessen oracle.)*
+- [x] Per-period `trim` winsorizes the cumulative weights; sandwich uses a
+      fixed cutoff (re-quantiling inside the numDeriv closure would break
+      smoothness in γ).
+- [x] `FEATURE_COVERAGE_MATRIX.md` + handoff §10 + CLAUDE.md + hard-rules.md
+      updated. delicatessen Python oracle committed (`test-ipcw-delicatessen.R`,
+      `data-raw/delicatessen_ipcw_survival.py`).

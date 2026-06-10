@@ -135,6 +135,39 @@ person-period rows, and fit a weighted marginal MSM `logit h(t|A) = α(t) + β_A
 | `trim` validation | 🔴 | `test-checks.R` | `survatr_bad_trim` (NULL or scalar in (0, 1]). |
 | causatr IPW internal-API contract (`fit_treatment_model`, `evaluate_density`, `truncate_weights`, `apply_model_correction`) | 🟢 | `test-causatr-integration.R` | Pins formals + return shapes of the IPW `causatr:::` internals survatr reuses. |
 
+### IPCW — per-period censoring weights (`ipcw = <formula>`, `estimator = "ipw"`)
+
+Built-in inverse-probability-of-censoring weighting for the IPW weighted-MSM
+path. Fits a per-period censoring hazard model (denominator: `C ~ time + A + L`;
+numerator: `C ~ time + A`) to form stabilized running-product IPCW weights
+`W^C_{i,k} = ∏_{m≤k} P(C_m=0|A)/P(C_m=0|A,L)`. The combined weight
+`w_i × W^C_{i,k}` (treatment × censoring) is passed to the weighted hazard MSM.
+Sandwich variance uses a **three-block stacked-EE** approach (beta + alpha + gamma).
+Fit-row convention: IPCW model fits on rows where `prev_event == 0 & prev_cens == 0`
+(includes the censoring-event row itself). MSM fit rows additionally require
+`is_uncensored()` (excludes the C=1 row). Per-period trim stored with fixed
+thresholds for the sandwich. Bootstrap refits the censoring model per replicate.
+
+| Surface | Status | Test file | Oracle |
+|---|---|---|---|
+| IPCW fit structure (censoring model + IPCW weights stored) | 🟢 | `test-ipcw-survival.R` | `fit$censoring_model` class `glm`; `fit$ipcw_weights` non-NULL, length = nrow(data); `fit$weights = fit$ipw_treatment_weights_pp × fit$ipcw_weights`. |
+| IPCW weights are per-period running products (grow within id) | 🟢 | `test-ipcw-survival.R` | Within-id weight variance > 0 for most ids; treatment weights constant within id; IPCW weights vary across periods. |
+| IPCW curve vs `lmtp::lmtp_tmle(outcome_type = "survival", cens = ...)` | 🟢 | `test-ipcw-survival.R` | Informative-censoring DGP (n = 2000, K = 5, δ = 0.8): per-arm S(t) at t ∈ {3, 5} within 0.05. `skip_if_not_installed("lmtp")`. |
+| Naive IPW over-estimates survival under informative censoring (direction test) | 🟢 | `test-ipcw-survival.R` | R = 25 runs × n = 1000: naive IPW > IPCW at t = 5 in > 70% of runs for both arms (δ = 0.8; bias-direction property of informative censoring). `skip_on_cran()`. |
+| Non-informative censoring (δ = 0): IPCW weights ≈ 1; curve ≈ naive | 🟢 | `test-ipcw-survival.R` | Mean IPCW weight ≈ 1 (tol 0.05), SD < 0.25; IPCW vs row-filter curve within 0.03. |
+| Per-period trim stores fixed thresholds, caps weights | 🟢 | `test-ipcw-survival.R` | `fit$ipcw_trim_thresholds` named by period; all `ipcw_weights[t == k] ≤ threshold[k]`. |
+| IPCW contrast structure (finite SE, CIs ordered, point ∈ CI) | 🟢 | `test-ipcw-survival.R` | Sandwich CI on n = 300 DGP: SE > 0 for all arms and RD. |
+| Bootstrap refits censoring model per replicate | 🟢 | `test-ipcw-survival.R` | B = 200 bootstrap: SE finite + positive; censoring model re-estimated each replicate. |
+| Censoring-model correction wired in the IF matrix | 🟢 | `test-ipcw-survival-sandwich.R` | `A_beta_gamma` and `IF_gamma_per_id` non-zero; three-block IF matrix differs from two-block by > 1e-6 absolute. |
+| Treatment-model correction still variance-reducing vs hazard-only | 🟢 | `test-ipcw-survival-sandwich.R` | `se_two < se_hazard` at all times; > 1% relative reduction at peak. |
+| Three-block sandwich ≈ full three-stage bootstrap SE | 🟢 | `test-ipcw-survival-sandwich.R` | Per-time RD SE within 15% at B = 400 (n = 700, K = 5). `skip_on_cran()`. |
+| IPCW three-block sandwich vs `delicatessen` (independent analytic M-estimation) | 🟢 | `test-ipcw-delicatessen.R` | `S^1(t)`, `S^0(t)`, and `RD(t)` point + SE match a Python `delicatessen` three-block stacked-EE oracle to ~1e-4 (points) and ~2% (SEs) on a shared informative-censoring fixture. Reference: `data-raw/delicatessen_ipcw_survival.py`; both read `fixtures/python/ipcw_survival_data.csv`. Pins the `A_beta_gamma` cross-derivative and `n_ids / n_cens_fit` bread scaling. |
+| IPCW sandwich CI for risk difference covers marginal truth | 🟢 | `test-ipcw-survival-sandwich.R` | 150-rep coverage simulation, n = 800: ≥ 88% nominal 95% at t ∈ {2, 5}. `skip_on_cran()`. |
+| `ipcw =` with non-formula | 🔴 | `test-ipcw-survival.R` | `survatr_bad_ipcw`. |
+| `ipcw =` with non-`"ipw"` estimator | 🔴 | `test-ipcw-survival.R` | `survatr_ipcw_estimator` (gcomp and ice both rejected; later chunks). |
+| `ipcw =` without a `censoring` column | 🔴 | `test-ipcw-survival.R` | `survatr_ipcw_no_censoring`. |
+| Snapshot: all three IPCW error messages | 🟢 | `test-ipcw-survival.R` | `_snaps/ipcw-survival.md`. |
+
 ### End-to-end acceptance test
 
 | Surface | Status | Test file | Oracle |

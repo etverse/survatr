@@ -360,7 +360,8 @@ contrast.survatr_fit <- function(
         fit_idx = shared$fit_idx,
         id_vec = shared$id_vec,
         unique_ids = shared$unique_ids,
-        ipw_corr = shared$ipw_corr
+        ipw_corr = shared$ipw_corr,
+        ipcw_corr = shared$ipcw_corr
       )
     })
     names(if_list) <- names(interventions)

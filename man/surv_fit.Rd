@@ -21,6 +21,8 @@ surv_fit(
   trim = NULL,
   confounders_tv = NULL,
   history = Inf,
+  ipcw = NULL,
+  censoring_model_fn = stats::glm,
   ...
 )
 }
@@ -103,10 +105,12 @@ fit on the baseline rows (one per id) with \code{confounders} as predictors;
 the hazard MSM then uses \code{A} only.}
 
 \item{trim}{Numeric scalar in \verb{(0, 1]} or \code{NULL} (the default). Under
-\code{estimator = "ipw"}, the per-id stabilized weights are winsorized at the
-\code{trim}-th quantile (Cole & Hernán 2008) before being broadcast onto the
-person-period rows. \code{NULL} / \code{1} means no truncation. The resolved fixed
-cutoff is reused by the sandwich variance.}
+\code{estimator = "ipw"}, the per-id stabilized treatment weights are
+winsorized at the \code{trim}-th quantile (Cole & Hernán 2008) before
+broadcast. Under IPCW (\code{ipcw} non-\code{NULL}), the same quantile is used for
+the \strong{per-period} censoring weights (applied separately at each time
+period, targeting the heaviest late-time tails). \code{NULL} / \code{1} means no
+truncation. All resolved fixed cutoffs are reused by the sandwich.}
 
 \item{confounders_tv}{A one-sided formula of \strong{time-varying} confounders
 for Track B (\code{estimator = "ice"}), lag-expanded at each backward step
@@ -117,6 +121,25 @@ time-varying confounders. Ignored by Track A (\code{gcomp} / \code{ipw}).}
 full available history (capped at \code{n_times - 1}); an integer restricts
 the lag structure (e.g. \code{history = 1} for first-order Markov). Ignored by
 Track A.}
+
+\item{ipcw}{One-sided formula for the \strong{censoring-model covariates} (e.g.
+\code{~ L1 + L2}) or \code{NULL} (the default, no built-in IPCW). When non-\code{NULL},
+survatr fits a per-period censoring hazard on the person-period grid and
+forms stabilized \strong{per-period cumulative} inverse-probability-of-
+censoring weights \verb{W^C_\{i,k\}}. These are multiplied into the IPW weighted
+hazard MSM row weight, so the combined row weight is
+\verb{w_i * W^C_\{i,k\}} (treatment weight × censoring weight). Requires
+\code{estimator = "ipw"} and a non-\code{NULL} \code{censoring} column; activating IPCW
+with any other estimator or without a censoring column aborts with a
+classed error. The censoring column (\verb{censoring =}) switches from a pure
+row filter to the modelled path: the at-risk row set is unchanged (hazard
+MSM still fit on uncensored rows), but the IPCW weights reweight
+survivors to account for informative censoring.}
+
+\item{censoring_model_fn}{Fitting function for the censoring hazard model
+under \code{ipcw} (default \code{stats::glm}, same \code{stats::glm}-style interface as
+\code{model_fn}). Ignored when \code{ipcw = NULL}. Stored in the fit so the
+bootstrap can refit the censoring model per replicate.}
 
 \item{...}{Forwarded to \code{model_fn}. \code{na.action = na.exclude} is rejected
 with class \code{survatr_bad_na_action} -- \code{na.exclude} pads working

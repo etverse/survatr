@@ -46,6 +46,19 @@ Python at test time.
   cause-specific hazard scores plus the CIF / survival functionals, so its
   sandwich independently validates survatr's cause-specific CIF IF — in
   particular the all-cause `(1 - H)` sensitivity denominator.
+- `ipcw_survival_data.csv` — shared person-period fixture (`id, t, A, L, Y, C,
+  at_risk, cens_at_risk`) for IPCW (chunk 11). `C` is the per-period censoring
+  indicator; `at_risk` is the MSM fit mask (`prev_event==0 & prev_cens==0 &
+  C==0`); `cens_at_risk` is the censoring-model fit mask (`prev_event==0 &
+  prev_cens==0`, including the `C=1` rows). Generated in R from
+  `sim_informative_censoring(n=2000, K=5, seed=42)` — informative censoring
+  with `delta_cens = 0.8`. Both R and Python read this.
+- `ipcw_survival_delicatessen.csv` — delicatessen output (`quantity, time,
+  estimate, se`) for `S1`, `S0`, and `RD` at times 2–5, consumed by
+  `test-ipcw-delicatessen.R`. The Python script implements the full three-block
+  stacked EE (treatment propensity + censoring-model denominator + weighted
+  hazard MSM), independently validating survatr's `A_beta_gamma` cross-
+  derivative and the `n_ids / n_cens_fit` bread scaling.
 
 ## Environment
 
@@ -97,6 +110,19 @@ Rscript -e 'source("tests/testthat/helper-cr-oracle.R"); library(data.table); \
     "tests/testthat/fixtures/python/cr_survival_data.csv")'
 #   (2) delicatessen reference (Python):
 ../causatr/data-raw/zepid_venv/bin/python data-raw/delicatessen_competing_risks.py
+```
+
+# IPCW (chunk 11) fixtures:
+#   (1) data fixture (R):
+Rscript -e 'devtools::load_all(); dt <- sim_informative_censoring(n=2000L, K=5L, seed=42L); \
+  dt[, prev_event := data.table::shift(cumsum(Y),1L,fill=0L), by=id]; \
+  dt[, prev_cens := data.table::shift(cumsum(C),1L,fill=0L), by=id]; \
+  dt[, at_risk := as.integer(prev_event==0 & prev_cens==0 & C==0)]; \
+  dt[, cens_at_risk := as.integer(prev_event==0 & prev_cens==0)]; \
+  dt[, c("prev_event","prev_cens") := NULL]; \
+  data.table::fwrite(dt, "tests/testthat/fixtures/python/ipcw_survival_data.csv")'
+#   (2) delicatessen reference (Python):
+../causatr/data-raw/zepid_venv/bin/python data-raw/delicatessen_ipcw_survival.py
 ```
 
 The R fit and the delicatessen stack agree to ~1e-4 on `S^a(t)` and the risk

@@ -66,6 +66,29 @@ SURVATR_INTERNAL_COLS <- c(
 #' @param ice_details Per-step ICE metadata (`build_ice_surv_details()` output)
 #'   under `estimator = "ice"`, or `NULL`. Lets `contrast()` / the bootstrap
 #'   reconstruct the ICE machinery without re-parsing.
+#' @param censoring_model Fitted denominator censoring hazard model under IPCW,
+#'   or `NULL` (no IPCW). Stored so the sandwich can build the censoring-block
+#'   IF and `diagnose()` can inspect the model.
+#' @param ipcw_numerator_model Fitted numerator (treatment + time only)
+#'   censoring model under IPCW, or `NULL`. When `NULL` with `censoring_model`
+#'   non-`NULL`, the unstabilized weight is used.
+#' @param ipcw_weights Per-PP-row cumulative censoring weights `W^C_{i,k}`
+#'   (length `n_total`), or `NULL` (no IPCW). A running product within id that
+#'   grows over periods — structurally different from the per-id treatment
+#'   weight in `weights`.
+#' @param ipcw_trim_thresholds Named numeric vector of per-period winsorization
+#'   cutoffs (fixed at the point estimate; key = as.character(time)), or `NULL`.
+#'   The sandwich clips at these thresholds rather than re-quantiling inside the
+#'   numerical-derivative closure.
+#' @param ipw_treatment_weights_pp Per-PP-row broadcast treatment weights
+#'   `w_i` (length `n_total`) under IPW + IPCW, or `NULL`. Stored separately
+#'   from `weights` (which holds the combined `w_i * W^C_{i,k}`) so the
+#'   censoring-block IF closure can fix the treatment component while perturbing
+#'   the censoring model parameters.
+#' @param ipcw One-sided formula passed to `surv_fit()`, or `NULL`. Stored
+#'   so the bootstrap can refit the censoring model identically per replicate.
+#' @param censoring_model_fn Fitting function used for the censoring model, or
+#'   `NULL`. Stored for bootstrap refit.
 #' @param call The original `match.call()` of `surv_fit()`.
 #'
 #' @return A list of class `survatr_fit`.
@@ -99,7 +122,14 @@ new_survatr_fit <- function(
   history = NULL,
   ice_details = NULL,
   cause_models = NULL,
-  causes = NULL
+  causes = NULL,
+  censoring_model = NULL,
+  ipcw_numerator_model = NULL,
+  ipcw_weights = NULL,
+  ipcw_trim_thresholds = NULL,
+  ipw_treatment_weights_pp = NULL,
+  ipcw = NULL,
+  censoring_model_fn = NULL
 ) {
   structure(
     list(
@@ -131,6 +161,13 @@ new_survatr_fit <- function(
       ice_details = ice_details,
       cause_models = cause_models,
       causes = causes,
+      censoring_model = censoring_model,
+      ipcw_numerator_model = ipcw_numerator_model,
+      ipcw_weights = ipcw_weights,
+      ipcw_trim_thresholds = ipcw_trim_thresholds,
+      ipw_treatment_weights_pp = ipw_treatment_weights_pp,
+      ipcw = ipcw,
+      censoring_model_fn = censoring_model_fn,
       call = call
     ),
     class = "survatr_fit"

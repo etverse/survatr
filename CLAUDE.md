@@ -268,9 +268,10 @@ quasibinomial at k < K.
 chunk has a `CHUNK_<N>_*.md` doc at the repo root. Status legend: ✅ done
 (commit pinned) · 🚧 in progress · ⬜ not started.
 
-At a glance: **done = 1–10** (Track A gcomp + IPW; Track B ICE; competing risks;
-matching rejection; NHEFS Ch. 17 acceptance test; `diagnose()`). **v1 complete.**
-Next = 11 (IPCW).
+At a glance: **done = 1–11** (Track A gcomp + IPW + IPCW; Track B ICE; competing
+risks; matching rejection; NHEFS Ch. 17 acceptance test; `diagnose()`).
+**v1 complete; v1.x started.**
+Next = 12 (survival quantiles / RMTL / YLL estimands).
 Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext = 19–25 (deferred IPW /
 intervention work + missing-data MI). When a chunk flips status, update the
 handoff §10 table (the only copy).
@@ -360,3 +361,30 @@ notes" for the style).
   bootstrap. gcomp / Track A only; IPW / ICE / per-cause RMST deferred; Fine–Gray
   out of scope. Full invariants in `.claude/hard-rules.md` and
   `CHUNK_7_COMPETING_RISKS.md`.
+- **IPCW (chunk 11): per-period running-product censoring weights composed in
+  survatr; three-block stacked-EE sandwich (beta + alpha_trt + gamma_cens);
+  fit-row convention differs between MSM and censoring model.** The IPCW weight
+  `W^C_{i,k} = ∏_{m≤k} P(C_m=0|A)/P(C_m=0|A,L)` is a RUNNING PRODUCT that
+  grows within id (unlike the constant-within-id treatment weight). The censoring
+  model fit rows include the censoring-event row itself (`prev_event==0 &
+  prev_cens==0`, which allows C_k=1); the hazard MSM fit rows additionally require
+  `is_uncensored()` (excludes the C_k=1 row). The combined weight at MSM fit rows
+  is `w_ipw * W^C`. Per-period trim is applied at fixed quantile thresholds stored
+  for the sandwich (re-quantiling inside the numDeriv closure would make the weight
+  non-smooth in γ). The censoring correction is the third stacked-EE block: the
+  cross-derivative `A_beta_gamma = -numDeriv::jacobian(phi_bar_cens, gamma_hat)` is
+  computed via a pre-built `X_cens_all` matrix closure (avoids repeated
+  `stats::predict()` on each numDeriv perturbation, ~10× faster). The censoring-
+  model IF is `IF_gamma_i = (n_ids/n_cens_fit) * (∑_{k in cens_fit_i} r_score_k
+  X_cens_k) * B_inv_cens` — the sum over periods (multiple rows per id) before
+  scaling by the ratio `n_ids/n_cens_fit` is load-bearing. The correction's SE
+  impact is typically small for moderate censoring (< 5% relative at ≤10% per-
+  period censoring rate) because the weighted MSM residuals are approximately
+  uncorrelated with the censoring design after treatment weighting — this is
+  correct, not a bug. Bootstrap validates by refitting both the treatment model and
+  the censoring model per replicate. gcomp and ICE IPCW deferred to later chunks.
+  Validated to <2% on SEs and ~1e-4 on point estimates by an independent
+  `delicatessen` three-block stacked-EE oracle (`test-ipcw-delicatessen.R`,
+  `data-raw/delicatessen_ipcw_survival.py`); confirms the `n_ids/n_cens_fit`
+  bread scaling and the `A_beta_gamma` cross-derivative direction.
+  Full invariants in `.claude/hard-rules.md` and `CHUNK_11_IPCW.md`.

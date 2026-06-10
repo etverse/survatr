@@ -131,6 +131,86 @@ check_trim <- function(trim, call = rlang::caller_env()) {
   invisible(NULL)
 }
 
+#' Validate the IPCW argument and its required context
+#'
+#' Rejects unsupported combinations of `ipcw` with other `surv_fit()`
+#' arguments:
+#' - IPCW is only supported with `estimator = "ipw"` (the censoring weight
+#'   multiplies the treatment weight in the weighted MSM).
+#' - IPCW requires a non-`NULL` `censoring` column (the censoring indicator
+#'   is the response for the censoring hazard model).
+#' - `ipcw` itself must be a one-sided formula or `NULL`.
+#'
+#' @param ipcw One-sided formula or `NULL`.
+#' @param estimator Character scalar: the estimator passed to `surv_fit()`.
+#' @param censoring Column name or `NULL`.
+#' @param call Enclosing frame for the error signal.
+#'
+#' @returns Invisibly `NULL`.
+#' @family checks
+#' @noRd
+check_ipcw <- function(
+  ipcw,
+  estimator,
+  censoring,
+  call = rlang::caller_env()
+) {
+  if (is.null(ipcw)) {
+    return(invisible(NULL))
+  }
+  ## Must be a one-sided formula.
+  if (!inherits(ipcw, "formula")) {
+    rlang::abort(
+      c(
+        "`ipcw` must be a one-sided formula (e.g. `~ L1 + L2`) or `NULL`.",
+        i = "Pass the censoring-model covariate adjustment set as a formula."
+      ),
+      class = "survatr_bad_ipcw",
+      call = call
+    )
+  }
+  ## IPCW is only supported with `estimator = "ipw"`: the censoring weight
+  ## multiplies the treatment weight in the weighted MSM. Other estimators
+  ## need a different integration path (deferred).
+  if (!identical(estimator, "ipw")) {
+    rlang::abort(
+      c(
+        paste0(
+          "Built-in IPCW (`ipcw =`) is only supported with ",
+          "`estimator = \"ipw\"` in this release."
+        ),
+        i = paste0(
+          "IPCW for `estimator = \"gcomp\"` and Track B (`\"ice\"`) ship ",
+          "in later chunks. Got `estimator = \"",
+          estimator,
+          "\"`."
+        )
+      ),
+      class = "survatr_ipcw_estimator",
+      call = call
+    )
+  }
+  ## A censoring column is required: the censoring indicator is the response
+  ## for the censoring hazard model.
+  if (is.null(censoring)) {
+    rlang::abort(
+      c(
+        paste0(
+          "Built-in IPCW (`ipcw =`) requires a `censoring` column (the ",
+          "censoring indicator is the response for the censoring hazard model)."
+        ),
+        i = paste0(
+          "Supply `censoring = \"<col>\"` to `surv_fit()`, where `<col>` is ",
+          "the 0/1 column flagging censored rows."
+        )
+      ),
+      class = "survatr_ipcw_no_censoring",
+      call = call
+    )
+  }
+  invisible(NULL)
+}
+
 #' Reject `na.action = na.exclude` in `...`
 #'
 #' Copy-adapted from `causatr:::check_dots_na_action`. Under `na.exclude`,
