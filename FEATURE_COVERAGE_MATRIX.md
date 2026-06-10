@@ -161,6 +161,7 @@ thresholds for the sandwich. Bootstrap refits the censoring model per replicate.
 | Censoring-model correction wired in the IF matrix | 🟢 | `test-ipcw-survival-sandwich.R` | `A_beta_gamma` and `IF_gamma_per_id` non-zero; three-block IF matrix differs from two-block by > 1e-6 absolute. |
 | Treatment-model correction still variance-reducing vs hazard-only | 🟢 | `test-ipcw-survival-sandwich.R` | `se_two < se_hazard` at all times; > 1% relative reduction at peak. |
 | Three-block sandwich ≈ full three-stage bootstrap SE | 🟢 | `test-ipcw-survival-sandwich.R` | Per-time RD SE within 15% at B = 400 (n = 700, K = 5). `skip_on_cran()`. |
+| IPCW three-block sandwich vs `delicatessen` (independent analytic M-estimation) | 🟢 | `test-ipcw-delicatessen.R` | `S^1(t)`, `S^0(t)`, and `RD(t)` point + SE match a Python `delicatessen` three-block stacked-EE oracle to ~1e-4 (points) and ~2% (SEs) on a shared informative-censoring fixture. Reference: `data-raw/delicatessen_ipcw_survival.py`; both read `fixtures/python/ipcw_survival_data.csv`. Pins the `A_beta_gamma` cross-derivative and `n_ids / n_cens_fit` bread scaling. |
 | IPCW sandwich CI for risk difference covers marginal truth | 🟢 | `test-ipcw-survival-sandwich.R` | 150-rep coverage simulation, n = 800: ≥ 88% nominal 95% at t ∈ {2, 5}. `skip_on_cran()`. |
 | `ipcw =` with non-formula | 🔴 | `test-ipcw-survival.R` | `survatr_bad_ipcw`. |
 | `ipcw =` with non-`"ipw"` estimator | 🔴 | `test-ipcw-survival.R` | `survatr_ipcw_estimator` (gcomp and ice both rejected; later chunks). |

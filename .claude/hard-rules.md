@@ -335,6 +335,46 @@ Do NOT flag these as bugs. Each has a regression test.
   PP) so it is NOT dead code to delete — it is the boundary a future ragged-PP /
   left-truncation chunk must keep. (2026-06-08 critical review, Issue #1.)
 
+### Established invariants from 2026-06-10 IPCW (chunk 11)
+
+Do NOT flag these as bugs. Each has a regression test.
+
+- **Censoring-model fit rows are `prev_event==0 & prev_cens==0`, which includes
+  the `C_k=1` row itself.** This is intentionally broader than the hazard-MSM
+  fit rows (which also require `C_k==0` via `is_uncensored()`). The censoring
+  outcome is observed at the `C_k=1` row, so the model must be fit there. Do
+  not "fix" the censoring model to exclude censored rows from its fit set.
+- **The `IF_gamma_per_id` scaling is `(n_ids / n_cens_fit) * psi_per_id %*%
+  B_inv_cens`.** The censoring model is fit on `n_cens_fit` person-period rows
+  (multiple per id), but the per-individual IF is indexed at the person level
+  (n_ids). `causatr:::prepare_model_if(..., n_total = n_cens_fit)` returns
+  `B_inv = n_cens_fit * (X'WX)^{-1}`; multiplying by `n_ids / n_cens_fit` gives
+  `n_ids * (X'WX)^{-1} psi_per_id`, the correct per-person M-estimation IF.
+  This is validated to <2% by the delicatessen oracle
+  (`test-ipcw-delicatessen.R`, `data-raw/delicatessen_ipcw_survival.py`).
+  Do not change the `n_ids / n_cens_fit` factor without re-running that pin.
+- **The IPCW running product uses ALL person-period rows, not just censoring-
+  model fit rows.** `compute_ipcw_running_weights()` computes per-row factors
+  and calls `ipcw_running_cumprod()` on the full PP grid. The at-risk restriction
+  applies only to which rows enter the MSM score — the product accumulates over
+  all periods whether at-risk or not. Do not filter the product to cens_at_risk
+  rows; the delicatessen oracle uses the same convention.
+- **The numDeriv `phi_bar_cens` closure uses fixed trim thresholds.** Re-
+  quantiling inside the closure would make the weight function non-smooth in γ,
+  breaking the numerical Jacobian. The thresholds are computed once at the point
+  estimate and stored in `fit$ipcw_trim_thresholds`. Do not move the quantile
+  computation inside the closure.
+- **The censoring correction can widen OR narrow the SE** (direction depends on
+  the covariance between the censoring IF and the existing IF matrix). Unlike the
+  treatment-model correction (which always narrows SE for stabilized weights), the
+  censoring correction has no guaranteed sign. Do not flag a narrowed SE as a bug.
+  Validated: IF matrices differ by up to ~0.000159 on the standard DGP; SE impact
+  is ~1e-5 relative at moderate censoring (~8% per period).
+- **Bootstrap refits both the treatment model AND the censoring model per
+  replicate** (survatr stores `fit$ipcw` and `fit$censoring_model_fn` and passes
+  them back to `surv_fit()` in the bootstrap loop). If either refit is absent,
+  the bootstrap SE will disagree with the sandwich at the 15% tolerance level.
+
 ### Implementation conventions
 
 - **causatr is the engine.** Import `prepare_model_if()`,

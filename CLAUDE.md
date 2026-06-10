@@ -383,4 +383,8 @@ notes" for the style).
   uncorrelated with the censoring design after treatment weighting — this is
   correct, not a bug. Bootstrap validates by refitting both the treatment model and
   the censoring model per replicate. gcomp and ICE IPCW deferred to later chunks.
+  Validated to <2% on SEs and ~1e-4 on point estimates by an independent
+  `delicatessen` three-block stacked-EE oracle (`test-ipcw-delicatessen.R`,
+  `data-raw/delicatessen_ipcw_survival.py`); confirms the `n_ids/n_cens_fit`
+  bread scaling and the `A_beta_gamma` cross-derivative direction.
   Full invariants in `.claude/hard-rules.md` and `CHUNK_11_IPCW.md`.
