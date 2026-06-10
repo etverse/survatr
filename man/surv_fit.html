@@ -366,6 +366,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   trim = NULL,
   confounders_tv = NULL,
   history = Inf,
+  ipcw = NULL,
+  censoring_model_fn = stats::glm,
   ...
 )
 </code></pre>
@@ -482,7 +484,7 @@ Fitting function for the <strong>treatment</strong> model under <code>estimator 
 <code id="trim">trim</code>
 </td>
 <td>
-Numeric scalar in <code style="white-space: pre;">(0, 1]</code> or <code>NULL</code> (the default). Under <code>estimator = “ipw”</code>, the per-id stabilized weights are winsorized at the <code>trim</code>-th quantile (Cole &amp; Hernán 2008) before being broadcast onto the person-period rows. <code>NULL</code> / <code>1</code> means no truncation. The resolved fixed cutoff is reused by the sandwich variance.
+Numeric scalar in <code style="white-space: pre;">(0, 1]</code> or <code>NULL</code> (the default). Under <code>estimator = “ipw”</code>, the per-id stabilized treatment weights are winsorized at the <code>trim</code>-th quantile (Cole &amp; Hernán 2008) before broadcast. Under IPCW (<code>ipcw</code> non-<code>NULL</code>), the same quantile is used for the <strong>per-period</strong> censoring weights (applied separately at each time period, targeting the heaviest late-time tails). <code>NULL</code> / <code>1</code> means no truncation. All resolved fixed cutoffs are reused by the sandwich.
 </td>
 </tr>
 <tr>
@@ -499,6 +501,22 @@ A one-sided formula of <strong>time-varying</strong> confounders for Track B (<c
 </td>
 <td>
 Markov lag order for Track B. <code>Inf</code> (the default) uses the full available history (capped at <code>n_times - 1</code>); an integer restricts the lag structure (e.g.&nbsp;<code>history = 1</code> for first-order Markov). Ignored by Track A.
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="ipcw">ipcw</code>
+</td>
+<td>
+One-sided formula for the <strong>censoring-model covariates</strong> (e.g. <code>~ L1 + L2</code>) or <code>NULL</code> (the default, no built-in IPCW). When non-<code>NULL</code>, survatr fits a per-period censoring hazard on the person-period grid and forms stabilized <strong>per-period cumulative</strong> inverse-probability-of- censoring weights <code style="white-space: pre;">W^C_{i,k}</code>. These are multiplied into the IPW weighted hazard MSM row weight, so the combined row weight is <code style="white-space: pre;">w_i * W^C_{i,k}</code> (treatment weight × censoring weight). Requires <code>estimator = “ipw”</code> and a non-<code>NULL</code> <code>censoring</code> column; activating IPCW with any other estimator or without a censoring column aborts with a classed error. The censoring column (<code style="white-space: pre;">censoring =</code>) switches from a pure row filter to the modelled path: the at-risk row set is unchanged (hazard MSM still fit on uncensored rows), but the IPCW weights reweight survivors to account for informative censoring.
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="censoring_model_fn">censoring_model_fn</code>
+</td>
+<td>
+Fitting function for the censoring hazard model under <code>ipcw</code> (default <code>stats::glm</code>, same <code>stats::glm</code>-style interface as <code>model_fn</code>). Ignored when <code>ipcw = NULL</code>. Stored in the fit so the bootstrap can refit the censoring model per replicate.
 </td>
 </tr>
 <tr>
