@@ -190,8 +190,8 @@ diag_balance <- function(fit, pp) {
 
   ## Determine whether to compute SMD (binary) or correlation (continuous).
   trt_vals <- unique(pp_ar[[trt_col]])
-  is_binary <- length(na.omit(trt_vals)) == 2L &&
-    all(na.omit(trt_vals) %in% c(0L, 1L, 0, 1))
+  is_binary <- length(stats::na.omit(trt_vals)) == 2L &&
+    all(stats::na.omit(trt_vals) %in% c(0L, 1L, 0, 1))
 
   rows <- lapply(fit$time_grid, function(tk) {
     pp_t <- pp_ar[get(fit$time) == tk]

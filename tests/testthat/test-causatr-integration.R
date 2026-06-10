@@ -101,7 +101,8 @@ test_that("causatr ICE internals reused by Track B keep their signatures", {
       "family",
       "weights",
       "dots",
-      "stratified"
+      "stratified",
+      "is_pseudo"
     )
   )
   expect_identical(

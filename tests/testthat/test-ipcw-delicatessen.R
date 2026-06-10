@@ -18,7 +18,10 @@
 test_that("IPCW three-block sandwich matches the delicatessen M-estimation oracle", {
   data_fx <- test_path("fixtures", "python", "ipcw_survival_data.csv")
   ref_fx <- test_path("fixtures", "python", "ipcw_survival_delicatessen.csv")
-  skip_if(!file.exists(ref_fx), "delicatessen IPCW reference fixture not generated")
+  skip_if(
+    !file.exists(ref_fx),
+    "delicatessen IPCW reference fixture not generated"
+  )
 
   dt <- data.table::fread(data_fx)
   ref <- data.table::fread(ref_fx)
