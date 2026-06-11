@@ -264,17 +264,19 @@ quasibinomial at k < K.
 ## Implementation chunks
 
 **Canonical roadmap + per-chunk status + commit pins:**
-[SURVIVAL_PACKAGE_HANDOFF.md §10](SURVIVAL_PACKAGE_HANDOFF.md) (25 chunks). Each
+[SURVIVAL_PACKAGE_HANDOFF.md §10](SURVIVAL_PACKAGE_HANDOFF.md) (29 chunks). Each
 chunk has a `CHUNK_<N>_*.md` doc at the repo root. Status legend: ✅ done
 (commit pinned) · 🚧 in progress · ⬜ not started.
 
 At a glance: **done = 1–11** (Track A gcomp + IPW + IPCW; Track B ICE; competing
 risks; matching rejection; NHEFS Ch. 17 acceptance test; `diagnose()`).
 **v1 complete; v1.x started.**
-Next = 12 (survival quantiles / RMTL / YLL estimands).
+Now = 12 (survival quantiles / RMTL / YLL estimands) — 🚧 RMTL done.
 Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext = 19–25 (deferred IPW /
-intervention work + missing-data MI). When a chunk flips status, update the
-handoff §10 table (the only copy).
+intervention work + missing-data MI), audit = 26–29 (numeric variance fallback,
+IPCW for gcomp/ICE, competing risks under IPW/ICE, Track A effect modification —
+surfaced by the 2026-06-11 causatr-reuse audit; see handoff §10). When a chunk
+flips status, update the handoff §10 table (the only copy).
 
 ## Architecture notes
 
