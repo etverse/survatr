@@ -59,15 +59,8 @@ plot.survatr_result <- function(
   ...
 ) {
   which <- match.arg(which)
-  contrast_types <- c(
-    "risk_difference",
-    "risk_ratio",
-    "rmst_difference",
-    "cif_difference",
-    "cif_ratio"
-  )
   if (identical(which, "auto")) {
-    which <- if (x$type %in% contrast_types) "contrasts" else "curves"
+    which <- if (estimand_is_contrast(x$type)) "contrasts" else "curves"
   }
   if (identical(which, "contrasts") && nrow(x$contrasts) == 0L) {
     rlang::abort(
@@ -87,20 +80,7 @@ plot.survatr_result <- function(
   value_col <- if (identical(which, "contrasts")) {
     "estimate"
   } else {
-    switch(
-      x$type,
-      survival = "s_hat",
-      risk = "risk_hat",
-      rmst = "rmst_hat",
-      rmtl = "rmtl_hat",
-      risk_difference = "risk_hat",
-      risk_ratio = "risk_hat",
-      rmst_difference = "rmst_hat",
-      rmtl_difference = "rmtl_hat",
-      cif = "cif_hat",
-      cif_difference = "cif_hat",
-      cif_ratio = "cif_hat"
-    )
+    estimand_field(x$type, "point_col")
   }
 
   ## Competing-risks results carry a `cause` dimension: draw one line per
@@ -130,20 +110,7 @@ plot.survatr_result <- function(
     xlab <- "time"
   }
   if (is.null(ylab)) {
-    ylab <- switch(
-      x$type,
-      survival = "S(t)",
-      risk = "1 - S(t)",
-      rmst = "RMST(t)",
-      rmtl = "RMTL(t)",
-      risk_difference = "risk difference",
-      risk_ratio = "risk ratio",
-      rmst_difference = "RMST difference",
-      rmtl_difference = "RMTL difference",
-      cif = "F(t)",
-      cif_difference = "CIF difference",
-      cif_ratio = "CIF ratio"
-    )
+    ylab <- estimand_field(x$type, "ylab")
   }
 
   ## y range: point estimates plus CI if present.
@@ -163,9 +130,12 @@ plot.survatr_result <- function(
     ...
   )
 
-  if (x$type %in% c("risk_difference", "rmst_difference", "cif_difference")) {
+  ## Reference line for contrasts: 0 for differences, 1 for ratios (the
+  ## null-effect level). Curve estimands have `op = NA` and get no line.
+  op <- estimand_field(x$type, "op")
+  if (identical(op, "difference")) {
     graphics::abline(h = 0, lty = 3, col = "grey50")
-  } else if (x$type %in% c("risk_ratio", "cif_ratio")) {
+  } else if (identical(op, "ratio")) {
     graphics::abline(h = 1, lty = 3, col = "grey50")
   }
 

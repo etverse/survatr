@@ -126,8 +126,8 @@ validate_reference <- function(
   type,
   call = rlang::caller_env()
 ) {
-  no_contrast <- type %in% c("survival", "risk", "rmst", "rmtl", "cif")
-  if (no_contrast) {
+  ## Curve-only estimands carry no pairwise contrast, so `reference` is unused.
+  if (estimand_is_curve(type)) {
     return(NULL)
   }
   nms <- names(interventions)
@@ -175,8 +175,8 @@ validate_cause <- function(
   type,
   call = rlang::caller_env()
 ) {
-  ## All-cause estimands carry no cause dimension.
-  if (type %in% c("survival", "risk")) {
+  ## All-cause estimands (survival / risk) carry no cause dimension.
+  if (!estimand_has_cause(type)) {
     return(NULL)
   }
   ## Default: report every fitted cause.

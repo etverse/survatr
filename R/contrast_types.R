@@ -28,7 +28,7 @@ build_contrasts <- function(estimates, type, reference, interventions) {
     ci_upper = numeric(0)
   )
 
-  if (type %in% c("survival", "risk", "rmst", "rmtl")) {
+  if (estimand_is_curve(type)) {
     return(empty_contrasts)
   }
 
@@ -48,13 +48,7 @@ build_contrasts <- function(estimates, type, reference, interventions) {
   ## column (`n`, placeholder `se` / `ci_*`, etc.). Chunks 5+ may add
   ## per-intervention columns we don't want accidentally pulled into
   ## the `.ref` / `.a1` cartesian product.
-  estimand_col <- switch(
-    type,
-    risk_difference = "risk_hat",
-    risk_ratio = "risk_hat",
-    rmst_difference = "rmst_hat",
-    rmtl_difference = "rmtl_hat"
-  )
+  estimand_col <- estimand_field(type, "point_col")
   ref_slim <- ref_rows[, c("time", estimand_col), with = FALSE]
   data.table::setnames(ref_slim, estimand_col, "ref_val")
 
@@ -69,11 +63,9 @@ build_contrasts <- function(estimates, type, reference, interventions) {
     ## intervention (setkeyv enforced upstream), so merge is safe.
     merged <- merge(ref_slim, a1_slim, by = "time")
     est <- switch(
-      type,
-      risk_difference = merged$a1_val - merged$ref_val,
-      risk_ratio = merged$a1_val / merged$ref_val,
-      rmst_difference = merged$a1_val - merged$ref_val,
-      rmtl_difference = merged$a1_val - merged$ref_val
+      estimand_field(type, "op"),
+      difference = merged$a1_val - merged$ref_val,
+      ratio = merged$a1_val / merged$ref_val
     )
     data.table::data.table(
       contrast = paste0(a1_name, " vs ", reference),

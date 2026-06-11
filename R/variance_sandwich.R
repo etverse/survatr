@@ -84,55 +84,43 @@ fill_sandwich_ses <- function(
         class = "survatr_if_failed"
       )
     }
-    vcov_mat <- crossprod(IF_mat) / n_ids^2
-    if (type %in% c("survival", "risk", "risk_difference", "risk_ratio")) {
-      se_vec <- sqrt(pmax(diag(vcov_mat), 0))
-      target_col <- if (type == "survival") "s_hat" else "risk_hat"
-      estimates[get("intervention") == iv_name, se := se_vec]
-      point_vec <- estimates[get("intervention") == iv_name, get(target_col)]
-      estimates[
-        get("intervention") == iv_name,
-        `:=`(
-          ci_lower = point_vec - z * se_vec,
-          ci_upper = point_vec + z * se_vec
-        )
-      ]
-    } else if (
-      type %in% c("rmst", "rmst_difference", "rmtl", "rmtl_difference")
-    ) {
-      ## RMTL(t) = t - RMST(t) shares the RMST trapezoidal quadratic form:
-      ## the constant restriction time drops out of the gradient, so
-      ## Var(RMTL(t)) = Var(RMST(t)) with the identical weight matrix `W`.
+    ## The per-intervention SE family + point column come from the estimand
+    ## registry (`estimand_registry.R`). `"pointwise"` reads the diagonal of the
+    ## time-covariance directly; `"rmst"` first maps the IF through the
+    ## trapezoidal weight matrix (RMST and RMTL share it -- the constant
+    ## restriction time has zero gradient, so Var(RMTL) = Var(RMST)).
+    level_se <- estimand_field(type, "level_se")
+    point_col <- estimand_field(type, "point_col")
+    if (identical(level_se, "rmst")) {
       W <- rmst_weights(times)
-      IF_rmst <- IF_mat %*% t(W) ## n_ids x |t|
-      vcov_rmst <- crossprod(IF_rmst) / n_ids^2
-      se_vec <- sqrt(pmax(diag(vcov_rmst), 0))
-      estimates[get("intervention") == iv_name, se := se_vec]
-      point_col <- if (type %in% c("rmst", "rmst_difference")) {
-        "rmst_hat"
-      } else {
-        "rmtl_hat"
-      }
-      pt_vec <- estimates[get("intervention") == iv_name, get(point_col)]
-      estimates[
-        get("intervention") == iv_name,
-        `:=`(
-          ci_lower = pt_vec - z * se_vec,
-          ci_upper = pt_vec + z * se_vec
-        )
-      ]
+      IF_se <- IF_mat %*% t(W) ## n_ids x |t|
+    } else {
+      IF_se <- IF_mat
     }
+    se_vec <- sqrt(pmax(diag(crossprod(IF_se)) / n_ids^2, 0))
+    estimates[get("intervention") == iv_name, se := se_vec]
+    pt_vec <- estimates[get("intervention") == iv_name, get(point_col)]
+    estimates[
+      get("intervention") == iv_name,
+      `:=`(
+        ci_lower = pt_vec - z * se_vec,
+        ci_upper = pt_vec + z * se_vec
+      )
+    ]
   }
 
   ## --- pairwise contrasts (for the `contrasts` table) -------------------
-  curve_only <- type %in% c("survival", "risk", "rmst", "rmtl")
-  if (curve_only || nrow(contrasts) == 0L) {
+  if (estimand_is_curve(type) || nrow(contrasts) == 0L) {
     return(list(estimates = estimates, contrasts = contrasts))
   }
 
   other_names <- setdiff(names(if_list), reference)
   ref_S_if <- if_list[[reference]]$IF_mat
   ref_s_hat <- if_list[[reference]]$s_hat
+  ## Contrast SE family from the registry: "difference" (plain IF difference),
+  ## "logratio" (delta on the log scale, exponentiated CI), or "rmst" (the
+  ## trapezoidal quadratic form, shared by RMST and RMTL differences).
+  contrast_se <- estimand_field(type, "contrast_se")
 
   for (a1_name in other_names) {
     a1_S_if <- if_list[[a1_name]]$IF_mat
@@ -140,7 +128,7 @@ fill_sandwich_ses <- function(
     ref_risk <- 1 - ref_s_hat
     a1_risk <- 1 - a1_s_hat
 
-    if (type == "risk_difference") {
+    if (identical(contrast_se, "difference")) {
       ## IF on (risk_a1 - risk_a0) = -(IF_S_a1 - IF_S_a0) = IF_S_a0 - IF_S_a1.
       IF_diff <- ref_S_if - a1_S_if
       se_vec <- sqrt(pmax(diag(crossprod(IF_diff)) / n_ids^2, 0))
@@ -156,7 +144,7 @@ fill_sandwich_ses <- function(
           ci_upper = est_vec + z * se_vec
         )
       ]
-    } else if (type == "risk_ratio") {
+    } else if (identical(contrast_se, "logratio")) {
       ## Delta method on the log scale:
       ##   log(RR(t)) = log(risk_a1(t)) - log(risk_a0(t))
       ##   IF_{log RR}(t) = (1/risk_a1(t)) * IF_risk_a1 - (1/risk_a0(t)) * IF_risk_a0
@@ -191,11 +179,11 @@ fill_sandwich_ses <- function(
           ci_upper = exp(log(rr_vec) + z * se_log)
         )
       ]
-    } else if (type %in% c("rmst_difference", "rmtl_difference")) {
-      ## RMTL difference = -(RMST difference); the variance is identical (the
-      ## sign cancels in the quadratic form), so the RMST-difference IF and
-      ## weight matrix are reused unchanged and the CI is anchored on the
-      ## already-computed `estimate` column.
+    } else if (identical(contrast_se, "rmst")) {
+      ## RMST / RMTL difference: the trapezoidal quadratic form. RMTL difference
+      ## = -(RMST difference); the variance is identical (the sign cancels in the
+      ## quadratic form), so the same IF and weight matrix serve both and the CI
+      ## is anchored on the already-computed `estimate` column.
       W <- rmst_weights(times)
       IF_diff_S <- ref_S_if - a1_S_if
       IF_diff_RMST <- IF_diff_S %*% t(W) ## n_ids x |t|

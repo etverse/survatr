@@ -376,12 +376,13 @@ fill_sandwich_ses_cr <- function(
   })
   names(pieces) <- iv_names
 
-  if (type %in% c("survival", "risk")) {
-    ## All-cause estimands: one IF per intervention; no pairwise contrasts.
+  if (!estimand_has_cause(type)) {
+    ## All-cause estimands (survival / risk): one IF per intervention; no
+    ## pairwise contrasts and no cause dimension.
     for (iv in iv_names) {
       ifm <- compute_cr_survival_if_matrix(pieces[[iv]], times)
       se_vec <- sqrt(pmax(diag(crossprod(ifm$IF_mat)) / n_ids^2, 0))
-      tgt <- if (type == "survival") "s_hat" else "risk_hat"
+      tgt <- estimand_field(type, "point_col")
       pt <- estimates[get("intervention") == iv & is.na(get("cause")), get(tgt)]
       estimates[
         get("intervention") == iv & is.na(get("cause")),
@@ -425,7 +426,7 @@ fill_sandwich_ses_cr <- function(
     }
   }
 
-  if (type == "cif" || nrow(contrasts) == 0L) {
+  if (estimand_is_curve(type) || nrow(contrasts) == 0L) {
     return(list(estimates = estimates, contrasts = contrasts))
   }
 
@@ -440,7 +441,7 @@ fill_sandwich_ses_cr <- function(
       f_a1 <- if_by[[a1]][[jc]]$f_hat
       f_ref <- if_by[[reference]][[jc]]$f_hat
       sel <- contrasts[, get("contrast") == cn & get("cause") == j]
-      if (type == "cif_difference") {
+      if (identical(estimand_field(type, "op"), "difference")) {
         if_diff <- if_a1 - if_ref
         se_vec <- sqrt(pmax(diag(crossprod(if_diff)) / n_ids^2, 0))
         est_vec <- contrasts[sel, get("estimate")]

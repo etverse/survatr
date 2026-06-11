@@ -157,30 +157,20 @@ contrast.survatr_fit <- function(
   ## `cif_difference` for competing risks, `risk_difference` for single event --
   ## so `contrast(fit, ...)` with no `type` does the natural thing for each.
   is_competing <- !is.null(fit$cause_models)
-  single_event_types <- c(
-    "risk_difference",
-    "survival",
-    "risk",
-    "risk_ratio",
-    "rmst",
-    "rmst_difference",
-    "rmtl",
-    "rmtl_difference"
-  )
-  competing_types <- c("cif", "cif_difference", "cif_ratio", "survival", "risk")
+  ## Valid-estimand allow-lists come from the central estimand registry
+  ## (`estimand_registry.R`), so a new estimand is one descriptor entry rather
+  ## than an edit to a hardcoded vector in every dispatch site.
+  competing_types <- competing_estimands()
   if (is.null(type)) {
     type <- if (is_competing) "cif_difference" else "risk_difference"
   }
-  type <- match.arg(
-    type,
-    c(single_event_types, "cif", "cif_difference", "cif_ratio")
-  )
+  type <- match.arg(type, estimand_types())
 
   ## Cross-check estimand vs fit kind. CIF estimands need a competing-risks
   ## fit; the single-event contrast estimands (risk_difference / risk_ratio /
   ## rmst*) are not defined per cause and are rejected for competing-risks fits
   ## (use cif_difference / cif_ratio, or all-cause survival / risk instead).
-  if (type %in% c("cif", "cif_difference", "cif_ratio") && !is_competing) {
+  if (estimand_has_cause(type) && !is_competing) {
     rlang::abort(
       c(
         paste0("`type = \"", type, "\"` requires a competing-risks fit."),
@@ -236,18 +226,7 @@ contrast.survatr_fit <- function(
   ## reference vs a reference). Reject the single-intervention case
   ## upfront with a clear signal rather than silently returning an empty
   ## contrasts table or erroring deep in the replicate pipeline.
-  if (
-    type %in%
-      c(
-        "risk_difference",
-        "risk_ratio",
-        "rmst_difference",
-        "rmtl_difference",
-        "cif_difference",
-        "cif_ratio"
-      ) &&
-      length(interventions) < 2L
-  ) {
+  if (estimand_requires_pair(type) && length(interventions) < 2L) {
     rlang::abort(
       paste0(
         "`type = \"",

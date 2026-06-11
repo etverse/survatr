@@ -85,14 +85,9 @@ forrest.survatr_result <- function(
   xlab = NULL,
   ...
 ) {
-  contrast_types <- c(
-    "risk_difference",
-    "risk_ratio",
-    "rmst_difference",
-    "cif_difference",
-    "cif_ratio"
-  )
-  if (!x$type %in% contrast_types) {
+  ## Forest plots compare interventions at a reference time, so they need a
+  ## pairwise-contrast estimand (registry `kind == "contrast"`).
+  if (!estimand_is_contrast(x$type)) {
     rlang::abort(
       paste0(
         "`forrest()` requires a contrast-shaped result (",
@@ -183,7 +178,8 @@ forrest.survatr_result <- function(
     ylab = "",
     ...
   )
-  ref_line <- if (x$type %in% c("risk_ratio", "cif_ratio")) 1 else 0
+  ## Null-effect line: 1 for ratios, 0 for differences.
+  ref_line <- if (identical(estimand_field(x$type, "op"), "ratio")) 1 else 0
   graphics::abline(v = ref_line, lty = 3, col = "grey50")
   graphics::axis(
     2,

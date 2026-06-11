@@ -276,7 +276,7 @@ build_cif_contrasts <- function(
     ci_lower = numeric(0),
     ci_upper = numeric(0)
   )
-  if (type %in% c("cif", "survival", "risk")) {
+  if (estimand_is_curve(type)) {
     return(empty_contrasts)
   }
 
@@ -391,7 +391,8 @@ contrast_competing <- function(
   call
 ) {
   causes <- validate_cause(cause, fit$causes, type)
-  is_cif <- type %in% c("cif", "cif_difference", "cif_ratio")
+  ## CIF estimands carry the per-cause dimension; survival / risk are all-cause.
+  is_cif <- estimand_has_cause(type)
 
   estimates_list <- lapply(names(interventions), function(iv_name) {
     iv <- interventions[[iv_name]]
@@ -420,7 +421,7 @@ contrast_competing <- function(
   )
 
   ## Truncation-by-death caveat for the conditional CIF contrasts.
-  if (type %in% c("cif_difference", "cif_ratio")) {
+  if (estimand_has_cause(type) && estimand_is_contrast(type)) {
     cr_truncation_caveat()
   }
 

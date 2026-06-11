@@ -57,14 +57,7 @@ bootstrap_survival <- function(
   k_t <- length(times)
   n_iv <- length(iv_names)
   n_cause <- if (is.null(causes)) 1L else length(causes)
-  has_contrast <- type %in%
-    c(
-      "risk_difference",
-      "risk_ratio",
-      "rmst_difference",
-      "cif_difference",
-      "cif_ratio"
-    )
+  has_contrast <- estimand_is_contrast(type)
   contrast_names <- if (has_contrast) {
     paste0(setdiff(iv_names, reference), " vs ", reference)
   } else {
@@ -243,20 +236,7 @@ bootstrap_survival <- function(
 #' @returns The name of the per-intervention estimand column for `type`.
 #' @noRd
 boot_estimand_col <- function(type) {
-  switch(
-    type,
-    survival = "s_hat",
-    risk = "risk_hat",
-    risk_difference = "risk_hat",
-    risk_ratio = "risk_hat",
-    rmst = "rmst_hat",
-    rmst_difference = "rmst_hat",
-    rmtl = "rmtl_hat",
-    rmtl_difference = "rmtl_hat",
-    cif = "cif_hat",
-    cif_difference = "cif_hat",
-    cif_ratio = "cif_hat"
-  )
+  estimand_field(type, "point_col")
 }
 
 #' Flatten a `survatr_result` to the bootstrap's column vector
