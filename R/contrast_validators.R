@@ -126,7 +126,7 @@ validate_reference <- function(
   type,
   call = rlang::caller_env()
 ) {
-  no_contrast <- type %in% c("survival", "risk", "rmst", "cif")
+  no_contrast <- type %in% c("survival", "risk", "rmst", "rmtl", "cif")
   if (no_contrast) {
     return(NULL)
   }

@@ -97,25 +97,36 @@ fill_sandwich_ses <- function(
           ci_upper = point_vec + z * se_vec
         )
       ]
-    } else if (type %in% c("rmst", "rmst_difference")) {
+    } else if (
+      type %in% c("rmst", "rmst_difference", "rmtl", "rmtl_difference")
+    ) {
+      ## RMTL(t) = t - RMST(t) shares the RMST trapezoidal quadratic form:
+      ## the constant restriction time drops out of the gradient, so
+      ## Var(RMTL(t)) = Var(RMST(t)) with the identical weight matrix `W`.
       W <- rmst_weights(times)
       IF_rmst <- IF_mat %*% t(W) ## n_ids x |t|
       vcov_rmst <- crossprod(IF_rmst) / n_ids^2
       se_vec <- sqrt(pmax(diag(vcov_rmst), 0))
       estimates[get("intervention") == iv_name, se := se_vec]
-      rmst_vec <- estimates[get("intervention") == iv_name, get("rmst_hat")]
+      point_col <- if (type %in% c("rmst", "rmst_difference")) {
+        "rmst_hat"
+      } else {
+        "rmtl_hat"
+      }
+      pt_vec <- estimates[get("intervention") == iv_name, get(point_col)]
       estimates[
         get("intervention") == iv_name,
         `:=`(
-          ci_lower = rmst_vec - z * se_vec,
-          ci_upper = rmst_vec + z * se_vec
+          ci_lower = pt_vec - z * se_vec,
+          ci_upper = pt_vec + z * se_vec
         )
       ]
     }
   }
 
   ## --- pairwise contrasts (for the `contrasts` table) -------------------
-  if (type %in% c("survival", "risk", "rmst") || nrow(contrasts) == 0L) {
+  curve_only <- type %in% c("survival", "risk", "rmst", "rmtl")
+  if (curve_only || nrow(contrasts) == 0L) {
     return(list(estimates = estimates, contrasts = contrasts))
   }
 
@@ -180,7 +191,11 @@ fill_sandwich_ses <- function(
           ci_upper = exp(log(rr_vec) + z * se_log)
         )
       ]
-    } else if (type == "rmst_difference") {
+    } else if (type %in% c("rmst_difference", "rmtl_difference")) {
+      ## RMTL difference = -(RMST difference); the variance is identical (the
+      ## sign cancels in the quadratic form), so the RMST-difference IF and
+      ## weight matrix are reused unchanged and the CI is anchored on the
+      ## already-computed `estimate` column.
       W <- rmst_weights(times)
       IF_diff_S <- ref_S_if - a1_S_if
       IF_diff_RMST <- IF_diff_S %*% t(W) ## n_ids x |t|

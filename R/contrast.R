@@ -67,7 +67,9 @@ contrast <- function(fit, ...) {
 #'   `survatr_time_extrapolation`.
 #' @param type Estimand. For a single-event fit: one of `"survival"`,
 #'   `"risk"`, `"risk_difference"`, `"risk_ratio"`, `"rmst"`,
-#'   `"rmst_difference"` (default `"risk_difference"`). For a competing-risks
+#'   `"rmst_difference"`, `"rmtl"` (restricted mean time lost,
+#'   `t - RMST`), or `"rmtl_difference"` (default `"risk_difference"`). For a
+#'   competing-risks
 #'   fit (`surv_fit(..., competing = )`): one of `"cif"` (per-cause cumulative
 #'   incidence), `"cif_difference"`, `"cif_ratio"` (default), or all-cause
 #'   `"survival"` / `"risk"` (from the summed cause-specific hazards). Mixing a
@@ -161,7 +163,9 @@ contrast.survatr_fit <- function(
     "risk",
     "risk_ratio",
     "rmst",
-    "rmst_difference"
+    "rmst_difference",
+    "rmtl",
+    "rmtl_difference"
   )
   competing_types <- c("cif", "cif_difference", "cif_ratio", "survival", "risk")
   if (is.null(type)) {
@@ -238,6 +242,7 @@ contrast.survatr_fit <- function(
         "risk_difference",
         "risk_ratio",
         "rmst_difference",
+        "rmtl_difference",
         "cif_difference",
         "cif_ratio"
       ) &&
@@ -334,6 +339,12 @@ contrast.survatr_fit <- function(
   ## column with the cumulative trapezoidal integral of S from 0 to t.
   if (type %in% c("rmst", "rmst_difference")) {
     estimates <- add_rmst_to_estimates(estimates, times)
+  }
+  ## RMTL is the complement of RMST in the same window (t - RMST). Same
+  ## time-indexed curve shape; the SE reuses the RMST quadratic form because
+  ## the constant `t` drops out of the gradient.
+  if (type %in% c("rmtl", "rmtl_difference")) {
+    estimates <- add_rmtl_to_estimates(estimates, times)
   }
 
   ## Assemble pairwise contrasts (difference / ratio) at each t in `times`.

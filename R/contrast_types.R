@@ -28,7 +28,7 @@ build_contrasts <- function(estimates, type, reference, interventions) {
     ci_upper = numeric(0)
   )
 
-  if (type %in% c("survival", "risk", "rmst")) {
+  if (type %in% c("survival", "risk", "rmst", "rmtl")) {
     return(empty_contrasts)
   }
 
@@ -52,7 +52,8 @@ build_contrasts <- function(estimates, type, reference, interventions) {
     type,
     risk_difference = "risk_hat",
     risk_ratio = "risk_hat",
-    rmst_difference = "rmst_hat"
+    rmst_difference = "rmst_hat",
+    rmtl_difference = "rmtl_hat"
   )
   ref_slim <- ref_rows[, c("time", estimand_col), with = FALSE]
   data.table::setnames(ref_slim, estimand_col, "ref_val")
@@ -71,7 +72,8 @@ build_contrasts <- function(estimates, type, reference, interventions) {
       type,
       risk_difference = merged$a1_val - merged$ref_val,
       risk_ratio = merged$a1_val / merged$ref_val,
-      rmst_difference = merged$a1_val - merged$ref_val
+      rmst_difference = merged$a1_val - merged$ref_val,
+      rmtl_difference = merged$a1_val - merged$ref_val
     )
     data.table::data.table(
       contrast = paste0(a1_name, " vs ", reference),

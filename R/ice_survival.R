@@ -208,6 +208,11 @@ contrast_track_b <- function(
   if (type %in% c("rmst", "rmst_difference")) {
     estimates <- add_rmst_to_estimates(estimates, times)
   }
+  ## RMTL reuses the same time-indexed curve shape (t - RMST); the ICE IF
+  ## matrix drops into the shared RMST quadratic form (Var(RMTL) = Var(RMST)).
+  if (type %in% c("rmtl", "rmtl_difference")) {
+    estimates <- add_rmtl_to_estimates(estimates, times)
+  }
   contrasts <- build_contrasts(estimates, type, reference, interventions)
 
   if (identical(ci_method, "sandwich")) {

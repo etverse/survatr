@@ -74,6 +74,8 @@ tidy.survatr_result <- function(
     risk_ratio = "risk_hat",
     rmst = "rmst_hat",
     rmst_difference = "rmst_hat",
+    rmtl = "rmtl_hat",
+    rmtl_difference = "rmtl_hat",
     cif = "cif_hat",
     cif_difference = "cif_hat",
     cif_ratio = "cif_hat"

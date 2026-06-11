@@ -1,5 +1,18 @@
 # survatr (development version)
 
+## Chunk 12: RMTL estimand
+
+**`contrast(type = "rmtl")` / `"rmtl_difference"` — restricted mean time lost.**
+RMTL up to t* is the complement of RMST within the same window,
+`RMTL(t*) = t* - RMST(t*) = ∫₀^{t*} (1 - S^a(u)) du`. It is a smooth functional
+of the survival curve chunks 2/3 already compute, so it reuses the existing
+`n × |t-grid|` influence-function matrix with no refitting: the point estimate
+is `t* - RMST`, and the sandwich SE is the **identical** RMST trapezoidal
+quadratic form (the constant restriction time has zero gradient, so
+`Var(RMTL) = Var(RMST)`). Available wherever RMST is — gcomp, IPW, IPCW, and
+Track B (ICE) — via the shared SE filler, plus bootstrap, `tidy()`, and
+`plot()`. The `rmtl_difference` contrast is the negative of `rmst_difference`.
+
 ## 2026-06-09 — Critical review: diagnose + matching-rejection fixes
 
 **`$censoring` column renamed `n_at_risk` → `n_pp_rows`.** The old name was

@@ -92,9 +92,11 @@ plot.survatr_result <- function(
       survival = "s_hat",
       risk = "risk_hat",
       rmst = "rmst_hat",
+      rmtl = "rmtl_hat",
       risk_difference = "risk_hat",
       risk_ratio = "risk_hat",
       rmst_difference = "rmst_hat",
+      rmtl_difference = "rmtl_hat",
       cif = "cif_hat",
       cif_difference = "cif_hat",
       cif_ratio = "cif_hat"
@@ -133,9 +135,11 @@ plot.survatr_result <- function(
       survival = "S(t)",
       risk = "1 - S(t)",
       rmst = "RMST(t)",
+      rmtl = "RMTL(t)",
       risk_difference = "risk difference",
       risk_ratio = "risk ratio",
       rmst_difference = "RMST difference",
+      rmtl_difference = "RMTL difference",
       cif = "F(t)",
       cif_difference = "CIF difference",
       cif_ratio = "CIF ratio"

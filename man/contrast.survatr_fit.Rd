@@ -36,7 +36,9 @@ beyond the observed grid is rejected with
 
 \item{type}{Estimand. For a single-event fit: one of \code{"survival"},
 \code{"risk"}, \code{"risk_difference"}, \code{"risk_ratio"}, \code{"rmst"},
-\code{"rmst_difference"} (default \code{"risk_difference"}). For a competing-risks
+\code{"rmst_difference"}, \code{"rmtl"} (restricted mean time lost,
+\code{t - RMST}), or \code{"rmtl_difference"} (default \code{"risk_difference"}). For a
+competing-risks
 fit (\code{surv_fit(..., competing = )}): one of \code{"cif"} (per-cause cumulative
 incidence), \code{"cif_difference"}, \code{"cif_ratio"} (default), or all-cause
 \code{"survival"} / \code{"risk"} (from the summed cause-specific hazards). Mixing a
