@@ -147,6 +147,7 @@ contrast_track_b <- function(
   times,
   type,
   reference,
+  q_vec,
   ci_method,
   conf_level,
   n_boot,
@@ -205,6 +206,46 @@ contrast_track_b <- function(
   names(per_iv) <- names(interventions)
 
   estimates <- data.table::rbindlist(lapply(per_iv, function(x) x$estimates))
+
+  ## Quantile: a q-indexed functional of the ICE survival curve. Build the IF
+  ## matrices (under sandwich) the same way the time-indexed estimands do, then
+  ## hand off to the shared quantile assembly. Returns early (different shape).
+  if (identical(type, "quantile")) {
+    iv_names <- names(interventions)
+    s_by_iv <- survival_curves_by_iv(estimates, iv_names)
+    if_list <- NULL
+    if (identical(ci_method, "sandwich")) {
+      if_objs <- build_ice_if_list(
+        fit,
+        details,
+        base,
+        per_iv,
+        interventions,
+        times
+      )
+      if_list <- lapply(if_objs, function(x) x$IF_mat)
+      names(if_list) <- iv_names
+    }
+    return(finalize_quantile(
+      fit = fit,
+      interventions = interventions,
+      times = times,
+      q_vec = q_vec,
+      reference = reference,
+      s_by_iv = s_by_iv,
+      if_list = if_list,
+      n_ids = n_ids,
+      ci_method = ci_method,
+      conf_level = conf_level,
+      n_boot = n_boot,
+      boot_ci = boot_ci,
+      parallel = parallel,
+      ncpus = ncpus,
+      seed = seed,
+      call = call
+    ))
+  }
+
   if (type %in% c("rmst", "rmst_difference")) {
     estimates <- add_rmst_to_estimates(estimates, times)
   }
@@ -216,38 +257,16 @@ contrast_track_b <- function(
   contrasts <- build_contrasts(estimates, type, reference, interventions)
 
   if (identical(ci_method, "sandwich")) {
-    ## Stacked-EE ICE sandwich via causatr's chain, reused per horizon. The
-    ## minimal causatr_fit + per-horizon ice_results feed
-    ## `causatr:::variance_if_ice_one()`; the resulting n x |times| IF matrix
-    ## drops straight into the shared `fill_sandwich_ses()`.
-    min_fit <- build_min_causatr_fit_b(fit, details, base$data_lag)
-    ## Target = the at-risk-at-baseline standardisation population (entry-
-    ## censored ids carry NA `pseudo_final` and must be excluded from Channel-1,
-    ## else `mu_hat` is NA). Aligned to the first-period id order `ice_if_setup`
-    ## uses. `n_ids` stays the FULL count: `ice_if_setup` scales Channel 1 by
-    ## `n / n_target`, so `crossprod(IF) / n_ids^2` is the correct mean variance.
-    first_t <- details$time_points[1]
-    first_mask <- base$data_lag[[fit$time]] == first_t
-    target <- base$fit_rows[first_mask]
-    ## Per-period event indicators feed the chain's `(1 - D_k)` survival
-    ## failure carry-forward factor.
-    event_by_step <- build_event_by_step(
-      data = base$data_lag,
-      time_points = details$time_points,
-      id_col = fit$id,
-      time_col = fit$time,
-      outcome = fit$outcome
+    ## Stacked-EE ICE sandwich via causatr's chain. The per-intervention IF
+    ## matrices drop straight into the shared `fill_sandwich_ses()`.
+    if_list <- build_ice_if_list(
+      fit,
+      details,
+      base,
+      per_iv,
+      interventions,
+      times
     )
-    if_list <- lapply(names(interventions), function(nm) {
-      compute_ice_survival_if_matrix(
-        min_fit = min_fit,
-        ice_results = per_iv[[nm]]$ice_results,
-        times = times,
-        target = target,
-        event_by_step = event_by_step
-      )
-    })
-    names(if_list) <- names(interventions)
     filled <- fill_sandwich_ses(
       estimates = estimates,
       contrasts = contrasts,
@@ -297,6 +316,65 @@ contrast_track_b <- function(
     ci_method = ci_method,
     call = call
   )
+}
+
+#' Build the per-intervention ICE influence-function matrices
+#'
+#' @description
+#' Construct the `n_ids x |times|` survival IF matrix for each intervention via
+#' causatr's stacked-EE ICE chain, reused per horizon. Shared by the Track B
+#' sandwich path (time-indexed estimands -> `fill_sandwich_ses()`) and the
+#' quantile path (which feeds the IF into `assemble_quantile_result()`), so the
+#' `min_fit` / `target` / `event_by_step` construction lives in one place.
+#'
+#' @details
+#' `target` is the at-risk-at-baseline standardisation population (entry-censored
+#' ids carry `NA` `pseudo_final` and must be excluded from Channel 1, else
+#' `mu_hat` is `NA`), aligned to the first-period id order `ice_if_setup` uses.
+#' `event_by_step` supplies the per-period event indicators that feed the chain's
+#' `(1 - D_k)` survival failure carry-forward factor.
+#'
+#' @param fit A Track B `survatr_fit`.
+#' @param details `fit$ice_details`.
+#' @param base Output of `prepare_track_b_base(fit, details)`.
+#' @param per_iv Per-intervention `compute_ice_survival_curve()` outputs (carry
+#'   the stashed per-horizon `ice_results`).
+#' @param interventions Named list of interventions.
+#' @param times Validated numeric time grid.
+#'
+#' @returns A named list (one per intervention) of
+#'   `compute_ice_survival_if_matrix()` outputs, each with an `$IF_mat`.
+#' @noRd
+build_ice_if_list <- function(
+  fit,
+  details,
+  base,
+  per_iv,
+  interventions,
+  times
+) {
+  min_fit <- build_min_causatr_fit_b(fit, details, base$data_lag)
+  first_t <- details$time_points[1]
+  first_mask <- base$data_lag[[fit$time]] == first_t
+  target <- base$fit_rows[first_mask]
+  event_by_step <- build_event_by_step(
+    data = base$data_lag,
+    time_points = details$time_points,
+    id_col = fit$id,
+    time_col = fit$time,
+    outcome = fit$outcome
+  )
+  if_list <- lapply(names(interventions), function(nm) {
+    compute_ice_survival_if_matrix(
+      min_fit = min_fit,
+      ice_results = per_iv[[nm]]$ice_results,
+      times = times,
+      target = target,
+      event_by_step = event_by_step
+    )
+  })
+  names(if_list) <- names(interventions)
+  if_list
 }
 
 #' Survival-tail pseudo-outcome for the ICE backward step

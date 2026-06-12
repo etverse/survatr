@@ -40,7 +40,8 @@ bootstrap_survival <- function(
   parallel,
   ncpus,
   seed,
-  causes = NULL
+  causes = NULL,
+  q = NULL
 ) {
   id_col <- fit$id
   ## Build a per-id row-index map once. `split()` keys on as.character().
@@ -54,8 +55,14 @@ bootstrap_survival <- function(
   ## time-minor); `causes = NULL` collapses to the single-event layout, so the
   ## single-event path is byte-for-byte unchanged.
   iv_names <- names(interventions)
-  k_t <- length(times)
   n_iv <- length(iv_names)
+  ## The quantile estimand indexes its result by `q`, not `time`; the bootstrap
+  ## column layout is generic over the minor index so the same resample /
+  ## flatten / fill machinery serves both. `index_vals` is the minor axis.
+  is_quantile <- identical(type, "quantile")
+  index_col <- if (is_quantile) "q" else "time"
+  index_vals <- if (is_quantile) q else times
+  k_t <- length(index_vals)
   n_cause <- if (is.null(causes)) 1L else length(causes)
   has_contrast <- estimand_is_contrast(type)
   contrast_names <- if (has_contrast) {
@@ -71,6 +78,8 @@ bootstrap_survival <- function(
     intervention_names = iv_names,
     contrast_names = contrast_names,
     times = times,
+    index_col = index_col,
+    index_vals = index_vals,
     type = type,
     causes = causes,
     n_cause = n_cause,
@@ -168,6 +177,7 @@ bootstrap_survival <- function(
         type = type,
         reference = reference,
         cause = causes,
+        q = if (is_quantile) q else 0.5,
         ci_method = "none"
       ),
       error = function(e) NULL
@@ -270,7 +280,8 @@ flatten_boot_result <- function(res, meta) {
       } else {
         tbl[get(key_col) == key_val & get("cause") == meta$causes[ci]]
       }
-      data.table::setkeyv(rows, "time")
+      ## Minor index is `time` for the curve estimands, `q` for the quantile.
+      data.table::setkeyv(rows, meta$index_col)
       idx <- ((ci - 1L) * meta$k_t + 1L):(ci * meta$k_t)
       out[idx] <- rows[[value_col]]
     }

@@ -381,6 +381,7 @@ contrast_competing <- function(
   type,
   reference,
   cause,
+  q_vec,
   ci_method,
   conf_level,
   n_boot,
@@ -411,6 +412,44 @@ contrast_competing <- function(
     }
   })
   estimates <- data.table::rbindlist(estimates_list)
+
+  ## All-cause survival quantile on a competing-risks fit. `type = "quantile"`
+  ## carries no cause dimension (like survival / risk), so `is_cif` is FALSE and
+  ## `estimates` already holds the all-cause `s_hat`. Build the all-cause CR
+  ## survival IF (under sandwich) and hand off to the shared quantile assembly.
+  if (identical(type, "quantile")) {
+    iv_names <- names(interventions)
+    s_by_iv <- survival_curves_by_iv(estimates, iv_names)
+    if_list <- NULL
+    n_ids <- length(unique(fit$pp_data[[fit$id]]))
+    if (identical(ci_method, "sandwich")) {
+      shared <- prepare_cr_sandwich_shared(fit)
+      n_ids <- length(shared$unique_ids)
+      if_list <- lapply(iv_names, function(iv) {
+        pieces <- cr_intervention_if_pieces(fit, interventions[[iv]], shared)
+        compute_cr_survival_if_matrix(pieces, times)$IF_mat
+      })
+      names(if_list) <- iv_names
+    }
+    return(finalize_quantile(
+      fit = fit,
+      interventions = interventions,
+      times = times,
+      q_vec = q_vec,
+      reference = reference,
+      s_by_iv = s_by_iv,
+      if_list = if_list,
+      n_ids = n_ids,
+      ci_method = ci_method,
+      conf_level = conf_level,
+      n_boot = n_boot,
+      boot_ci = boot_ci,
+      parallel = parallel,
+      ncpus = ncpus,
+      seed = seed,
+      call = call
+    ))
+  }
 
   contrasts <- build_cif_contrasts(
     estimates = estimates,

@@ -132,6 +132,18 @@
     single = TRUE,
     competing = FALSE
   ),
+  quantile = list(
+    point_col = "tau_hat",
+    kind = "contrast",
+    op = "difference",
+    index = "q",
+    level_se = "quantile",
+    contrast_se = "quantile",
+    ylab = "survival quantile",
+    dim_cause = FALSE,
+    single = TRUE,
+    competing = TRUE
+  ),
   cif = list(
     point_col = "cif_hat",
     kind = "curve",

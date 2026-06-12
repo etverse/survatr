@@ -1,5 +1,30 @@
 # survatr (development version)
 
+## Chunk 12: survival quantiles / median
+
+**`contrast(type = "quantile", q = ...)` — survival-time quantiles / median.**
+The `q`-quantile is `tau_q = inf{t : S^a(t) <= 1 - q}` (median is `q = 0.5`),
+found by linear interpolation between the bracketing grid points of the
+survival curve chunks 2/3 already compute. The sandwich SE is the
+implicit-function delta method, `d tau_q = -dS(tau_q) / S'(tau_q)`, reading the
+influence function at `tau_q` by interpolating the IF columns; bootstrap is the
+documented fallback when the curve is near-flat at the crossing. `q` accepts a
+vector (`q = c(0.25, 0.5, 0.75)` → one row per `(intervention, q)`), and the
+result is **`q`-indexed** rather than time-indexed (`estimates`:
+`intervention | q | tau_hat | se | ci_*`). A median *difference* contrast is
+built automatically when there are two interventions; a single intervention is
+accepted (a lone median is a valid request). Available across gcomp, IPW, IPCW,
+Track B (ICE), and competing risks (all-cause survival quantile). Aborts:
+`survatr_quantile_unreached` (curve never crosses `1 - q` on the grid),
+`survatr_bad_q` (`q` outside `(0, 1)`).
+
+**Central estimand registry.** Type dispatch (point column, curve vs contrast,
+contrast operator, result index, SE family, plot label, cause dimension, valid
+fit kinds) now lives in one descriptor table (`R/estimand_registry.R`) that the
+contrast, variance, bootstrap, and S3 paths look up, replacing the scattered
+`switch(type, ...)` blocks. Adding an estimand is one registry row plus a new
+SE family only when the math is genuinely new.
+
 ## Chunk 12: RMTL estimand
 
 **`contrast(type = "rmtl")` / `"rmtl_difference"` — restricted mean time lost.**

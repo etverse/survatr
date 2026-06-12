@@ -106,8 +106,11 @@ plot.survatr_result <- function(
     }
   }
 
+  ## Result index on the x-axis: `time` for the curve estimands, `q` for the
+  ## quantile (which plots tau_q against the quantile level).
+  idx_col <- estimand_field(x$type, "index")
   if (is.null(xlab)) {
-    xlab <- "time"
+    xlab <- idx_col
   }
   if (is.null(ylab)) {
     ylab <- estimand_field(x$type, "ylab")
@@ -122,7 +125,7 @@ plot.survatr_result <- function(
 
   plot(
     NA,
-    xlim = range(tbl$time, na.rm = TRUE),
+    xlim = range(tbl[[idx_col]], na.rm = TRUE),
     ylim = y_range,
     main = main,
     xlab = xlab,
@@ -148,7 +151,8 @@ plot.survatr_result <- function(
     ## be shadowed.
     keep <- tbl[[group_col]] == g
     rows <- tbl[keep]
-    data.table::setorder(rows, time)
+    data.table::setorderv(rows, idx_col)
+    x_vals <- rows[[idx_col]]
     if (ribbon && !all(is.na(rows$ci_lower))) {
       ribbon_col <- grDevices::adjustcolor(col[g_ix], alpha.f = ribbon_alpha)
       ## Closed-polygon CI ribbon: trace the lower bound left-to-right, then
@@ -157,19 +161,19 @@ plot.survatr_result <- function(
       ## them; concatenating them in the same direction would instead draw a
       ## self-crossing bowtie.
       graphics::polygon(
-        x = c(rows$time, rev(rows$time)),
+        x = c(x_vals, rev(x_vals)),
         y = c(rows$ci_lower, rev(rows$ci_upper)),
         col = ribbon_col,
         border = NA
       )
     }
     graphics::lines(
-      rows$time,
+      x_vals,
       rows[[value_col]],
       col = col[g_ix],
       lwd = 2
     )
-    graphics::points(rows$time, rows[[value_col]], col = col[g_ix], pch = 19)
+    graphics::points(x_vals, rows[[value_col]], col = col[g_ix], pch = 19)
   }
 
   graphics::legend(

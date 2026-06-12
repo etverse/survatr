@@ -213,6 +213,41 @@ validate_cause <- function(
   cause
 }
 
+#' Validate the `q` argument (survival quantile level)
+#'
+#' For `type = "quantile"`, `q` selects which quantile(s) of the survival-time
+#' distribution to report. Must be a non-empty numeric vector with every entry
+#' strictly inside `(0, 1)` and no NA. A vector is accepted (one row per
+#' `(intervention, q)` in the result).
+#'
+#' @param q User-supplied quantile level(s).
+#' @param call Caller frame for the error signal.
+#'
+#' @returns The sorted, de-duplicated `q` vector.
+#' @family checks
+#' @noRd
+validate_q <- function(q, call = rlang::caller_env()) {
+  if (
+    !is.numeric(q) ||
+      length(q) == 0L ||
+      anyNA(q) ||
+      any(q <= 0) ||
+      any(q >= 1)
+  ) {
+    rlang::abort(
+      paste0(
+        "`q` must be a non-empty numeric vector with every value strictly in ",
+        "(0, 1). Got ",
+        deparse(q),
+        "."
+      ),
+      class = "survatr_bad_q",
+      call = call
+    )
+  }
+  sort(unique(q))
+}
+
 #' Validate the `ci_method` argument
 #'
 #' Accepts `"none"`, `"sandwich"`, and `"bootstrap"`. Anything else is

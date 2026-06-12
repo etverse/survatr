@@ -10,6 +10,7 @@
   times,
   type = NULL,
   cause = NULL,
+  q = 0.5,
   reference = NULL,
   ci_method = "none",
   conf_level = 0.95,
@@ -36,19 +37,26 @@ beyond the observed grid is rejected with
 
 \item{type}{Estimand. For a single-event fit: one of \code{"survival"},
 \code{"risk"}, \code{"risk_difference"}, \code{"risk_ratio"}, \code{"rmst"},
-\code{"rmst_difference"}, \code{"rmtl"} (restricted mean time lost,
-\code{t - RMST}), or \code{"rmtl_difference"} (default \code{"risk_difference"}). For a
-competing-risks
-fit (\code{surv_fit(..., competing = )}): one of \code{"cif"} (per-cause cumulative
-incidence), \code{"cif_difference"}, \code{"cif_ratio"} (default), or all-cause
-\code{"survival"} / \code{"risk"} (from the summed cause-specific hazards). Mixing a
-CIF estimand with a single-event fit (or vice versa) aborts with
-\code{survatr_competing_type}.}
+\code{"rmst_difference"}, \code{"rmtl"} (restricted mean time lost, \code{t - RMST}),
+\code{"rmtl_difference"}, or \code{"quantile"} (survival-time quantile / median;
+default \code{"risk_difference"}). For a competing-risks fit
+(\code{surv_fit(..., competing = )}): one of \code{"cif"} (per-cause cumulative
+incidence), \code{"cif_difference"}, \code{"cif_ratio"} (default), all-cause
+\code{"survival"} / \code{"risk"}, or all-cause \code{"quantile"} (from the summed
+cause-specific hazards). Mixing a CIF estimand with a single-event fit (or
+vice versa) aborts with \code{survatr_competing_type}.}
 
 \item{cause}{Competing-risks only. Integer vector selecting which cause(s)
 to report for the \code{cif} estimands, or \code{NULL} (the default) for all causes.
 Validated against the fitted causes; ignored for \code{survival} / \code{risk} and
 for single-event fits.}
+
+\item{q}{For \code{type = "quantile"}, the quantile level(s) of the survival-time
+distribution to report -- a numeric vector with every entry in \verb{(0, 1)}
+(default \code{0.5} = median). The result is indexed by \code{q} (one \code{tau_hat} per
+\verb{(intervention, q)}) rather than by \code{time}. Aborts with
+\code{survatr_quantile_unreached} when the curve never crosses \code{1 - q} on the
+grid, and \code{survatr_bad_q} for out-of-range \code{q}. Ignored for other types.}
 
 \item{reference}{Name of the intervention used as the reference in
 difference / ratio contrasts. Defaults to the first name in

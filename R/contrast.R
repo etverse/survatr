@@ -67,14 +67,20 @@ contrast <- function(fit, ...) {
 #'   `survatr_time_extrapolation`.
 #' @param type Estimand. For a single-event fit: one of `"survival"`,
 #'   `"risk"`, `"risk_difference"`, `"risk_ratio"`, `"rmst"`,
-#'   `"rmst_difference"`, `"rmtl"` (restricted mean time lost,
-#'   `t - RMST`), or `"rmtl_difference"` (default `"risk_difference"`). For a
-#'   competing-risks
-#'   fit (`surv_fit(..., competing = )`): one of `"cif"` (per-cause cumulative
-#'   incidence), `"cif_difference"`, `"cif_ratio"` (default), or all-cause
-#'   `"survival"` / `"risk"` (from the summed cause-specific hazards). Mixing a
-#'   CIF estimand with a single-event fit (or vice versa) aborts with
-#'   `survatr_competing_type`.
+#'   `"rmst_difference"`, `"rmtl"` (restricted mean time lost, `t - RMST`),
+#'   `"rmtl_difference"`, or `"quantile"` (survival-time quantile / median;
+#'   default `"risk_difference"`). For a competing-risks fit
+#'   (`surv_fit(..., competing = )`): one of `"cif"` (per-cause cumulative
+#'   incidence), `"cif_difference"`, `"cif_ratio"` (default), all-cause
+#'   `"survival"` / `"risk"`, or all-cause `"quantile"` (from the summed
+#'   cause-specific hazards). Mixing a CIF estimand with a single-event fit (or
+#'   vice versa) aborts with `survatr_competing_type`.
+#' @param q For `type = "quantile"`, the quantile level(s) of the survival-time
+#'   distribution to report -- a numeric vector with every entry in `(0, 1)`
+#'   (default `0.5` = median). The result is indexed by `q` (one `tau_hat` per
+#'   `(intervention, q)`) rather than by `time`. Aborts with
+#'   `survatr_quantile_unreached` when the curve never crosses `1 - q` on the
+#'   grid, and `survatr_bad_q` for out-of-range `q`. Ignored for other types.
 #' @param cause Competing-risks only. Integer vector selecting which cause(s)
 #'   to report for the `cif` estimands, or `NULL` (the default) for all causes.
 #'   Validated against the fitted causes; ignored for `survival` / `risk` and
@@ -142,6 +148,7 @@ contrast.survatr_fit <- function(
   times,
   type = NULL,
   cause = NULL,
+  q = 0.5,
   reference = NULL,
   ci_method = "none",
   conf_level = 0.95,
@@ -165,6 +172,11 @@ contrast.survatr_fit <- function(
     type <- if (is_competing) "cif_difference" else "risk_difference"
   }
   type <- match.arg(type, estimand_types())
+
+  ## The quantile estimand collapses the time axis onto a `q` dimension; `q` is
+  ## only meaningful here. Validate elementwise so a vector `q = c(.25, .5,
+  ## .75)` is accepted (one row per (intervention, q) in the result).
+  q_vec <- if (identical(type, "quantile")) validate_q(q) else NULL
 
   ## Cross-check estimand vs fit kind. CIF estimands need a competing-risks
   ## fit; the single-event contrast estimands (risk_difference / risk_ratio /
@@ -258,6 +270,7 @@ contrast.survatr_fit <- function(
       type = type,
       reference = reference,
       cause = cause,
+      q_vec = q_vec,
       ci_method = ci_method,
       conf_level = conf_level,
       n_boot = n_boot,
@@ -282,6 +295,7 @@ contrast.survatr_fit <- function(
       times = times,
       type = type,
       reference = reference,
+      q_vec = q_vec,
       ci_method = ci_method,
       conf_level = conf_level,
       n_boot = n_boot,
@@ -313,6 +327,54 @@ contrast.survatr_fit <- function(
     )
   })
   estimates <- data.table::rbindlist(estimates_list)
+
+  ## Quantile (median / arbitrary q): a functional of the survival curve that
+  ## collapses the time axis onto a `q` dimension, so it takes a dedicated
+  ## branch and returns a q-indexed result. The IF matrices (under sandwich) are
+  ## the same ones the time-indexed estimands use, so IPW / IPCW inherit the
+  ## quantile through `compute_survival_if_matrix()` unchanged.
+  if (identical(type, "quantile")) {
+    iv_names <- names(interventions)
+    s_by_iv <- survival_curves_by_iv(estimates, iv_names)
+    if_list <- NULL
+    n_ids <- length(unique(fit$pp_data[[fit$id]]))
+    if (identical(ci_method, "sandwich")) {
+      shared <- prepare_sandwich_shared(fit)
+      n_ids <- length(shared$unique_ids)
+      if_list <- lapply(iv_names, function(iv_name) {
+        compute_survival_if_matrix(
+          fit = fit,
+          intervention = interventions[[iv_name]],
+          times = times,
+          prep = shared$prep,
+          fit_idx = shared$fit_idx,
+          id_vec = shared$id_vec,
+          unique_ids = shared$unique_ids,
+          ipw_corr = shared$ipw_corr,
+          ipcw_corr = shared$ipcw_corr
+        )$IF_mat
+      })
+      names(if_list) <- iv_names
+    }
+    return(finalize_quantile(
+      fit = fit,
+      interventions = interventions,
+      times = times,
+      q_vec = q_vec,
+      reference = reference,
+      s_by_iv = s_by_iv,
+      if_list = if_list,
+      n_ids = n_ids,
+      ci_method = ci_method,
+      conf_level = conf_level,
+      n_boot = n_boot,
+      boot_ci = boot_ci,
+      parallel = parallel,
+      ncpus = ncpus,
+      seed = seed,
+      call = match.call()
+    ))
+  }
 
   ## If the user asked for RMST-shaped output, replace the per-time s_hat
   ## column with the cumulative trapezoidal integral of S from 0 to t.
