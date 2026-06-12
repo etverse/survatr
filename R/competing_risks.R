@@ -451,6 +451,21 @@ contrast_competing <- function(
     ))
   }
 
+  ## All-cause RMST / RMTL on a competing-risks fit: the same time-indexed
+  ## transforms of the all-cause survival curve as the single-event path (`is_cif`
+  ## is FALSE for these, so `estimates` holds `s_hat`).
+  if (type %in% c("rmst")) {
+    estimates <- add_rmst_to_estimates(estimates, times)
+  }
+  if (type %in% c("rmtl")) {
+    estimates <- add_rmtl_to_estimates(estimates, times)
+  }
+  ## Years of life lost: integrate each cause's CIF (`is_cif` TRUE, so `estimates`
+  ## holds per-cause `cif_hat`).
+  if (identical(type, "yll")) {
+    estimates <- add_yll_to_estimates(estimates, times)
+  }
+
   contrasts <- build_cif_contrasts(
     estimates = estimates,
     type = type,

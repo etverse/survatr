@@ -41,10 +41,12 @@ beyond the observed grid is rejected with
 \code{"rmtl_difference"}, or \code{"quantile"} (survival-time quantile / median;
 default \code{"risk_difference"}). For a competing-risks fit
 (\code{surv_fit(..., competing = )}): one of \code{"cif"} (per-cause cumulative
-incidence), \code{"cif_difference"}, \code{"cif_ratio"} (default), all-cause
-\code{"survival"} / \code{"risk"}, or all-cause \code{"quantile"} (from the summed
+incidence), \code{"cif_difference"}, \code{"cif_ratio"} (default), \code{"yll"} (per-cause
+years of life lost, \verb{int F^(j)}), all-cause \code{"survival"} / \code{"risk"} /
+\code{"rmst"} / \code{"rmtl"}, or all-cause \code{"quantile"} (from the summed
 cause-specific hazards). Mixing a CIF estimand with a single-event fit (or
-vice versa) aborts with \code{survatr_competing_type}.}
+vice versa) aborts with \code{survatr_competing_type}; \code{"yll"} on a single-event
+fit aborts with \code{survatr_yll_needs_cr}.}
 
 \item{cause}{Competing-risks only. Integer vector selecting which cause(s)
 to report for the \code{cif} estimands, or \code{NULL} (the default) for all causes.

@@ -1,5 +1,23 @@
 # survatr (development version)
 
+## Chunk 12: years of life lost (YLL) + all-cause RMST/RMTL on CR fits
+
+**`contrast(type = "yll")` — per-cause years of life lost.** On a
+competing-risks fit, `YLL^(j)(t*) = int_0^{t*} F^(j)(u) du` is the integral of
+the cause-`j` cumulative incidence. It reuses the chunk-7 CIF influence-function
+matrix, mapped through the same trapezoidal weight matrix RMST/RMTL use (the CIF
+starts at `F(0) = 0`, so the quadrature is exactly `rmst_weights() %*% cif`),
+and carries the `cause` dimension and the truncation-by-death caveat of the CIF
+estimands. It satisfies the identity `sum_j YLL^(j)(t*) = RMTL(t*)` (verified to
+machine precision), since `sum_j F^(j) = 1 - S`. Requires a competing-risks fit:
+`survatr_yll_needs_cr` on a single-event fit.
+
+**All-cause RMST / RMTL on a competing-risks fit.** `type = "rmst"` and
+`"rmtl"` now also apply to a competing-risks fit (the integral of the all-cause
+survival `S = prod(1 - sum_j h^(j))`), so the `sum_j YLL = RMTL` identity is
+expressible on the same fit. The per-cause RMST and the `rmst_difference` /
+`rmtl_difference` contrasts on a CR fit remain out of scope.
+
 ## Chunk 12: survival quantiles / median
 
 **`contrast(type = "quantile", q = ...)` — survival-time quantiles / median.**

@@ -71,10 +71,12 @@ contrast <- function(fit, ...) {
 #'   `"rmtl_difference"`, or `"quantile"` (survival-time quantile / median;
 #'   default `"risk_difference"`). For a competing-risks fit
 #'   (`surv_fit(..., competing = )`): one of `"cif"` (per-cause cumulative
-#'   incidence), `"cif_difference"`, `"cif_ratio"` (default), all-cause
-#'   `"survival"` / `"risk"`, or all-cause `"quantile"` (from the summed
+#'   incidence), `"cif_difference"`, `"cif_ratio"` (default), `"yll"` (per-cause
+#'   years of life lost, `int F^(j)`), all-cause `"survival"` / `"risk"` /
+#'   `"rmst"` / `"rmtl"`, or all-cause `"quantile"` (from the summed
 #'   cause-specific hazards). Mixing a CIF estimand with a single-event fit (or
-#'   vice versa) aborts with `survatr_competing_type`.
+#'   vice versa) aborts with `survatr_competing_type`; `"yll"` on a single-event
+#'   fit aborts with `survatr_yll_needs_cr`.
 #' @param q For `type = "quantile"`, the quantile level(s) of the survival-time
 #'   distribution to report -- a numeric vector with every entry in `(0, 1)`
 #'   (default `0.5` = median). The result is indexed by `q` (one `tau_hat` per
@@ -182,6 +184,21 @@ contrast.survatr_fit <- function(
   ## fit; the single-event contrast estimands (risk_difference / risk_ratio /
   ## rmst*) are not defined per cause and are rejected for competing-risks fits
   ## (use cif_difference / cif_ratio, or all-cause survival / risk instead).
+  if (identical(type, "yll") && !is_competing) {
+    ## Years of life lost is a per-cause integral of the CIF, so it is only
+    ## defined on a competing-risks fit. Distinct class from the generic CIF
+    ## cross-check so callers can match the YLL-specific failure.
+    rlang::abort(
+      c(
+        "`type = \"yll\"` (years of life lost) requires a competing-risks fit.",
+        i = paste0(
+          "Fit with `surv_fit(..., competing = <cause-col>)` first; ",
+          "for a single-event fit use `type = \"rmtl\"`."
+        )
+      ),
+      class = "survatr_yll_needs_cr"
+    )
+  }
   if (estimand_has_cause(type) && !is_competing) {
     rlang::abort(
       c(

@@ -412,3 +412,59 @@ add_rmtl_to_estimates <- function(estimates, times) {
   )
   out[]
 }
+
+#' Attach per-cause years-of-life-lost to a CIF `estimates` data.table
+#'
+#' @description
+#' Per-cause years of life lost up to each grid time is the integral of the
+#' cause-`j` cumulative incidence function. When `type = "yll"`, replace the
+#' per-(intervention, cause, time) `cif_hat` column with this cumulative
+#' integral. Called from `contrast_competing()` before contrast assembly.
+#'
+#' @details
+#' Years of life lost at t* for cause `j` is
+#'
+#'   YLL^(j)(t*) = int_0^{t*} F^(j)(u) du
+#'
+#' The CIF starts at `F^(j)(0) = 0`, so the trapezoidal integral is exactly the
+#' `rmst_weights()` matrix applied to the CIF vector (the `S(0) = 1` constant
+#' that `trapezoidal_rmst()` carries for survival drops to `0` here). Summed over
+#' causes this satisfies the identity `sum_j YLL^(j)(t*) = RMTL(t*)`, since
+#' `sum_j F^(j) = 1 - S` (partition of unity) and the integral is linear.
+#'
+#' Source: per-cause years of life lost as the CIF integral; see Andersen (2013)
+#' and `CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md`.
+#'
+#' @param estimates A `data.table` from `compute_cif_curves()` (columns
+#'   `intervention | cause | time | cif_hat | se | ci_* | n`).
+#' @param times The user-supplied time grid.
+#'
+#' @returns A modified `data.table` with a `yll_hat` column replacing `cif_hat`.
+#' @noRd
+add_yll_to_estimates <- function(estimates, times) {
+  out <- data.table::copy(estimates)
+  data.table::setkeyv(out, c("intervention", "cause", "time"))
+  ## Trapezoidal weight matrix: with F(0) = 0 the cumulative integral at each
+  ## grid time is `W %*% cif_hat` (no `S(0) = 1` constant). Per (intervention,
+  ## cause) so the integral resets at each CIF curve.
+  weight_mat <- rmst_weights(times)
+  out[,
+    yll_hat := as.numeric(weight_mat %*% cif_hat),
+    by = c("intervention", "cause")
+  ]
+  out[, "cif_hat" := NULL]
+  data.table::setcolorder(
+    out,
+    c(
+      "intervention",
+      "cause",
+      "time",
+      "yll_hat",
+      "se",
+      "ci_lower",
+      "ci_upper",
+      "n"
+    )
+  )
+  out[]
+}

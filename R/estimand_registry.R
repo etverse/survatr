@@ -94,7 +94,7 @@
     ylab = "RMST(t)",
     dim_cause = FALSE,
     single = TRUE,
-    competing = FALSE
+    competing = TRUE
   ),
   rmst_difference = list(
     point_col = "rmst_hat",
@@ -118,7 +118,7 @@
     ylab = "RMTL(t)",
     dim_cause = FALSE,
     single = TRUE,
-    competing = FALSE
+    competing = TRUE
   ),
   rmtl_difference = list(
     point_col = "rmtl_hat",
@@ -176,6 +176,22 @@
     level_se = "cif",
     contrast_se = "cif_logratio",
     ylab = "CIF ratio",
+    dim_cause = TRUE,
+    single = FALSE,
+    competing = TRUE
+  ),
+  yll = list(
+    ## Per-cause years of life lost = integral of the cause-j CIF. Curve-shaped
+    ## (per cause, time-indexed) like `cif`, but its SE maps the CIF IF through
+    ## the trapezoidal weight matrix (`level_se = "rmst"`), so the per-cause CR
+    ## sandwich branch reuses the RMST quadratic form.
+    point_col = "yll_hat",
+    kind = "curve",
+    op = NA_character_,
+    index = "time",
+    level_se = "rmst",
+    contrast_se = NA_character_,
+    ylab = "YLL(t)",
     dim_cause = TRUE,
     single = FALSE,
     competing = TRUE

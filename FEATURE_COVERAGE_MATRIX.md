@@ -65,6 +65,11 @@ reflects **current** state, not planned scope. Planned scope lives in
 | Median difference contrast + single-intervention quantile | 🟢 | `test-estimands-quantile.R` | `estimate = τ(a1) - τ(a0)` to 1e-10; a lone median (one intervention) is accepted (no `survatr_bad_interventions`). |
 | Quantile across estimators (IPW / IPCW / ICE / CR all-cause) | 🟢 | `test-estimands-quantile.R` | Reuses the per-estimator survival IF; wired for gcomp / IPW / IPCW / Track B and all-cause on a competing-risks fit (no cause dimension). |
 | `survatr_quantile_unreached` / `survatr_bad_q` | 🔴 | `test-estimands-quantile.R` | Curve never crosses `1 - q` on the grid; `q` outside `(0, 1)`. |
+| `type = "yll"` (per-cause years of life lost) | 🟢 | `test-estimands-yll.R` | `∫F^(j)` matched to the analytic two-cause CIF integral (`analytic_cr()` × trapezoidal weights) within 5% at n = 6000; carries the `cause` dimension. Competing-risks fit only. |
+| YLL identity `Σⱼ YLL^(j)(t*) = RMTL(t*)` | 🟢 | `test-estimands-yll.R` | Holds to 1e-10 (partition of unity `Σⱼ F^(j) = 1 - S`, integral linear). |
+| YLL sandwich (CIF IF × trapezoidal) vs bootstrap | 🟢 | `test-estimands-yll.R` | CIF IF mapped through `rmst_weights()`; sandwich-vs-bootstrap SE ratio in (0.6, 1.5). |
+| All-cause `rmst` / `rmtl` on a competing-risks fit | 🟢 | `test-estimands-yll.R` | Integral of the all-cause survival; needed for the `Σⱼ YLL = RMTL` identity. Per-cause RMST and `*_difference` on CR remain out of scope. |
+| `survatr_yll_needs_cr` | 🔴 | `test-estimands-yll.R` | `type = "yll"` on a single-event fit (distinct class from `survatr_competing_type`). |
 | Oracle cross-check vs `lmtp::lmtp_tmle(outcome_type = "survival")` | 🟢 | `test-contrast-lmtp-oracle.R` | gcomp `S^a(t)` (a1 and a0) on a confounded DGP (n = 2000) matches lmtp's TMLE survival within 0.05 at t ∈ {3, 5}. lmtp 1.5.3: one fit per horizon, `ife@x` estimate (the prior `folds`/`$theta` form silently skipped). |
 | Per-individual cumulative product (Jensen-safe) | 🟢 | `test-survival_curve.R` | Cumulative product within id before averaging across ids; monotone non-increasing in t on random DGPs. |
 | RMST trapezoidal quadrature (closed form) | 🟢 | `test-rmst.R` | Explicit sum of `(S(t_i) + S(t_{i+1}))/2 * (t_{i+1} - t_i)` reproduced to 1e-12. |
@@ -242,7 +247,7 @@ hazards only — Fine–Gray / subdistribution is out of scope (documented).
 | Unknown `cause` label | 🔴 | `test-competing-risks.R` | `survatr_bad_cause`. |
 | External `weights` + `competing =` | 🔴 | (guarded in `surv_fit()`) | `survatr_competing_weights` (weighted / IPCW competing risks → later chunk). |
 | Fine–Gray / subdistribution hazards | — | — | Out of scope (cause-specific only); documented in roxygen + vignette. |
-| Per-cause RMST / years-of-life-lost | — | — | Out of scope this chunk (deferred to chunk 12). |
+| Per-cause years-of-life-lost (`type = "yll"`) | 🟢 | `test-estimands-yll.R` | Shipped in chunk 12: `∫F^(j)`, the `Σⱼ YLL = RMTL` identity, CIF-IF-through-trapezoidal sandwich. Per-cause RMST remains out of scope. |
 | Competing risks under Track B | — | — | Out of scope this chunk (composes after chunks 6 + 7). |
 
 ## `diagnose()` — survival-aware diagnostics (Chunk 10)

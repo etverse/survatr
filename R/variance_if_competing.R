@@ -376,12 +376,22 @@ fill_sandwich_ses_cr <- function(
   })
   names(pieces) <- iv_names
 
+  ## RMST / RMTL (level_se "rmst") map the IF through the trapezoidal weight
+  ## matrix; survival / risk / cif (level_se "pointwise" / "cif") use it directly.
+  ## YLL (per-cause, level_se "rmst") maps the CIF IF the same way.
+  level_se <- estimand_field(type, "level_se")
+  weight_mat <- if (identical(level_se, "rmst")) rmst_weights(times) else NULL
+  map_if <- function(if_mat) {
+    if (is.null(weight_mat)) if_mat else if_mat %*% t(weight_mat)
+  }
+
   if (!estimand_has_cause(type)) {
-    ## All-cause estimands (survival / risk): one IF per intervention; no
-    ## pairwise contrasts and no cause dimension.
+    ## All-cause estimands (survival / risk / rmst / rmtl): one IF per
+    ## intervention; no pairwise contrasts and no cause dimension.
     for (iv in iv_names) {
       ifm <- compute_cr_survival_if_matrix(pieces[[iv]], times)
-      se_vec <- sqrt(pmax(diag(crossprod(ifm$IF_mat)) / n_ids^2, 0))
+      if_se <- map_if(ifm$IF_mat)
+      se_vec <- sqrt(pmax(diag(crossprod(if_se)) / n_ids^2, 0))
       tgt <- estimand_field(type, "point_col")
       pt <- estimates[get("intervention") == iv & is.na(get("cause")), get(tgt)]
       estimates[
@@ -406,14 +416,18 @@ fill_sandwich_ses_cr <- function(
   })
   names(if_by) <- iv_names
 
-  ## Per-intervention per-cause SEs on the estimates table.
+  ## Per-intervention per-cause SEs on the estimates table. `point_col` is
+  ## `cif_hat` for the CIF estimands, `yll_hat` for years of life lost (whose IF
+  ## is the CIF IF mapped through the trapezoidal weights via `map_if()`).
+  point_col <- estimand_field(type, "point_col")
   for (iv in iv_names) {
     for (j in causes) {
       ifm <- if_by[[iv]][[as.character(j)]]
-      se_vec <- sqrt(pmax(diag(crossprod(ifm$IF_mat)) / n_ids^2, 0))
+      if_se <- map_if(ifm$IF_mat)
+      se_vec <- sqrt(pmax(diag(crossprod(if_se)) / n_ids^2, 0))
       pt <- estimates[
         get("intervention") == iv & get("cause") == j,
-        get("cif_hat")
+        get(point_col)
       ]
       estimates[
         get("intervention") == iv & get("cause") == j,
