@@ -64,9 +64,16 @@ bootstrap_survival <- function(
   index_vals <- if (is_quantile) q else times
   k_t <- length(index_vals)
   n_cause <- if (is.null(causes)) 1L else length(causes)
+  ## `setdiff(iv_names, reference)` can be empty (a single-intervention
+  ## quantile, the one contrast-kind estimand that bypasses the >=2-intervention
+  ## guard). `paste0()` RECYCLES a length-0 arg back to length 1, so guard the
+  ## empty case explicitly -- otherwise a phantom " vs <ref>" contrast column is
+  ## created and `flatten_boot_result()` tries to fill it from an empty
+  ## contrasts table ("replacement has length zero").
   has_contrast <- estimand_is_contrast(type)
-  contrast_names <- if (has_contrast) {
-    paste0(setdiff(iv_names, reference), " vs ", reference)
+  other_ivs <- setdiff(iv_names, reference)
+  contrast_names <- if (has_contrast && length(other_ivs) > 0L) {
+    paste0(other_ivs, " vs ", reference)
   } else {
     character(0)
   }

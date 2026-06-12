@@ -60,7 +60,15 @@ plot.survatr_result <- function(
 ) {
   which <- match.arg(which)
   if (identical(which, "auto")) {
-    which <- if (estimand_is_contrast(x$type)) "contrasts" else "curves"
+    ## Prefer the contrasts view for contrast-kind estimands, but fall back to
+    ## curves when the contrasts table is empty -- a single-intervention
+    ## quantile is a valid request (a lone median) with no pairwise contrast, so
+    ## it must plot the tau-vs-q curve rather than abort.
+    which <- if (estimand_is_contrast(x$type) && nrow(x$contrasts) > 0L) {
+      "contrasts"
+    } else {
+      "curves"
+    }
   }
   if (identical(which, "contrasts") && nrow(x$contrasts) == 0L) {
     rlang::abort(
@@ -134,11 +142,13 @@ plot.survatr_result <- function(
   )
 
   ## Reference line for contrasts: 0 for differences, 1 for ratios (the
-  ## null-effect level). Curve estimands have `op = NA` and get no line.
+  ## null-effect level). Only meaningful on the contrasts view -- a raw
+  ## per-intervention curve (e.g. tau_q vs q, a positive time scale) has no
+  ## null-effect level, so a contrast-kind estimand plotted as curves gets none.
   op <- estimand_field(x$type, "op")
-  if (identical(op, "difference")) {
+  if (identical(which, "contrasts") && identical(op, "difference")) {
     graphics::abline(h = 0, lty = 3, col = "grey50")
-  } else if (identical(op, "ratio")) {
+  } else if (identical(which, "contrasts") && identical(op, "ratio")) {
     graphics::abline(h = 1, lty = 3, col = "grey50")
   }
 

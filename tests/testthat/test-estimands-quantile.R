@@ -125,6 +125,76 @@ test_that("a single intervention is accepted (no pairwise contrast required)", {
   expect_true(is.finite(res$estimates$se))
 })
 
+test_that("single-intervention quantile bootstrap does not crash", {
+  ## The quantile is the only contrast-kind estimand that bypasses the
+  ## >=2-intervention guard, so a single arm reaches the bootstrap layout
+  ## code. `setdiff(iv, ref)` is then empty and `paste0()` used to recycle it
+  ## into a phantom contrast column, crashing every replicate ("replacement has
+  ## length zero"). The bootstrap must run and return a finite SE ~ sandwich.
+  dt <- sim_constant_hazard(n = 1500L, K = 30L, h = 0.06, seed = 571L)
+  fit <- surv_fit(dt, "Y", "A", ~1, "id", "t", time_formula = ~1)
+  arm <- list(a0 = causatr::static(0))
+  se_sand <- contrast(
+    fit,
+    arm,
+    1:30,
+    type = "quantile",
+    q = 0.5,
+    ci_method = "sandwich"
+  )$estimates$se
+  res_boot <- contrast(
+    fit,
+    arm,
+    1:30,
+    type = "quantile",
+    q = 0.5,
+    ci_method = "bootstrap",
+    n_boot = 150L,
+    seed = 2L
+  )
+  expect_equal(nrow(res_boot$estimates), 1L)
+  expect_equal(nrow(res_boot$contrasts), 0L)
+  expect_true(is.finite(res_boot$estimates$se))
+  ratio <- res_boot$estimates$se / se_sand
+  expect_gt(ratio, 0.6)
+  expect_lt(ratio, 1.5)
+})
+
+test_that("q-indexed quantile flows through plot() but not forrest()", {
+  dt <- sim_constant_hazard(n = 600L, K = 30L, h = 0.06, seed = 573L)
+  fit <- surv_fit(dt, "Y", "A", ~1, "id", "t", time_formula = ~1)
+  ivs <- list(a1 = causatr::static(1), a0 = causatr::static(0))
+
+  ## plot() default (auto) on a single-arm quantile falls back to the curve
+  ## view rather than aborting on the empty contrasts table.
+  solo <- contrast(
+    fit,
+    list(a0 = causatr::static(0)),
+    1:30,
+    type = "quantile",
+    q = c(0.25, 0.5, 0.75),
+    ci_method = "sandwich"
+  )
+  pf <- tempfile(fileext = ".png")
+  grDevices::png(pf)
+  plot(solo)
+  grDevices::dev.off()
+  expect_true(file.exists(pf))
+
+  ## forrest() is a time-slice and is meaningless for the q-indexed quantile;
+  ## it aborts with a classed error rather than a raw data.table `==` error.
+  pair <- contrast(
+    fit,
+    ivs,
+    1:30,
+    type = "quantile",
+    q = 0.5,
+    reference = "a0",
+    ci_method = "sandwich"
+  )
+  expect_error(forrest(pair, t_ref = 30), class = "survatr_forrest_wrong_type")
+})
+
 test_that("quantile is wired across estimators (IPW / ICE / competing risks)", {
   ivs <- list(a1 = causatr::static(1), a0 = causatr::static(0))
 
