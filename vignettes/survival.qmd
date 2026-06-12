@@ -139,6 +139,55 @@ rmst <- contrast(
 rmst$contrasts
 ```
 
+## RMTL (restricted mean time lost)
+
+Restricted mean time *lost* is the complement of RMST within the same window,
+$\mathrm{RMTL}^a(t^*) = t^* - \mathrm{RMST}^a(t^*) = \int_0^{t^*} (1 - \hat{S}^a(u))\,du$.
+It is the same curve viewed from the other side, so the standard error is
+identical to RMST's (the constant $t^*$ drops out of the gradient).
+
+```{r}
+#| cache: true
+rmtl <- contrast(
+  fit,
+  interventions = list(
+    cessation    = static(1),
+    no_cessation = static(0)
+  ),
+  times     = times,
+  type      = "rmtl_difference",
+  ci_method = "sandwich"
+)
+rmtl$contrasts
+```
+
+## Survival quantiles
+
+The $q$-quantile of survival time is the first $t$ at which $\hat{S}^a(t)$
+drops to $1 - q$ (the median is $q = 0.5$). On this NHEFS cohort survival stays
+above $\approx 0.8$ through 120 months, so the median is *beyond the follow-up
+window* and `q = 0.5` would abort with `survatr_quantile_unreached` — a long
+survival horizon is exactly when you report a low quantile (or RMST) instead.
+Here we report the 10th and 15th percentiles of survival time; pass a vector of
+`q` to get several at once. The result is indexed by `q`, and a difference in
+quantile survival time is reported when there are two interventions.
+
+```{r}
+#| cache: true
+quant <- contrast(
+  fit,
+  interventions = list(
+    cessation    = static(1),
+    no_cessation = static(0)
+  ),
+  times     = times,
+  type      = "quantile",
+  q         = c(0.10, 0.15),
+  ci_method = "sandwich"
+)
+quant$estimates
+```
+
 ## Plot
 
 ```{r}
