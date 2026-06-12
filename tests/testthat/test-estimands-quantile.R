@@ -195,6 +195,27 @@ test_that("q-indexed quantile flows through plot() but not forrest()", {
   expect_error(forrest(pair, t_ref = 30), class = "survatr_forrest_wrong_type")
 })
 
+test_that("quantile reached within the first period uses the origin bracket", {
+  ## High hazard so S(1) = 1 - h drops at or below 1 - q already at t = 1: the
+  ## crossing then lies in the (0, t_1) interval, exercising the origin bracket
+  ## (left point (0, S(0) = 1), `lo = 0`) in both the solver and the IF. With a
+  ## constant hazard the linear-interp crossing of that bracket is tau = q / h.
+  h <- 0.3
+  dt <- sim_constant_hazard(n = 4000L, K = 10L, h = h, seed = 581L)
+  fit <- surv_fit(dt, "Y", "A", ~1, "id", "t", time_formula = ~1)
+  res <- contrast(
+    fit,
+    list(a0 = causatr::static(0)),
+    1:10,
+    type = "quantile",
+    q = 0.25,
+    ci_method = "sandwich"
+  )
+  tau <- res$estimates$tau_hat
+  expect_equal(tau, 0.25 / h, tolerance = 0.05) ## in (0, 1): first interval
+  expect_true(is.finite(res$estimates$se)) ## origin-bracket IF path is finite
+})
+
 test_that("quantile is wired across estimators (IPW / ICE / competing risks)", {
   ivs <- list(a1 = causatr::static(1), a0 = causatr::static(0))
 

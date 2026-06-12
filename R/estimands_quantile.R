@@ -77,13 +77,17 @@ solve_quantile <- function(times, s_hat, q, call = rlang::caller_env()) {
   t_hi <- times[j]
   s_hi <- s_hat[j]
   hi <- j
-  slope <- (s_hi - s_lo) / (t_hi - t_lo) ## local dS/dt at the crossing (<= 0)
+  slope <- (s_hi - s_lo) / (t_hi - t_lo) ## local dS/dt at the crossing (< 0)
   ## A flat segment (slope == 0) means S == p across the whole interval; take
-  ## the right edge as the infimum and a zero gradient (SE is then degenerate;
-  ## bootstrap is the documented fallback for near-flat curves).
+  ## the right edge as the infimum and a zero gradient (SE then degenerate;
+  ## bootstrap is the documented fallback). Provably unreachable -- the bracket
+  ## always has `s_hi <= p < s_lo`, so `slope < 0` strictly -- but kept as a
+  ## defensive guard against a future non-monotone-curve bracket change.
   if (slope == 0) {
+    # nocov start
     tau <- t_hi
     w <- 1
+    # nocov end
   } else {
     ## s_lo + slope * (tau - t_lo) = p  =>  tau = t_lo + (p - s_lo)/slope.
     tau <- t_lo + (p - s_lo) / slope
@@ -116,7 +120,12 @@ solve_quantile <- function(times, s_hat, q, call = rlang::caller_env()) {
 quantile_if_vector <- function(if_mat, sol) {
   n_ids <- nrow(if_mat)
   if (sol$slope == 0) {
+    # nocov start
+    ## Unreachable: `solve_quantile()` guarantees `slope < 0` (see there). A
+    ## degenerate flat crossing would have an undefined gradient; return a zero
+    ## IF (SE 0) so the bootstrap fallback applies rather than dividing by zero.
     return(rep(0, n_ids))
+    # nocov end
   }
   if_hi <- if_mat[, sol$hi]
   ## Origin bracket: S(0) = 1 is fixed, so its IF column is zero.
@@ -428,8 +437,8 @@ add_rmtl_to_estimates <- function(estimates, times) {
 #'
 #' The CIF starts at `F^(j)(0) = 0`, so the trapezoidal integral is exactly the
 #' `rmst_weights()` matrix applied to the CIF vector (the `S(0) = 1` constant
-#' that `trapezoidal_rmst()` carries for survival drops to `0` here). Summed over
-#' causes this satisfies the identity `sum_j YLL^(j)(t*) = RMTL(t*)`, since
+#' that `trapezoidal_rmst()` carries for survival drops to `0` here). Summed
+#' over causes this satisfies the identity `sum_j YLL^(j)(t*) = RMTL(t*)`, since
 #' `sum_j F^(j) = 1 - S` (partition of unity) and the integral is linear.
 #'
 #' Source: per-cause years of life lost as the CIF integral; see Andersen (2013)
