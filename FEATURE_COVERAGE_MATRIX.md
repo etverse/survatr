@@ -57,6 +57,19 @@ reflects **current** state, not planned scope. Planned scope lives in
 | `type = "rmst"` | 🟢 | `test-rmst.R`, `test-contrast.R` | Closed-form trapezoidal integral of `(1-h)^t` matched to 1e-12; curve-only shape verified. |
 | RMST cross-check vs `survRM2::rmst2()` (unadjusted KM) | 🟢 | `test-rmst-survRM2.R` | Constant-hazard DGP (n = 3000, K = 20, h = 0.05, no covariates): per-arm pooled-logistic trapezoidal RMST at t = 20 agrees with KM-based RMST from `survRM2::rmst2()` within 0.05. Validates the RMST scale (pooled-logistic ≈ KM for small h). `skip_if_not_installed("survRM2")`. |
 | `type = "rmst_difference"` | 🟢 | `test-contrast.R` | DGP with no effect: RMST-diff ≈ 0, tolerance 0.1. |
+| `type = "rmtl"` (restricted mean time lost) | 🟢 | `test-estimands-rmtl.R`, `test-gcomp-delicatessen.R` | `RMTL(t) = t - RMST(t)` identity to 1e-12; **direct delicatessen cross-check** (implied oracle `t - RMST_deli` with the identical SE, from the shared gcomp fixture). Wired across gcomp / IPW / IPCW / Track B (shared SE filler); sandwich vs bootstrap SE ratio in (0.7, 1.4). |
+| `type = "rmtl_difference"` | 🟢 | `test-estimands-rmtl.R` | Equals `-(rmst_difference)` (point + SE) to 1e-12. |
+| RMTL variance identity `Var(RMTL) = Var(RMST)` | 🟢 | `test-estimands-rmtl.R` | Same trapezoidal quadratic form: the constant `t*` drops out of the delta gradient, so the SE is identical to RMST's to 1e-12. |
+| `type = "quantile"` (survival quantile / median) | 🟢 | `test-estimands-quantile.R` | Constant-hazard closed form: median `= log(2)/λ`, `τ_q = -log(1-q)/λ` matched to ~0.3% at n = 20000 (estimator returns the exact linear-interp crossing of the fitted curve; verified at n up to 1e5). `survival::survfit()` KM-median sanity. Vector `q` supported. **No delicatessen oracle** — the quantile is a non-smooth functional outside delicatessen's smooth M-estimation; validated by the closed form + KM + sandwich-vs-bootstrap instead. |
+| Quantile sandwich (implicit-function delta) vs bootstrap | 🟢 | `test-estimands-quantile.R` | `dτ_q = -dS(τ_q)/S'(τ_q)` via interpolated IF columns; sandwich-vs-bootstrap SE ratio in (0.7, 1.4). |
+| Median difference contrast + single-intervention quantile | 🟢 | `test-estimands-quantile.R` | `estimate = τ(a1) - τ(a0)` to 1e-10; a lone median (one intervention) is accepted (no `survatr_bad_interventions`). |
+| Quantile across estimators (IPW / IPCW / ICE / CR all-cause) | 🟢 | `test-estimands-quantile.R` | Reuses the per-estimator survival IF; wired for gcomp / IPW / IPCW / Track B and all-cause on a competing-risks fit (no cause dimension). |
+| `survatr_quantile_unreached` / `survatr_bad_q` | 🔴 | `test-estimands-quantile.R` | Curve never crosses `1 - q` on the grid; `q` outside `(0, 1)`. |
+| `type = "yll"` (per-cause years of life lost) | 🟢 | `test-estimands-yll.R` | `∫F^(j)` matched to the analytic two-cause CIF integral (`analytic_cr()` × trapezoidal weights) within 5% at n = 6000; carries the `cause` dimension. Competing-risks fit only. Oracle: the CIF building block is delicatessen-pinned (`test-competing-risks-sandwich.R`) and YLL inherits via the `Σⱼ YLL = RMTL` identity + the analytic integral (a direct delicatessen YLL would need the full CIF curve, which the selected-time fixture does not store). |
+| YLL identity `Σⱼ YLL^(j)(t*) = RMTL(t*)` | 🟢 | `test-estimands-yll.R` | Holds to 1e-10 (partition of unity `Σⱼ F^(j) = 1 - S`, integral linear). |
+| YLL sandwich (CIF IF × trapezoidal) vs bootstrap | 🟢 | `test-estimands-yll.R` | CIF IF mapped through `rmst_weights()`; sandwich-vs-bootstrap SE ratio in (0.6, 1.5). |
+| All-cause `rmst` / `rmtl` on a competing-risks fit | 🟢 | `test-estimands-yll.R` | Integral of the all-cause survival; needed for the `Σⱼ YLL = RMTL` identity. Per-cause RMST and `*_difference` on CR remain out of scope. |
+| `survatr_yll_needs_cr` | 🔴 | `test-estimands-yll.R` | `type = "yll"` on a single-event fit (distinct class from `survatr_competing_type`). |
 | Oracle cross-check vs `lmtp::lmtp_tmle(outcome_type = "survival")` | 🟢 | `test-contrast-lmtp-oracle.R` | gcomp `S^a(t)` (a1 and a0) on a confounded DGP (n = 2000) matches lmtp's TMLE survival within 0.05 at t ∈ {3, 5}. lmtp 1.5.3: one fit per horizon, `ife@x` estimate (the prior `folds`/`$theta` form silently skipped). |
 | Per-individual cumulative product (Jensen-safe) | 🟢 | `test-survival_curve.R` | Cumulative product within id before averaging across ids; monotone non-increasing in t on random DGPs. |
 | RMST trapezoidal quadrature (closed form) | 🟢 | `test-rmst.R` | Explicit sum of `(S(t_i) + S(t_{i+1}))/2 * (t_{i+1} - t_i)` reproduced to 1e-12. |
@@ -234,7 +247,7 @@ hazards only — Fine–Gray / subdistribution is out of scope (documented).
 | Unknown `cause` label | 🔴 | `test-competing-risks.R` | `survatr_bad_cause`. |
 | External `weights` + `competing =` | 🔴 | (guarded in `surv_fit()`) | `survatr_competing_weights` (weighted / IPCW competing risks → later chunk). |
 | Fine–Gray / subdistribution hazards | — | — | Out of scope (cause-specific only); documented in roxygen + vignette. |
-| Per-cause RMST / years-of-life-lost | — | — | Out of scope this chunk (deferred to chunk 12). |
+| Per-cause years-of-life-lost (`type = "yll"`) | 🟢 | `test-estimands-yll.R` | Shipped in chunk 12: `∫F^(j)`, the `Σⱼ YLL = RMTL` identity, CIF-IF-through-trapezoidal sandwich. Per-cause RMST remains out of scope. |
 | Competing risks under Track B | — | — | Out of scope this chunk (composes after chunks 6 + 7). |
 
 ## `diagnose()` — survival-aware diagnostics (Chunk 10)

@@ -66,18 +66,11 @@ tidy.survatr_result <- function(
   }
 
   type <- x$type
-  estimand_col <- switch(
-    type,
-    survival = "s_hat",
-    risk = "risk_hat",
-    risk_difference = "risk_hat",
-    risk_ratio = "risk_hat",
-    rmst = "rmst_hat",
-    rmst_difference = "rmst_hat",
-    cif = "cif_hat",
-    cif_difference = "cif_hat",
-    cif_ratio = "cif_hat"
-  )
+  estimand_col <- estimand_field(type, "point_col")
+  ## Result index column: `time` for the curve estimands, `q` for the quantile.
+  ## Built into a `time`-named column below, then renamed at the end so the
+  ## quantile tidy frame carries a `q` column instead.
+  idx_col <- estimand_field(type, "index")
 
   ## Competing-risks results carry a `cause` column; the single-event shape does
   ## not. Surface it when present so a tidy frame keeps the cause dimension.
@@ -90,7 +83,7 @@ tidy.survatr_result <- function(
       intervention = x$estimates[["intervention"]],
       contrast = NA_character_,
       cause = if (has_cause) x$estimates[["cause"]] else NA_integer_,
-      time = x$estimates[["time"]],
+      time = x$estimates[[idx_col]],
       estimand = estimand_col,
       estimate = x$estimates[[estimand_col]],
       se = x$estimates[["se"]],
@@ -107,7 +100,7 @@ tidy.survatr_result <- function(
       intervention = NA_character_,
       contrast = x$contrasts[["contrast"]],
       cause = if (ctr_has_cause) x$contrasts[["cause"]] else NA_integer_,
-      time = x$contrasts[["time"]],
+      time = x$contrasts[[idx_col]],
       estimand = type,
       estimate = x$contrasts[["estimate"]],
       se = x$contrasts[["se"]],
@@ -121,6 +114,10 @@ tidy.survatr_result <- function(
     use.names = TRUE,
     fill = TRUE
   )
+  ## Rename the index column when the estimand is q-indexed (the quantile).
+  if (!identical(idx_col, "time") && "time" %in% names(out)) {
+    data.table::setnames(out, "time", idx_col)
+  }
   ## Single-event results have no cause dimension; drop the placeholder column
   ## so their tidy shape is unchanged. Competing-risks results keep it.
   if (!has_cause && "cause" %in% names(out)) {

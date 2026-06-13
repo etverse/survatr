@@ -17,10 +17,12 @@ person-period data, with three complementary estimators: g-computation
 (Track A), inverse-probability weighting (IPW, Track A), and iterated
 conditional expectations (ICE) for longitudinal, time-varying treatments
 (Track B). The **estimand is a curve** — survival $S^a(t)$, risk
-$1 - S^a(t)$, risk difference, risk ratio, or restricted mean survival
-time (RMST) — not a scalar. Inference is by a delta-method sandwich that
-propagates per-row influence functions through the cumulative-product
-survival curve, or by an individual-level nonparametric bootstrap.
+$1 - S^a(t)$, risk difference, risk ratio, restricted mean survival time
+(RMST) or time lost (RMTL), survival quantiles / median, and per-cause
+years of life lost — not a scalar. Inference is by a delta-method
+sandwich that propagates per-row influence functions through the
+cumulative-product survival curve, or by an individual-level
+nonparametric bootstrap.
 
 The package implements the survival methods of Hernán & Robins (2025)
 *Causal Inference: What If* (Chapter 17) with the same two-step API
@@ -114,8 +116,10 @@ covers 0 at every time point.
   Matching + survival is a hard reject — use
   `survival::coxph(..., weights, cluster)` directly.
 - **Curve-valued estimands**: survival $S^a(t)$, risk $1 - S^a(t)$, risk
-  difference, risk ratio (log-scale CI), and RMST / RMST difference, all
-  returned as time-indexed `data.table`s.
+  difference, risk ratio (log-scale CI), RMST / RMST difference, RMTL
+  (restricted mean time lost), survival quantiles / median
+  (implicit-function delta, `q`-indexed), and per-cause years of life
+  lost (competing risks), all returned as `data.table`s.
 - **Flexible interventions** via causatr: `static()`, `shift()`,
   `scale_by()`, `threshold()`, and `dynamic()`. Which are available
   depends on the estimator.

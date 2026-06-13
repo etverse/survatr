@@ -1,6 +1,10 @@
 # Chunk 12 — Survival quantiles, RMTL, years-of-life-lost
 
-> **Status: ⬜ Not started**
+> **Status: ✅ Done.** Shipped as four commits on `feat/chunk-12-estimands`:
+> RMTL, a central estimand registry refactor, survival quantiles / median, and
+> per-cause YLL (+ all-cause RMST/RMTL on competing-risks fits). Estimand
+> dispatch now routes through `R/estimand_registry.R`. Tests:
+> `test-estimands-rmtl.R`, `test-estimands-quantile.R`, `test-estimands-yll.R`.
 > **Depends on:** Chunk 2 (survival curve), Chunk 3 (sandwich IF matrix);
 > Chunk 7 (competing-risks CIF) for the years-of-life-lost estimand only.
 > **Oracle:** `adjustedCurves` (median / quantile survival, RMTL);
@@ -153,12 +157,12 @@ result <- contrast(cr_fit, ..., type = "yll", cause = 1, times = seq(0, 120, 12)
   matrix). No new causatr internals beyond those already imported by chunk 3.
 
 ## Acceptance checklist
-- [ ] `type = "quantile"` solves `S^a(t) = 1 - q`; median matches
+- [x] `type = "quantile"` solves `S^a(t) = 1 - q`; median matches
       `log(2)/λ` on the constant-hazard DGP; SE via implicit-function delta and
       bootstrap agree.
-- [ ] `type = "rmtl"` satisfies `RMTL = t* - RMST` with the matching quadratic
+- [x] `type = "rmtl"` satisfies `RMTL = t* - RMST` with the matching quadratic
       form SE.
-- [ ] `type = "yll"` (CR fit) satisfies `Σ_j YLL^(j) = RMTL`; matches `∫ F^(j)`
+- [x] `type = "yll"` (CR fit) satisfies `Σ_j YLL^(j) = RMTL`; matches `∫ F^(j)`
       on the analytic DGP.
-- [ ] Off-grid / unreached-quantile aborts fire with distinct classes.
-- [ ] `FEATURE_COVERAGE_MATRIX.md` + handoff §10 + CLAUDE.md updated.
+- [x] Off-grid / unreached-quantile aborts fire with distinct classes.
+- [x] `FEATURE_COVERAGE_MATRIX.md` + handoff §10 + CLAUDE.md updated.

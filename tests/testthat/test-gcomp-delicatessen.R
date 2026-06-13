@@ -88,3 +88,38 @@ test_that("gcomp sandwich matches the delicatessen oracle on shared data", {
     expect_equal(sv_vals[2L], deli$se[i], tolerance = se_tol)
   }
 })
+
+test_that("rmtl sandwich matches the delicatessen oracle (RMTL = t - RMST)", {
+  ## RMTL has no separate delicatessen estimating equation -- it IS the RMST
+  ## complement, RMTL(t) = t - RMST(t) with Var(RMTL) = Var(RMST). So the
+  ## delicatessen RMST point/SE in the shared fixture pin RMTL directly: the
+  ## implied oracle RMTL is `time - RMST_deli` with the identical SE.
+  data_path <- test_path("fixtures", "python", "ipw_survival_data.csv")
+  ref_path <- test_path("fixtures", "python", "gcomp_survival_delicatessen.csv")
+  skip_if(!file.exists(ref_path))
+
+  df <- data.table::fread(data_path)
+  deli <- data.table::fread(ref_path)
+  fit <- surv_fit(
+    df,
+    outcome = "Y",
+    treatment = "A",
+    confounders = ~L,
+    id = "id",
+    time = "t",
+    time_formula = ~ factor(t)
+  )
+  ivs <- list(a1 = causatr::static(1), a0 = causatr::static(0))
+  tms <- c(2L, 3L, 4L, 5L)
+  rl <- contrast(fit, ivs, times = tms, type = "rmtl", ci_method = "sandwich")
+
+  ## Each arm's RMTL vs the implied oracle (t - RMST_deli, with se_deli).
+  rmst_rows <- deli[deli$quantity %in% c("RMST1", "RMST0"), ]
+  for (i in seq_len(nrow(rmst_rows))) {
+    a <- if (rmst_rows$quantity[i] == "RMST1") "a1" else "a0"
+    tt <- rmst_rows$time[i]
+    sv <- rl$estimates[get("intervention") == a & get("time") == tt]
+    expect_equal(sv$rmtl_hat, tt - rmst_rows$estimate[i], tolerance = 1e-3)
+    expect_equal(sv$se, rmst_rows$se[i], tolerance = 1e-3)
+  }
+})

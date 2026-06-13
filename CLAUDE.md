@@ -264,17 +264,20 @@ quasibinomial at k < K.
 ## Implementation chunks
 
 **Canonical roadmap + per-chunk status + commit pins:**
-[SURVIVAL_PACKAGE_HANDOFF.md §10](SURVIVAL_PACKAGE_HANDOFF.md) (25 chunks). Each
+[SURVIVAL_PACKAGE_HANDOFF.md §10](SURVIVAL_PACKAGE_HANDOFF.md) (29 chunks). Each
 chunk has a `CHUNK_<N>_*.md` doc at the repo root. Status legend: ✅ done
 (commit pinned) · 🚧 in progress · ⬜ not started.
 
-At a glance: **done = 1–11** (Track A gcomp + IPW + IPCW; Track B ICE; competing
-risks; matching rejection; NHEFS Ch. 17 acceptance test; `diagnose()`).
-**v1 complete; v1.x started.**
-Next = 12 (survival quantiles / RMTL / YLL estimands).
+At a glance: **done = 1–12** (Track A gcomp + IPW + IPCW; Track B ICE; competing
+risks; matching rejection; NHEFS Ch. 17 acceptance test; `diagnose()`; survival
+quantiles / RMTL / YLL estimands via a central estimand registry).
+**v1 complete; v1.x in progress.**
+Next = 13 (cluster-robust SE — reuse `causatr:::vcov_from_if()`, see §10 audit).
 Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext = 19–25 (deferred IPW /
-intervention work + missing-data MI). When a chunk flips status, update the
-handoff §10 table (the only copy).
+intervention work + missing-data MI), audit = 26–29 (numeric variance fallback,
+IPCW for gcomp/ICE, competing risks under IPW/ICE, Track A effect modification —
+surfaced by the 2026-06-11 causatr-reuse audit; see handoff §10). When a chunk
+flips status, update the handoff §10 table (the only copy).
 
 ## Architecture notes
 
@@ -388,3 +391,46 @@ notes" for the style).
   `data-raw/delicatessen_ipcw_survival.py`); confirms the `n_ids/n_cens_fit`
   bread scaling and the `A_beta_gamma` cross-derivative direction.
   Full invariants in `.claude/hard-rules.md` and `CHUNK_11_IPCW.md`.
+
+- **Estimands (chunk 12): a central registry, not scattered `switch(type)`.**
+  Every estimand's dispatch properties — point column, curve vs contrast kind,
+  contrast operator, result index (`time` or `q`), level / contrast SE family,
+  plot label, competing-risks `cause` dimension, and which fit kinds it is valid
+  for — live in one descriptor table (`R/estimand_registry.R`). `build_contrasts`,
+  `fill_sandwich_ses`, the bootstrap (`boot_estimand_col` + `has_contrast`),
+  `plot` / `tidy` / `print` / `forrest`, the validators, and the competing-risks
+  fillers all look it up via `estimand_field()` / `estimand_is_contrast()` /
+  `estimand_is_curve()` / `estimand_has_cause()` / `estimand_requires_pair()`.
+  Adding an estimand is one registry row plus a new SE family only when the math
+  is genuinely new. Do NOT re-introduce hardcoded `type %in% c(...)` lists — the
+  refactor (commit `c7aa0ae`) fixed three latent `rmtl_difference` gaps the old
+  lists had (bootstrap contrast columns, `forrest()`, the `plot()` reference
+  line) precisely because they were out of sync.
+- **RMTL is `t - RMST`; the SE is the IDENTICAL trapezoidal quadratic form.**
+  `Var(RMTL(t)) = Var(RMST(t))` because the constant restriction time has zero
+  gradient. RMTL reuses `rmst_weights()` (level_se `"rmst"`) unchanged;
+  `rmtl_difference = -(rmst_difference)` (same SE, sign cancels in the quadratic
+  form). Do not give RMTL its own SE path.
+- **The quantile collapses time onto a `q` dimension (a different result
+  shape).** `tau_q = inf{t : S^a(t) ≤ 1 − q}` is found by linear interpolation
+  of the curve; the SE is the implicit-function delta `d tau_q = −dS(tau_q) /
+  S'(tau_q)`, reading the IF at `tau_q` by interpolating the IF columns
+  (`quantile_if_vector()`). The result is `q`-indexed (`estimates`:
+  `intervention | q | tau_hat | …`), so it has its OWN assembly
+  (`assemble_quantile_result()` / `finalize_quantile()`) rather than going
+  through `fill_sandwich_ses()`, and the bootstrap is generalized over a minor
+  index (`meta$index_col` ∈ {`time`, `q`}). A single intervention is accepted
+  (the strict-pair guard is keyed on `estimand_requires_pair()`, which excludes
+  the `q`-indexed quantile). Wired across gcomp / IPW / IPCW / Track B / CR
+  all-cause; near-flat curves abort `survatr_quantile_unreached` and bootstrap is
+  the documented SE fallback.
+- **YLL is the CIF integral; `Σ_j YLL^(j)(t*) = RMTL(t*)`.** `YLL^(j)(t*) =
+  ∫ F^(j)` reuses the chunk-7 CIF IF mapped through `rmst_weights()` (the CIF
+  starts at `F(0) = 0`, so the quadrature is exactly `W %*% cif`, no `S(0) = 1`
+  constant). The CR sandwich filler shares one `map_if()` keyed on the registry
+  `level_se` (`"rmst"` → through `W`; `"pointwise"`/`"cif"` → direct), serving
+  both all-cause RMST/RMTL and per-cause YLL. The identity holds to machine
+  precision (partition of unity `Σ_j F^(j) = 1 − S`). YLL needs a CR fit
+  (`survatr_yll_needs_cr`); all-cause RMST/RMTL now also run on a CR fit (the
+  identity needs it), but per-cause RMST and CR `*_difference` contrasts are out
+  of scope.

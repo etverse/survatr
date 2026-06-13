@@ -191,6 +191,28 @@ rd_all <- contrast(
 forrest(rd_all, t_ref = 6)
 ```
 
+## Years of life lost
+
+Per-cause **years of life lost** up to $t^*$ is the integral of the cause-$j$
+cumulative incidence, $\mathrm{YLL}^{(j),a}(t^*) = \int_0^{t^*} F^{(j),a}(u)\,du$.
+It carries the same `cause` dimension as the CIF (and the same truncation-by-
+death caveat), and the per-cause years lost add up to the all-cause restricted
+mean time lost: $\sum_j \mathrm{YLL}^{(j),a}(t^*) = \mathrm{RMTL}^a(t^*)$.
+
+```{r}
+#| cache: true
+yll <- contrast(fit, ivs, times = times, type = "yll", ci_method = "sandwich")
+yll$estimates[time == max(times)]
+
+## The per-cause years lost sum to the all-cause restricted mean time lost.
+rmtl <- contrast(fit, ivs, times = times, type = "rmtl")
+merge(
+  yll$estimates[time == max(times), .(yll = sum(yll_hat)), by = intervention],
+  rmtl$estimates[time == max(times), .(intervention, rmtl_hat)],
+  by = "intervention"
+)
+```
+
 ## A caveat: truncation by death
 
 A cause-specific CIF contrast is a **total** effect on cause-$j$ incidence: it

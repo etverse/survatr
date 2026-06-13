@@ -85,21 +85,26 @@ forrest.survatr_result <- function(
   xlab = NULL,
   ...
 ) {
-  contrast_types <- c(
-    "risk_difference",
-    "risk_ratio",
-    "rmst_difference",
-    "cif_difference",
-    "cif_ratio"
-  )
-  if (!x$type %in% contrast_types) {
+  ## Forest plots compare interventions at a reference TIME, so they need a
+  ## pairwise-contrast estimand (registry `kind == "contrast"`) that is also
+  ## time-indexed. The quantile is contrast-kind but `q`-indexed -- it has no
+  ## time axis to slice at `t_ref` -- so it is rejected here (use `plot()` for
+  ## the tau-vs-q view) rather than surfacing a raw `data.table` `==` error.
+  is_time_contrast <- estimand_is_contrast(x$type) &&
+    identical(estimand_field(x$type, "index"), "time")
+  if (!is_time_contrast) {
     rlang::abort(
       paste0(
-        "`forrest()` requires a contrast-shaped result (",
+        "`forrest()` requires a time-indexed contrast result (",
         "`type` in {risk_difference, risk_ratio, rmst_difference, ",
-        "cif_difference, cif_ratio}). Got type = \"",
+        "rmtl_difference, cif_difference, cif_ratio}). Got type = \"",
         x$type,
-        "\"."
+        "\"",
+        if (identical(estimand_field(x$type, "index"), "q")) {
+          " (q-indexed; use `plot()` for the quantile-vs-q view)."
+        } else {
+          "."
+        }
       ),
       class = "survatr_forrest_wrong_type"
     )
@@ -183,7 +188,8 @@ forrest.survatr_result <- function(
     ylab = "",
     ...
   )
-  ref_line <- if (x$type %in% c("risk_ratio", "cif_ratio")) 1 else 0
+  ## Null-effect line: 1 for ratios, 0 for differences.
+  ref_line <- if (identical(estimand_field(x$type, "op"), "ratio")) 1 else 0
   graphics::abline(v = ref_line, lty = 3, col = "grey50")
   graphics::axis(
     2,

@@ -126,8 +126,8 @@ validate_reference <- function(
   type,
   call = rlang::caller_env()
 ) {
-  no_contrast <- type %in% c("survival", "risk", "rmst", "cif")
-  if (no_contrast) {
+  ## Curve-only estimands carry no pairwise contrast, so `reference` is unused.
+  if (estimand_is_curve(type)) {
     return(NULL)
   }
   nms <- names(interventions)
@@ -175,8 +175,8 @@ validate_cause <- function(
   type,
   call = rlang::caller_env()
 ) {
-  ## All-cause estimands carry no cause dimension.
-  if (type %in% c("survival", "risk")) {
+  ## All-cause estimands (survival / risk) carry no cause dimension.
+  if (!estimand_has_cause(type)) {
     return(NULL)
   }
   ## Default: report every fitted cause.
@@ -211,6 +211,41 @@ validate_cause <- function(
     )
   }
   cause
+}
+
+#' Validate the `q` argument (survival quantile level)
+#'
+#' For `type = "quantile"`, `q` selects which quantile(s) of the survival-time
+#' distribution to report. Must be a non-empty numeric vector with every entry
+#' strictly inside `(0, 1)` and no NA. A vector is accepted (one row per
+#' `(intervention, q)` in the result).
+#'
+#' @param q User-supplied quantile level(s).
+#' @param call Caller frame for the error signal.
+#'
+#' @returns The sorted, de-duplicated `q` vector.
+#' @family checks
+#' @noRd
+validate_q <- function(q, call = rlang::caller_env()) {
+  if (
+    !is.numeric(q) ||
+      length(q) == 0L ||
+      anyNA(q) ||
+      any(q <= 0) ||
+      any(q >= 1)
+  ) {
+    rlang::abort(
+      paste0(
+        "`q` must be a non-empty numeric vector with every value strictly in ",
+        "(0, 1). Got ",
+        deparse(q),
+        "."
+      ),
+      class = "survatr_bad_q",
+      call = call
+    )
+  }
+  sort(unique(q))
 }
 
 #' Validate the `ci_method` argument

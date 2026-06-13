@@ -417,8 +417,8 @@ status); `CLAUDE.md` carries only a one-line pointer + a done/next summary.
 | 9 | ✅ `1f2fdef` | [CHUNK_9_NHEFS_REPLICATION.md](CHUNK_9_NHEFS_REPLICATION.md) | NHEFS Ch. 17 replication test + `survival` vignette. `nhefs_surv` dataset (rectangular 1629 × 120 PP, 318 events); Track A gcomp with the Ch. 17 hazard formula (quadratic time + treatment-by-time interactions); 120-mo survival ≈ 80.7%/80.5%, RD ≈ 0.2% (sandwich CI spans 0). KM sanity via `survival::survfit`. | 2–7 |
 | 10 | ✅ `75bbe1f` | [CHUNK_10_DIAGNOSE.md](CHUNK_10_DIAGNOSE.md) | Survival-aware `diagnose()`: five panels (`positivity`, `balance`, `weights`, `censoring`, `competing`), `survatr_diag` S3 + `print` method. Flags h < 0.001 / h > 0.999; CR identity `Σ F^(j) + S = 1`; IPW weight ESS. | 2, 5, 7 |
 | 11 | ✅ `cdcdbae` | [CHUNK_11_IPCW.md](CHUNK_11_IPCW.md) | Built-in IPCW: per-period cumulative censoring weights → weighted hazard MSM; stacked EE with censoring-model blocks. Per-period trim (fixed thresholds for sandwich); bootstrap refits censoring model; three-block stacked-EE (beta + alpha + gamma). Validated vs lmtp oracle (0.05 tolerance) and bootstrap sandwich agreement (15% tolerance). | 5 |
-| 12 | ⬜ | [CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md](CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md) | Estimand additions: survival quantiles / median, RMTL, per-cause years-of-life-lost. | 2, 3, 7 |
-| 13 | ⬜ | [CHUNK_13_CLUSTER_ROBUST_SE.md](CHUNK_13_CLUSTER_ROBUST_SE.md) | Cluster-robust sandwich: `cluster=` IF aggregation before `crossprod`. | 3 |
+| 12 | ✅ `d606f2f` | [CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md](CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md) | Estimand additions: survival quantiles / median, RMTL, per-cause years-of-life-lost (+ all-cause RMST/RMTL on CR fits). Central estimand registry (`R/estimand_registry.R`) for type dispatch. | 2, 3, 7 |
+| 13 | ⬜ | [CHUNK_13_CLUSTER_ROBUST_SE.md](CHUNK_13_CLUSTER_ROBUST_SE.md) | Cluster-robust sandwich: `cluster=` IF aggregation before `crossprod`. **Reuse `causatr:::vcov_from_if(IF, n, cluster=)` for the inner crossprod/cluster aggregation** (audit 2026-06-11, A1/B1) rather than re-rolling it in `fill_sandwich_ses()`. | 3 |
 | 14 | ⬜ | [CHUNK_14_LEFT_TRUNCATION.md](CHUNK_14_LEFT_TRUNCATION.md) | Left-truncation / delayed entry: delayed risk-set start; relax rectangular-PP. | 1, 2 |
 | 15 | ⬜ | [CHUNK_15_AIPW.md](CHUNK_15_AIPW.md) | Parametric doubly-robust (AIPW) survival; stacked-EE sandwich. ML/TMLE out. | 5, 7, 11 |
 | 16 | ⬜ | [CHUNK_16_SIMULTANEOUS_BANDS.md](CHUNK_16_SIMULTANEOUS_BANDS.md) | Simultaneous / uniform confidence bands via multiplier bootstrap on the IF matrix. | 3 |
@@ -431,6 +431,10 @@ status); `CLAUDE.md` carries only a one-line pointer + a done/next summary.
 | 23 | ⬜ | [CHUNK_23_MULTIVARIATE_IPW.md](CHUNK_23_MULTIVARIATE_IPW.md) | Multivariate-treatment IPW survival: joint chain-rule density, product density-ratio weight, block-diagonal propensity sandwich. | 5 |
 | 24 | ⬜ | [CHUNK_24_STOCHASTIC.md](CHUNK_24_STOCHASTIC.md) | Stochastic interventions + survival: MC draws averaged at the cumulative-product level (Jensen-safe), sandwich/bootstrap variance. | 2, 3 |
 | 25 | ⬜ | [CHUNK_25_MISSING_DATA_MI.md](CHUNK_25_MISSING_DATA_MI.md) | Missing data / multiple imputation for survival (research-first): congenial MI on person-period data, Rubin's-rules pooling of the curve-valued estimand + cross-time variance. Replaces the upfront NA rejection with an optional MI path. | 1, 2 |
+| 26 | ⬜ | [CHUNK_26_NUMERIC_VARIANCE_FALLBACK.md](CHUNK_26_NUMERIC_VARIANCE_FALLBACK.md) | Numeric variance fallback (audit 2026-06-11, B2): wire `causatr:::variance_if_numeric()` Tier-1 (`sandwich::estfun`) / Tier-2 (`numDeriv` delta) as the sandwich path for hazard `model_fn`s with no analytic bread (custom families, exotic GAMs). The §4 inheritance table already promised this "inherits"; today a non-GLM/GAM `model_fn` has no sandwich path. | 3 |
+| 27 | ⬜ | [CHUNK_27_IPCW_GCOMP_ICE.md](CHUNK_27_IPCW_GCOMP_ICE.md) | IPCW for gcomp and ICE (audit 2026-06-11): chunk 11 coupled the per-period censoring weights + three-block sandwich to the IPW path only. Extend the running-product IPCW weight and the censoring-model stacked-EE block to the gcomp (chunk 2/3) and ICE (chunk 6) survival paths. | 6, 11 |
+| 28 | ⬜ | [CHUNK_28_COMPETING_RISKS_IPW_ICE.md](CHUNK_28_COMPETING_RISKS_IPW_ICE.md) | Competing risks under IPW / ICE (audit 2026-06-11): chunk 7 fit the J cause-specific hazards under gcomp only. Add the weighted cause-specific hazard MSM (IPW) and the per-cause ICE pseudo-outcome, reusing the chunk-7 shared all-cause risk set and block-diagonal CIF sandwich. | 5, 6, 7 |
+| 29 | ⬜ | [CHUNK_29_EFFECT_MODIFICATION.md](CHUNK_29_EFFECT_MODIFICATION.md) | Effect modification / `by`-stratification for Track A survival (audit 2026-06-11): the §4 inheritance table claims survatr inherits causatr's `parse_effect_mod()` (already imported for Track B), but Track A exposes no `by =` surface. Add subgroup-conditional survival / risk / RMST curves + their cross-time IF. | 2, 3 |
 
 **Phasing.** v1 = chunks 1–10 (Track A gcomp/IPW/sandwich/bootstrap/S3, Track B
 ICE, competing risks, matching rejection, NHEFS, `diagnose()`). v1.x = chunks
@@ -449,6 +453,37 @@ roadmap is complete against the described scope. Chunk 25 (missing data /
 multiple imputation) was added 2026-06-03 — promoted from an open research
 question to a research-first chunk; it begins with a literature review before
 implementation.
+
+**causatr reuse audit (2026-06-11).** A read-only audit compared causatr's
+exported + internal API surface against survatr's actual `causatr::` /
+`causatr:::` usage, to find (a) reinvention and (b) underutilized engine
+capabilities. Headline: survatr's reuse discipline is strong — IF primitives,
+intervention dispatch, density / weight machinery, ICE per-step helpers, and
+lag construction are all correctly delegated — and almost every apparent
+duplication is either a handoff-§5-sanctioned copied helper or genuine
+survival-specific layering (risk set, cross-time delta chain, running IPCW
+product). Three categories of finding:
+
+- **Reinvention worth fixing (A1/B1).** `fill_sandwich_ses()` hand-rolls
+  `crossprod(IF) / n²` → diag → Wald-CI five times inline instead of routing
+  through `causatr:::vcov_from_if()` — the one shared primitive named in §5
+  that survatr does not use. Reusing it inherits causatr's cluster-robust path
+  for free, which is exactly **chunk 13**'s scope (row amended above). Not a
+  correctness bug (survatr inverts no matrix of its own; this is a pure
+  reduction), so it is folded into chunk 13 rather than fast-tracked.
+- **Genuinely unplanned gaps → new chunks 26–29.** Numeric variance fallback
+  (B2, ch 26); IPCW for gcomp / ICE (ch 27, chunk 11 was IPW-only); competing
+  risks under IPW / ICE (ch 28, chunk 7 was gcomp-only); effect modification /
+  `by` for Track A (ch 29, claimed "inherits" but unsurfaced). Each is an
+  extension of an existing chunk's machinery, not new theory.
+- **Already planned (no action).** Extended-treatment IPW (ch 19), IPSI
+  (ch 20), transport / survey weights (ch 21), longitudinal IPW (ch 22),
+  multivariate-treatment IPW (ch 23), stochastic interventions (ch 24),
+  AIPW (ch 15), and MI (ch 25) all lean on causatr primitives that survatr
+  imports but does not yet exercise — these are tracked debt, not gaps. When
+  implementing them, reuse causatr's `evaluate_density()` family branches,
+  `fit_sampling_model()` / `unpack_svydesign()`, and `causat_mice()` rather
+  than re-deriving them.
 
 ## 11. References
 

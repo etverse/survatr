@@ -276,7 +276,7 @@ build_cif_contrasts <- function(
     ci_lower = numeric(0),
     ci_upper = numeric(0)
   )
-  if (type %in% c("cif", "survival", "risk")) {
+  if (estimand_is_curve(type)) {
     return(empty_contrasts)
   }
 
@@ -381,6 +381,7 @@ contrast_competing <- function(
   type,
   reference,
   cause,
+  q_vec,
   ci_method,
   conf_level,
   n_boot,
@@ -391,7 +392,8 @@ contrast_competing <- function(
   call
 ) {
   causes <- validate_cause(cause, fit$causes, type)
-  is_cif <- type %in% c("cif", "cif_difference", "cif_ratio")
+  ## CIF estimands carry the per-cause dimension; survival / risk are all-cause.
+  is_cif <- estimand_has_cause(type)
 
   estimates_list <- lapply(names(interventions), function(iv_name) {
     iv <- interventions[[iv_name]]
@@ -411,6 +413,59 @@ contrast_competing <- function(
   })
   estimates <- data.table::rbindlist(estimates_list)
 
+  ## All-cause survival quantile on a competing-risks fit. `type = "quantile"`
+  ## carries no cause dimension (like survival / risk), so `is_cif` is FALSE and
+  ## `estimates` already holds the all-cause `s_hat`. Build the all-cause CR
+  ## survival IF (under sandwich) and hand off to the shared quantile assembly.
+  if (identical(type, "quantile")) {
+    iv_names <- names(interventions)
+    s_by_iv <- survival_curves_by_iv(estimates, iv_names)
+    if_list <- NULL
+    n_ids <- length(unique(fit$pp_data[[fit$id]]))
+    if (identical(ci_method, "sandwich")) {
+      shared <- prepare_cr_sandwich_shared(fit)
+      n_ids <- length(shared$unique_ids)
+      if_list <- lapply(iv_names, function(iv) {
+        pieces <- cr_intervention_if_pieces(fit, interventions[[iv]], shared)
+        compute_cr_survival_if_matrix(pieces, times)$IF_mat
+      })
+      names(if_list) <- iv_names
+    }
+    return(finalize_quantile(
+      fit = fit,
+      interventions = interventions,
+      times = times,
+      q_vec = q_vec,
+      reference = reference,
+      s_by_iv = s_by_iv,
+      if_list = if_list,
+      n_ids = n_ids,
+      ci_method = ci_method,
+      conf_level = conf_level,
+      n_boot = n_boot,
+      boot_ci = boot_ci,
+      parallel = parallel,
+      ncpus = ncpus,
+      seed = seed,
+      call = call
+    ))
+  }
+
+  ## All-cause RMST / RMTL on a competing-risks fit: the same time-indexed
+  ## transforms of the all-cause survival curve as the single-event path (`is_cif`
+  ## is FALSE for these, so `estimates` holds `s_hat`).
+  if (type %in% c("rmst")) {
+    estimates <- add_rmst_to_estimates(estimates, times)
+  }
+  if (type %in% c("rmtl")) {
+    estimates <- add_rmtl_to_estimates(estimates, times)
+  }
+  ## Years of life lost: integrate each cause's CIF (`is_cif` TRUE, so `estimates`
+  ## holds per-cause `cif_hat`).
+  if (identical(type, "yll")) {
+    estimates <- add_yll_to_estimates(estimates, times)
+  }
+
   contrasts <- build_cif_contrasts(
     estimates = estimates,
     type = type,
@@ -420,7 +475,7 @@ contrast_competing <- function(
   )
 
   ## Truncation-by-death caveat for the conditional CIF contrasts.
-  if (type %in% c("cif_difference", "cif_ratio")) {
+  if (estimand_has_cause(type) && estimand_is_contrast(type)) {
     cr_truncation_caveat()
   }
 

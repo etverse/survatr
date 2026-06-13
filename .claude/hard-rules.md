@@ -375,6 +375,51 @@ Do NOT flag these as bugs. Each has a regression test.
   them back to `surv_fit()` in the bootstrap loop). If either refit is absent,
   the bootstrap SE will disagree with the sandwich at the 15% tolerance level.
 
+### Established invariants from 2026-06-11/12 estimands (chunk 12)
+
+Do NOT flag these as bugs. Each has a regression test.
+
+- **Estimand dispatch lives in the central registry (`R/estimand_registry.R`),
+  not scattered `switch(type)` / `type %in% c(...)` lists.** Every dispatch site
+  (`build_contrasts`, `fill_sandwich_ses`, `boot_estimand_col` + the bootstrap
+  `has_contrast`, `plot` / `tidy` / `print` / `forrest`, the validators, the CR
+  fillers) looks up `estimand_field()` / `estimand_is_contrast()` /
+  `estimand_is_curve()` / `estimand_has_cause()` / `estimand_requires_pair()`.
+  Adding an estimand is one registry row plus a new SE family only when the math
+  is genuinely new. Do NOT re-introduce hardcoded type lists.
+- **RMTL is `t - RMST`; the SE is the IDENTICAL `rmst_weights()` quadratic form**
+  (the constant `t*` has zero gradient, so `Var(RMTL) = Var(RMST)`).
+  `rmtl_difference = -(rmst_difference)` (same SE, sign cancels). Do not give
+  RMTL its own SE path or flag the equal SEs as a bug.
+- **The quantile is `q`-indexed, not time-indexed, and tolerates a single
+  intervention.** `tau_q = inf{t : S ≤ 1 − q}` via linear interpolation; the SE
+  is the implicit-function delta `IF_tau = −IF_S(tau_q)/slope` (`solve_quantile`
+  / `quantile_if_vector`), reading the IF at `tau_q` by interpolating the
+  bracketing IF columns (origin bracket `lo == 0` → zero IF column; `slope == 0`
+  is dead defensive code, unreachable when `j ≥ 2` gives `s_lo > p ≥ s_hi`). The
+  result has its OWN assembly (`assemble_quantile_result` / `finalize_quantile`),
+  NOT `fill_sandwich_ses`; `estimand_requires_pair("quantile")` is FALSE so a
+  lone median is accepted. Any GENERIC machinery that assumes a `time` index or
+  ≥2 interventions must be made shape-aware: the bootstrap minor index is
+  `meta$index_col` ∈ {`time`, `q`}; `forrest()` rejects `q`-indexed results with
+  `survatr_forrest_wrong_type`; `plot(which = "auto")` falls back to `"curves"`
+  when contrast-kind but the contrasts table is empty; and `setdiff(iv, ref)`
+  feeding `paste0()` MUST guard the empty case (`paste0` recycles length-0 to
+  length-1, creating a phantom contrast). Aborts: `survatr_quantile_unreached`
+  (curve never crosses `1 − q`), `survatr_bad_q` (`q ∉ (0, 1)`).
+- **YLL is the per-cause CIF integral; `Σ_j YLL^(j)(t*) = RMTL(t*)` to machine
+  precision.** `YLL^(j) = ∫ F^(j)` reuses the chunk-7 CIF IF mapped through
+  `rmst_weights()` — the CIF starts at `F(0) = 0`, so the quadrature is exactly
+  `W %*% cif` and the IF is `CIF_IF %*% t(W)` (no `S(0) = 1` constant). The CR
+  sandwich filler shares one `map_if()` keyed on the registry `level_se`
+  (`"rmst"` → through `W`, for BOTH all-cause RMST/RMTL and per-cause YLL;
+  `"pointwise"` / `"cif"` → direct). YLL needs a CR fit
+  (`survatr_yll_needs_cr`, distinct from `survatr_competing_type`). All-cause
+  `rmst` / `rmtl` now run on a CR fit (the identity needs it); the extra
+  `cause = NA` column survives `add_rmst_to_estimates`'s `setcolorder` (trailing
+  columns retained), so the `is.na(cause)` filter holds. Per-cause RMST and CR
+  `*_difference` contrasts stay out of scope.
+
 ### Implementation conventions
 
 - **causatr is the engine.** Import `prepare_model_if()`,

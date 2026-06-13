@@ -123,7 +123,7 @@ print.survatr_result <- function(x, n = 10L, ...) {
 
   ## Competing-risks CIF contrasts condition on surviving the competing events;
   ## repeat the caveat here so a printed result never shows the numbers silently.
-  if (x$type %in% c("cif_difference", "cif_ratio")) {
+  if (estimand_has_cause(x$type) && estimand_is_contrast(x$type)) {
     cat(
       "  Note:        cause-specific CIF contrasts condition on surviving the\n",
       "               competing events (truncation by death); see the\n",

@@ -1,5 +1,61 @@
 # survatr (development version)
 
+## Chunk 12: years of life lost (YLL) + all-cause RMST/RMTL on CR fits
+
+**`contrast(type = "yll")` — per-cause years of life lost.** On a
+competing-risks fit, `YLL^(j)(t*) = int_0^{t*} F^(j)(u) du` is the integral of
+the cause-`j` cumulative incidence. It reuses the chunk-7 CIF influence-function
+matrix, mapped through the same trapezoidal weight matrix RMST/RMTL use (the CIF
+starts at `F(0) = 0`, so the quadrature is exactly `rmst_weights() %*% cif`),
+and carries the `cause` dimension and the truncation-by-death caveat of the CIF
+estimands. It satisfies the identity `sum_j YLL^(j)(t*) = RMTL(t*)` (verified to
+machine precision), since `sum_j F^(j) = 1 - S`. Requires a competing-risks fit:
+`survatr_yll_needs_cr` on a single-event fit.
+
+**All-cause RMST / RMTL on a competing-risks fit.** `type = "rmst"` and
+`"rmtl"` now also apply to a competing-risks fit (the integral of the all-cause
+survival `S = prod(1 - sum_j h^(j))`), so the `sum_j YLL = RMTL` identity is
+expressible on the same fit. The per-cause RMST and the `rmst_difference` /
+`rmtl_difference` contrasts on a CR fit remain out of scope.
+
+## Chunk 12: survival quantiles / median
+
+**`contrast(type = "quantile", q = ...)` — survival-time quantiles / median.**
+The `q`-quantile is `tau_q = inf{t : S^a(t) <= 1 - q}` (median is `q = 0.5`),
+found by linear interpolation between the bracketing grid points of the
+survival curve chunks 2/3 already compute. The sandwich SE is the
+implicit-function delta method, `d tau_q = -dS(tau_q) / S'(tau_q)`, reading the
+influence function at `tau_q` by interpolating the IF columns; bootstrap is the
+documented fallback when the curve is near-flat at the crossing. `q` accepts a
+vector (`q = c(0.25, 0.5, 0.75)` → one row per `(intervention, q)`), and the
+result is **`q`-indexed** rather than time-indexed (`estimates`:
+`intervention | q | tau_hat | se | ci_*`). A median *difference* contrast is
+built automatically when there are two interventions; a single intervention is
+accepted (a lone median is a valid request). Available across gcomp, IPW, IPCW,
+Track B (ICE), and competing risks (all-cause survival quantile). Aborts:
+`survatr_quantile_unreached` (curve never crosses `1 - q` on the grid),
+`survatr_bad_q` (`q` outside `(0, 1)`).
+
+**Central estimand registry.** Type dispatch (point column, curve vs contrast,
+contrast operator, result index, SE family, plot label, cause dimension, valid
+fit kinds) now lives in one descriptor table (`R/estimand_registry.R`) that the
+contrast, variance, bootstrap, and S3 paths look up, replacing the scattered
+`switch(type, ...)` blocks. Adding an estimand is one registry row plus a new
+SE family only when the math is genuinely new.
+
+## Chunk 12: RMTL estimand
+
+**`contrast(type = "rmtl")` / `"rmtl_difference"` — restricted mean time lost.**
+RMTL up to t* is the complement of RMST within the same window,
+`RMTL(t*) = t* - RMST(t*) = ∫₀^{t*} (1 - S^a(u)) du`. It is a smooth functional
+of the survival curve chunks 2/3 already compute, so it reuses the existing
+`n × |t-grid|` influence-function matrix with no refitting: the point estimate
+is `t* - RMST`, and the sandwich SE is the **identical** RMST trapezoidal
+quadratic form (the constant restriction time has zero gradient, so
+`Var(RMTL) = Var(RMST)`). Available wherever RMST is — gcomp, IPW, IPCW, and
+Track B (ICE) — via the shared SE filler, plus bootstrap, `tidy()`, and
+`plot()`. The `rmtl_difference` contrast is the negative of `rmst_difference`.
+
 ## 2026-06-09 — Critical review: diagnose + matching-rejection fixes
 
 **`$censoring` column renamed `n_at_risk` → `n_pp_rows`.** The old name was

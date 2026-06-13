@@ -48,13 +48,20 @@ fill_bootstrap_ses <- function(
 
   ## Key by (key, cause, time) where present so a (key_val, cause) selector
   ## returns rows in time order, aligning with the bootstrap column blocks.
+  ## Minor index is `time` for the curve estimands, `q` for the quantile; keep
+  ## the (key, cause, index) sort so each (key_val, cause) block aligns with the
+  ## bootstrap column blocks.
+  idx_col <- meta$index_col
   key_estimates <- intersect(
-    c("intervention", "cause", "time"),
+    c("intervention", "cause", idx_col),
     names(estimates)
   )
   data.table::setkeyv(estimates, key_estimates)
   if (nrow(contrasts) > 0L) {
-    key_contrasts <- intersect(c("contrast", "cause", "time"), names(contrasts))
+    key_contrasts <- intersect(
+      c("contrast", "cause", idx_col),
+      names(contrasts)
+    )
     data.table::setkeyv(contrasts, key_contrasts)
   }
 

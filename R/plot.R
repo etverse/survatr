@@ -59,15 +59,16 @@ plot.survatr_result <- function(
   ...
 ) {
   which <- match.arg(which)
-  contrast_types <- c(
-    "risk_difference",
-    "risk_ratio",
-    "rmst_difference",
-    "cif_difference",
-    "cif_ratio"
-  )
   if (identical(which, "auto")) {
-    which <- if (x$type %in% contrast_types) "contrasts" else "curves"
+    ## Prefer the contrasts view for contrast-kind estimands, but fall back to
+    ## curves when the contrasts table is empty -- a single-intervention
+    ## quantile is a valid request (a lone median) with no pairwise contrast, so
+    ## it must plot the tau-vs-q curve rather than abort.
+    which <- if (estimand_is_contrast(x$type) && nrow(x$contrasts) > 0L) {
+      "contrasts"
+    } else {
+      "curves"
+    }
   }
   if (identical(which, "contrasts") && nrow(x$contrasts) == 0L) {
     rlang::abort(
@@ -87,18 +88,7 @@ plot.survatr_result <- function(
   value_col <- if (identical(which, "contrasts")) {
     "estimate"
   } else {
-    switch(
-      x$type,
-      survival = "s_hat",
-      risk = "risk_hat",
-      rmst = "rmst_hat",
-      risk_difference = "risk_hat",
-      risk_ratio = "risk_hat",
-      rmst_difference = "rmst_hat",
-      cif = "cif_hat",
-      cif_difference = "cif_hat",
-      cif_ratio = "cif_hat"
-    )
+    estimand_field(x$type, "point_col")
   }
 
   ## Competing-risks results carry a `cause` dimension: draw one line per
@@ -124,22 +114,14 @@ plot.survatr_result <- function(
     }
   }
 
+  ## Result index on the x-axis: `time` for the curve estimands, `q` for the
+  ## quantile (which plots tau_q against the quantile level).
+  idx_col <- estimand_field(x$type, "index")
   if (is.null(xlab)) {
-    xlab <- "time"
+    xlab <- idx_col
   }
   if (is.null(ylab)) {
-    ylab <- switch(
-      x$type,
-      survival = "S(t)",
-      risk = "1 - S(t)",
-      rmst = "RMST(t)",
-      risk_difference = "risk difference",
-      risk_ratio = "risk ratio",
-      rmst_difference = "RMST difference",
-      cif = "F(t)",
-      cif_difference = "CIF difference",
-      cif_ratio = "CIF ratio"
-    )
+    ylab <- estimand_field(x$type, "ylab")
   }
 
   ## y range: point estimates plus CI if present.
@@ -151,7 +133,7 @@ plot.survatr_result <- function(
 
   plot(
     NA,
-    xlim = range(tbl$time, na.rm = TRUE),
+    xlim = range(tbl[[idx_col]], na.rm = TRUE),
     ylim = y_range,
     main = main,
     xlab = xlab,
@@ -159,9 +141,14 @@ plot.survatr_result <- function(
     ...
   )
 
-  if (x$type %in% c("risk_difference", "rmst_difference", "cif_difference")) {
+  ## Reference line for contrasts: 0 for differences, 1 for ratios (the
+  ## null-effect level). Only meaningful on the contrasts view -- a raw
+  ## per-intervention curve (e.g. tau_q vs q, a positive time scale) has no
+  ## null-effect level, so a contrast-kind estimand plotted as curves gets none.
+  op <- estimand_field(x$type, "op")
+  if (identical(which, "contrasts") && identical(op, "difference")) {
     graphics::abline(h = 0, lty = 3, col = "grey50")
-  } else if (x$type %in% c("risk_ratio", "cif_ratio")) {
+  } else if (identical(which, "contrasts") && identical(op, "ratio")) {
     graphics::abline(h = 1, lty = 3, col = "grey50")
   }
 
@@ -174,7 +161,8 @@ plot.survatr_result <- function(
     ## be shadowed.
     keep <- tbl[[group_col]] == g
     rows <- tbl[keep]
-    data.table::setorder(rows, time)
+    data.table::setorderv(rows, idx_col)
+    x_vals <- rows[[idx_col]]
     if (ribbon && !all(is.na(rows$ci_lower))) {
       ribbon_col <- grDevices::adjustcolor(col[g_ix], alpha.f = ribbon_alpha)
       ## Closed-polygon CI ribbon: trace the lower bound left-to-right, then
@@ -183,19 +171,19 @@ plot.survatr_result <- function(
       ## them; concatenating them in the same direction would instead draw a
       ## self-crossing bowtie.
       graphics::polygon(
-        x = c(rows$time, rev(rows$time)),
+        x = c(x_vals, rev(x_vals)),
         y = c(rows$ci_lower, rev(rows$ci_upper)),
         col = ribbon_col,
         border = NA
       )
     }
     graphics::lines(
-      rows$time,
+      x_vals,
       rows[[value_col]],
       col = col[g_ix],
       lwd = 2
     )
-    graphics::points(rows$time, rows[[value_col]], col = col[g_ix], pch = 19)
+    graphics::points(x_vals, rows[[value_col]], col = col[g_ix], pch = 19)
   }
 
   graphics::legend(

@@ -40,7 +40,8 @@ bootstrap_survival <- function(
   parallel,
   ncpus,
   seed,
-  causes = NULL
+  causes = NULL,
+  q = NULL
 ) {
   id_col <- fit$id
   ## Build a per-id row-index map once. `split()` keys on as.character().
@@ -54,19 +55,25 @@ bootstrap_survival <- function(
   ## time-minor); `causes = NULL` collapses to the single-event layout, so the
   ## single-event path is byte-for-byte unchanged.
   iv_names <- names(interventions)
-  k_t <- length(times)
   n_iv <- length(iv_names)
+  ## The quantile estimand indexes its result by `q`, not `time`; the bootstrap
+  ## column layout is generic over the minor index so the same resample /
+  ## flatten / fill machinery serves both. `index_vals` is the minor axis.
+  is_quantile <- identical(type, "quantile")
+  index_col <- if (is_quantile) "q" else "time"
+  index_vals <- if (is_quantile) q else times
+  k_t <- length(index_vals)
   n_cause <- if (is.null(causes)) 1L else length(causes)
-  has_contrast <- type %in%
-    c(
-      "risk_difference",
-      "risk_ratio",
-      "rmst_difference",
-      "cif_difference",
-      "cif_ratio"
-    )
-  contrast_names <- if (has_contrast) {
-    paste0(setdiff(iv_names, reference), " vs ", reference)
+  ## `setdiff(iv_names, reference)` can be empty (a single-intervention
+  ## quantile, the one contrast-kind estimand that bypasses the >=2-intervention
+  ## guard). `paste0()` RECYCLES a length-0 arg back to length 1, so guard the
+  ## empty case explicitly -- otherwise a phantom " vs <ref>" contrast column is
+  ## created and `flatten_boot_result()` tries to fill it from an empty
+  ## contrasts table ("replacement has length zero").
+  has_contrast <- estimand_is_contrast(type)
+  other_ivs <- setdiff(iv_names, reference)
+  contrast_names <- if (has_contrast && length(other_ivs) > 0L) {
+    paste0(other_ivs, " vs ", reference)
   } else {
     character(0)
   }
@@ -78,6 +85,8 @@ bootstrap_survival <- function(
     intervention_names = iv_names,
     contrast_names = contrast_names,
     times = times,
+    index_col = index_col,
+    index_vals = index_vals,
     type = type,
     causes = causes,
     n_cause = n_cause,
@@ -175,6 +184,7 @@ bootstrap_survival <- function(
         type = type,
         reference = reference,
         cause = causes,
+        q = if (is_quantile) q else 0.5,
         ci_method = "none"
       ),
       error = function(e) NULL
@@ -243,18 +253,7 @@ bootstrap_survival <- function(
 #' @returns The name of the per-intervention estimand column for `type`.
 #' @noRd
 boot_estimand_col <- function(type) {
-  switch(
-    type,
-    survival = "s_hat",
-    risk = "risk_hat",
-    risk_difference = "risk_hat",
-    risk_ratio = "risk_hat",
-    rmst = "rmst_hat",
-    rmst_difference = "rmst_hat",
-    cif = "cif_hat",
-    cif_difference = "cif_hat",
-    cif_ratio = "cif_hat"
-  )
+  estimand_field(type, "point_col")
 }
 
 #' Flatten a `survatr_result` to the bootstrap's column vector
@@ -288,7 +287,8 @@ flatten_boot_result <- function(res, meta) {
       } else {
         tbl[get(key_col) == key_val & get("cause") == meta$causes[ci]]
       }
-      data.table::setkeyv(rows, "time")
+      ## Minor index is `time` for the curve estimands, `q` for the quantile.
+      data.table::setkeyv(rows, meta$index_col)
       idx <- ((ci - 1L) * meta$k_t + 1L):(ci * meta$k_t)
       out[idx] <- rows[[value_col]]
     }

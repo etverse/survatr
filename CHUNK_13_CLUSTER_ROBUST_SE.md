@@ -58,6 +58,17 @@ wider interval.
   IF matrix is built (level and contrast), `rowsum()` by cluster, then
   `crossprod() / G²`. Bootstrap gets a sibling change — resample **clusters**
   (all members together), not individuals.
+- **Reuse `causatr:::vcov_from_if()` for the inner reduction** (causatr-reuse
+  audit 2026-06-11, A1/B1). causatr already exposes
+  `vcov_from_if(IF, n, cluster = NULL)` with a built-in cluster path
+  (`resolve_cluster()` + within-cluster row sum) — the exact aggregation this
+  chunk needs. It is the one shared primitive named in handoff §5 that
+  `fill_sandwich_ses()` does not currently use (today it inlines
+  `crossprod(IF) / n²` five times). This chunk should refactor those inline
+  reductions to call `vcov_from_if()`, so the per-individual and clustered
+  paths share one tested implementation. Keep the survival-specific gradients
+  (the RMST/RMTL trapezoidal `W`, the log-RR / log-CIF `sweep`) in survatr —
+  only the final `crossprod → V` step moves into the shared primitive.
 
 ## Deliverables
 
@@ -71,8 +82,10 @@ wider interval.
 ### Updated R files
 - `R/contrast.R` — thread a `cluster =` argument through to the variance
   assembly; pass the per-id cluster labels alongside the IF matrix.
-- `R/variance_sandwich.R` — when `cluster` is supplied, route `crossprod(IF)`
-  through `variance_cluster.R` (`rowsum` then `/ G²`) instead of `/ n²`.
+- `R/variance_sandwich.R` — replace the five inline `crossprod(IF) / n²`
+  reductions with `causatr:::vcov_from_if(IF, n, cluster = <per-id labels or
+  NULL>)`; the clustered path is then the same call with the cluster argument
+  populated. (causatr-reuse audit 2026-06-11, A1/B1.)
 - `R/variance_bootstrap.R` — cluster-resampling option: when `cluster` is set,
   resample clusters (all person-period rows of all members together).
 - `R/contrast_validators.R` — `validate_cluster()`: column exists, constant
