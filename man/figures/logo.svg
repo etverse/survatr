@@ -1,0 +1,47 @@
+<svg viewBox="0 0 524 604" width="524" height="604" xmlns="http://www.w3.org/2000/svg">
+  <!-- survatr hex sticker: two counterfactual survival curves S^a(t) with a
+       shaded causal-contrast gap, censoring ticks, and a Spectral wordmark.
+       Template-resolved standalone source: accent #BC5A34, accent fill
+       rgba(188,90,52,0.16), wordmark opacity 1 (Claude-design defaults). -->
+  <!-- sticker body + border -->
+  <polygon points="262,10 514.88,156 514.88,448 262,594 9.12,448 9.12,156" fill="#F2E8D2" stroke="#342A1D" stroke-width="10" stroke-linejoin="round"></polygon>
+  <polygon points="262,32 495.83,167 495.83,437 262,572 28.17,437 28.17,167" fill="none" stroke="#342A1D" stroke-width="2" stroke-linejoin="round" opacity="0.32"></polygon>
+
+  <!-- causal contrast: shaded gap between the two counterfactual survival curves -->
+  <polygon points="150,180 180,180 180,186 210,186 210,194 240,194 240,205 270,205 270,213 300,213 300,221 330,221 330,227 360,227 360,233 385,233 385,285 360,285 360,274 330,274 330,262 300,262 300,246 270,246 270,229 240,229 240,211 210,211 210,194 180,194 180,180 150,180" fill="rgba(188,90,52,0.16)" stroke="none"></polygon>
+
+  <!-- axes -->
+  <line x1="150" y1="170" x2="150" y2="390" stroke="#342A1D" stroke-width="3.5" stroke-linecap="round"></line>
+  <line x1="150" y1="387" x2="400" y2="387" stroke="#342A1D" stroke-width="3.5" stroke-linecap="round"></line>
+  <polygon points="150,162 144.5,176 155.5,176" fill="#342A1D"></polygon>
+  <polygon points="408,387 394,381.5 394,392.5" fill="#342A1D"></polygon>
+
+  <!-- counterfactual survival curve under intervention a=0 (lower, ink) -->
+  <path d="M150,180 H180 V194 H210 V211 H240 V229 H270 V246 H300 V262 H330 V274 H360 V285 H385" fill="none" stroke="#342A1D" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path>
+  <!-- counterfactual survival curve under intervention a=1 (upper, accent) -->
+  <path d="M150,180 H180 V186 H210 V194 H240 V205 H270 V213 H300 V221 H330 V227 H360 V233 H385" fill="none" stroke="#BC5A34" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
+
+  <!-- censoring ticks -->
+  <g stroke="#342A1D" stroke-width="3" stroke-linecap="round">
+    <line x1="255" y1="224" x2="255" y2="234"></line>
+    <line x1="345" y1="269" x2="345" y2="279"></line>
+  </g>
+  <g stroke="#BC5A34" stroke-width="3" stroke-linecap="round">
+    <line x1="225" y1="189" x2="225" y2="199"></line>
+    <line x1="315" y1="216" x2="315" y2="226"></line>
+    <line x1="372" y1="228" x2="372" y2="238"></line>
+  </g>
+
+  <!-- axis labels -->
+  <g fill="#342A1D" font-family="'Spectral',Georgia,serif" font-style="italic" font-size="22">
+    <text x="136" y="188" text-anchor="end">1</text>
+    <text x="136" y="393" text-anchor="end">0</text>
+    <text x="404" y="414" text-anchor="middle">t</text>
+  </g>
+  <text x="124" y="280" fill="#342A1D" font-family="'Spectral',Georgia,serif" font-style="italic" font-size="26" text-anchor="middle" transform="rotate(-90 124 280)">S</text>
+
+  <!-- wordmark -->
+  <g opacity="1">
+    <text x="262" y="506" fill="#342A1D" font-family="'Spectral',Georgia,serif" font-weight="500" font-size="54" letter-spacing="1.5" text-anchor="middle">survatr</text>
+  </g>
+</svg>
