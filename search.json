@@ -803,7 +803,7 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "survatr",
+    "title": "survatr ",
     "section": "",
     "text": "survatr extends the causatr engine to time-to-event outcomes. It estimates counterfactual survival via pooled-logistic discrete-time hazard models on person-period data, with three complementary estimators: g-computation (Track A), inverse-probability weighting (IPW, Track A), and iterated conditional expectations (ICE) for longitudinal, time-varying treatments (Track B). The estimand is a curve — survival \\(S^a(t)\\), risk \\(1 - S^a(t)\\), risk difference, risk ratio, restricted mean survival time (RMST) or time lost (RMTL), survival quantiles / median, and per-cause years of life lost — not a scalar. Inference is by a delta-method sandwich that propagates per-row influence functions through the cumulative-product survival curve, or by an individual-level nonparametric bootstrap.\nThe package implements the survival methods of Hernán & Robins (2025) Causal Inference: What If (Chapter 17) with the same two-step API causatr users know:\n\nFit the hazard model once with surv_fit()\nContrast many interventions cheaply with contrast()\n\n\n\nYou can install the development version of survatr from GitHub with:\n# install.packages(\"pak\")\npak::pak(\"etverse/survatr\")\n\n\n\nThe data-generating process below has a constant 6% discrete-time hazard, a single binary treatment with no causal effect, and one confounder L that drives both treatment and the hazard. Under this DGP the counterfactual survival under either intervention converges to \\((1 - 0.06)^t\\).\nlibrary(causatr) # attach first so survatr's contrast() generic shadows it\nlibrary(survatr)\nlibrary(data.table)\n\n# Simulate person-period data: constant hazard, one confounder L.\nset.seed(1)\nn &lt;- 800L\nK &lt;- 10L\nL &lt;- rnorm(n)\nA &lt;- rbinom(n, 1L, plogis(0.3 * L)) # L affects treatment\npp &lt;- rbindlist(lapply(seq_len(n), function(i) {\n  Y &lt;- rbinom(K, 1L, 0.06) # hazard independent of A (null effect)\n  first &lt;- which(Y == 1L)[1L]\n  if (!is.na(first) && first &lt; K) Y[(first + 1L):K] &lt;- 0L\n  data.table(id = i, t = seq_len(K), A = A[i], L = L[i], Y = Y)\n}))\n\n# Step 1: fit the pooled-logistic hazard model once.\nfit &lt;- surv_fit(\n  pp,\n  outcome      = \"Y\",\n  treatment    = \"A\",\n  confounders  = ~ L,\n  id           = \"id\",\n  time         = \"t\",\n  time_formula = ~ factor(t) # non-parametric baseline hazard\n)\n\n# Step 2: contrast interventions on the fitted hazard. Risk difference with\n# a delta-method sandwich CI at each of the 10 periods.\nres &lt;- contrast(\n  fit,\n  interventions = list(a1 = static(1), a0 = static(0)),\n  times         = 1:10,\n  type          = \"risk_difference\",\n  reference     = \"a0\",\n  ci_method     = \"sandwich\"\n)\nres$contrasts[] # `[]` forces data.table to auto-print a function-returned table\n#&gt;     contrast  time    estimate          se     ci_lower   ci_upper\n#&gt;       &lt;char&gt; &lt;int&gt;       &lt;num&gt;       &lt;num&gt;        &lt;num&gt;      &lt;num&gt;\n#&gt;  1: a1 vs a0     1 0.001650894 0.005623608 -0.009371174 0.01267296\n#&gt;  2: a1 vs a0     2 0.003298391 0.011214573 -0.018681768 0.02527855\n#&gt;  3: a1 vs a0     3 0.004732117 0.016070436 -0.026765359 0.03622959\n#&gt;  4: a1 vs a0     4 0.005742165 0.019490983 -0.032459460 0.04394379\n#&gt;  5: a1 vs a0     5 0.007329630 0.024885202 -0.041444470 0.05610373\n#&gt;  6: a1 vs a0     6 0.008164440 0.027713630 -0.046153277 0.06248216\n#&gt;  7: a1 vs a0     7 0.008834524 0.029982957 -0.049930992 0.06760004\n#&gt;  8: a1 vs a0     8 0.009416127 0.031949858 -0.053204443 0.07203670\n#&gt;  9: a1 vs a0     9 0.009897176 0.033579818 -0.055918058 0.07571241\n#&gt; 10: a1 vs a0    10 0.010389809 0.035247492 -0.058694005 0.07947362\nThe DGP has no treatment effect, so the risk-difference CI comfortably covers 0 at every time point.\n\n\n\n\nThree estimators: g-computation (estimator = \"gcomp\", pooled-logistic standardization), IPW (estimator = \"ipw\", a weighted marginal hazard MSM with stabilized density-ratio weights), and ICE (estimator = \"ice\", Track B longitudinal survival via backward iterated conditional expectations for a time-varying treatment). Matching + survival is a hard reject — use survival::coxph(..., weights, cluster) directly.\nCurve-valued estimands: survival \\(S^a(t)\\), risk \\(1 - S^a(t)\\), risk difference, risk ratio (log-scale CI), RMST / RMST difference, RMTL (restricted mean time lost), survival quantiles / median (implicit-function delta, q-indexed), and per-cause years of life lost (competing risks), all returned as data.tables.\nFlexible interventions via causatr: static(), shift(), scale_by(), threshold(), and dynamic(). Which are available depends on the estimator.\nRobust inference: a delta-method sandwich that aggregates per-individual influence functions across time through the cumulative product (pointwise Wald bands; stacked estimating equations for IPW and ICE), or a nonparametric bootstrap that resamples ids and refits per replicate.\nPluggable hazard models via model_fn (stats::glm by default; mgcv::gam with an s(time) baseline-hazard term, splines via ns()).\ntidy() / plot() / print() / forrest() S3 methods that dispatch on the time-indexed survatr_result shape (survival curves, and forest plots at a reference time t*).\n\n\n\n\n\nvignette(\"survatr\") — introduction and the two-step API\nvignette(\"ipw\") — Track A IPW (weighted hazard MSM)\nvignette(\"ice\") — Track B longitudinal survival via ICE\n\n\n\n\nHernán MA, Robins JM (2025). Causal Inference: What If. Chapman & Hall/CRC. Chapter 17 (survival analysis via IP weighting and standardization).\nZivich PN, Ross RK, Shook-Sa BE, Cole SR, Edwards JK (2024). Empirical sandwich variance estimator for iterated conditional expectation g-computation. Statistics in Medicine 43:5562–5572.\n\n\n\nThis package was built with the contribution of Claude, Anthropic’s AI assistant.",
     "crumbs": [
@@ -813,7 +813,7 @@
   {
     "objectID": "index.html#installation",
     "href": "index.html#installation",
-    "title": "survatr",
+    "title": "survatr ",
     "section": "",
     "text": "You can install the development version of survatr from GitHub with:\n# install.packages(\"pak\")\npak::pak(\"etverse/survatr\")",
     "crumbs": [
@@ -823,7 +823,7 @@
   {
     "objectID": "index.html#quick-example",
     "href": "index.html#quick-example",
-    "title": "survatr",
+    "title": "survatr ",
     "section": "",
     "text": "The data-generating process below has a constant 6% discrete-time hazard, a single binary treatment with no causal effect, and one confounder L that drives both treatment and the hazard. Under this DGP the counterfactual survival under either intervention converges to \\((1 - 0.06)^t\\).\nlibrary(causatr) # attach first so survatr's contrast() generic shadows it\nlibrary(survatr)\nlibrary(data.table)\n\n# Simulate person-period data: constant hazard, one confounder L.\nset.seed(1)\nn &lt;- 800L\nK &lt;- 10L\nL &lt;- rnorm(n)\nA &lt;- rbinom(n, 1L, plogis(0.3 * L)) # L affects treatment\npp &lt;- rbindlist(lapply(seq_len(n), function(i) {\n  Y &lt;- rbinom(K, 1L, 0.06) # hazard independent of A (null effect)\n  first &lt;- which(Y == 1L)[1L]\n  if (!is.na(first) && first &lt; K) Y[(first + 1L):K] &lt;- 0L\n  data.table(id = i, t = seq_len(K), A = A[i], L = L[i], Y = Y)\n}))\n\n# Step 1: fit the pooled-logistic hazard model once.\nfit &lt;- surv_fit(\n  pp,\n  outcome      = \"Y\",\n  treatment    = \"A\",\n  confounders  = ~ L,\n  id           = \"id\",\n  time         = \"t\",\n  time_formula = ~ factor(t) # non-parametric baseline hazard\n)\n\n# Step 2: contrast interventions on the fitted hazard. Risk difference with\n# a delta-method sandwich CI at each of the 10 periods.\nres &lt;- contrast(\n  fit,\n  interventions = list(a1 = static(1), a0 = static(0)),\n  times         = 1:10,\n  type          = \"risk_difference\",\n  reference     = \"a0\",\n  ci_method     = \"sandwich\"\n)\nres$contrasts[] # `[]` forces data.table to auto-print a function-returned table\n#&gt;     contrast  time    estimate          se     ci_lower   ci_upper\n#&gt;       &lt;char&gt; &lt;int&gt;       &lt;num&gt;       &lt;num&gt;        &lt;num&gt;      &lt;num&gt;\n#&gt;  1: a1 vs a0     1 0.001650894 0.005623608 -0.009371174 0.01267296\n#&gt;  2: a1 vs a0     2 0.003298391 0.011214573 -0.018681768 0.02527855\n#&gt;  3: a1 vs a0     3 0.004732117 0.016070436 -0.026765359 0.03622959\n#&gt;  4: a1 vs a0     4 0.005742165 0.019490983 -0.032459460 0.04394379\n#&gt;  5: a1 vs a0     5 0.007329630 0.024885202 -0.041444470 0.05610373\n#&gt;  6: a1 vs a0     6 0.008164440 0.027713630 -0.046153277 0.06248216\n#&gt;  7: a1 vs a0     7 0.008834524 0.029982957 -0.049930992 0.06760004\n#&gt;  8: a1 vs a0     8 0.009416127 0.031949858 -0.053204443 0.07203670\n#&gt;  9: a1 vs a0     9 0.009897176 0.033579818 -0.055918058 0.07571241\n#&gt; 10: a1 vs a0    10 0.010389809 0.035247492 -0.058694005 0.07947362\nThe DGP has no treatment effect, so the risk-difference CI comfortably covers 0 at every time point.",
     "crumbs": [
@@ -833,7 +833,7 @@
   {
     "objectID": "index.html#features",
     "href": "index.html#features",
-    "title": "survatr",
+    "title": "survatr ",
     "section": "",
     "text": "Three estimators: g-computation (estimator = \"gcomp\", pooled-logistic standardization), IPW (estimator = \"ipw\", a weighted marginal hazard MSM with stabilized density-ratio weights), and ICE (estimator = \"ice\", Track B longitudinal survival via backward iterated conditional expectations for a time-varying treatment). Matching + survival is a hard reject — use survival::coxph(..., weights, cluster) directly.\nCurve-valued estimands: survival \\(S^a(t)\\), risk \\(1 - S^a(t)\\), risk difference, risk ratio (log-scale CI), RMST / RMST difference, RMTL (restricted mean time lost), survival quantiles / median (implicit-function delta, q-indexed), and per-cause years of life lost (competing risks), all returned as data.tables.\nFlexible interventions via causatr: static(), shift(), scale_by(), threshold(), and dynamic(). Which are available depends on the estimator.\nRobust inference: a delta-method sandwich that aggregates per-individual influence functions across time through the cumulative product (pointwise Wald bands; stacked estimating equations for IPW and ICE), or a nonparametric bootstrap that resamples ids and refits per replicate.\nPluggable hazard models via model_fn (stats::glm by default; mgcv::gam with an s(time) baseline-hazard term, splines via ns()).\ntidy() / plot() / print() / forrest() S3 methods that dispatch on the time-indexed survatr_result shape (survival curves, and forest plots at a reference time t*).",
     "crumbs": [
@@ -843,7 +843,7 @@
   {
     "objectID": "index.html#learning-more",
     "href": "index.html#learning-more",
-    "title": "survatr",
+    "title": "survatr ",
     "section": "",
     "text": "vignette(\"survatr\") — introduction and the two-step API\nvignette(\"ipw\") — Track A IPW (weighted hazard MSM)\nvignette(\"ice\") — Track B longitudinal survival via ICE",
     "crumbs": [
@@ -853,7 +853,7 @@
   {
     "objectID": "index.html#references",
     "href": "index.html#references",
-    "title": "survatr",
+    "title": "survatr ",
     "section": "",
     "text": "Hernán MA, Robins JM (2025). Causal Inference: What If. Chapman & Hall/CRC. Chapter 17 (survival analysis via IP weighting and standardization).\nZivich PN, Ross RK, Shook-Sa BE, Cole SR, Edwards JK (2024). Empirical sandwich variance estimator for iterated conditional expectation g-computation. Statistics in Medicine 43:5562–5572.",
     "crumbs": [
@@ -863,7 +863,7 @@
   {
     "objectID": "index.html#acknowledgements",
     "href": "index.html#acknowledgements",
-    "title": "survatr",
+    "title": "survatr ",
     "section": "",
     "text": "This package was built with the contribution of Claude, Anthropic’s AI assistant.",
     "crumbs": [
