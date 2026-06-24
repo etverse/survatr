@@ -25,7 +25,7 @@
 #'   are always strictly positive.
 #'
 #' Source: M-estimation sandwich aggregation of the cumulative-product
-#' survival IF, grounded in Hernán & Robins (2020), *Causal Inference: What
+#' survival IF, grounded in Hernán & Robins (2025), *Causal Inference: What
 #' If*, Ch. 17; the cross-time delta derivation lives in
 #' `CHUNK_3_SANDWICH_A.md`.
 #'

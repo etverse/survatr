@@ -1,0 +1,118 @@
+% references.bib --- single source of truth for survatr documentation citations.
+% Cited from the Quarto vignettes via @key / [@key]; mirrored as plain-text
+% roxygen @references in R/ and as prose in the design docs. Every entry carries a
+% DOI, arXiv URL, or canonical package URL so it can be verified independently.
+% Keys follow the scheme firstauthorYYYYkeyword. Conventions inherited from the
+% sibling causatr package's references.bib.
+
+% Books and monographs
+
+@book{hernan_whatif,
+  author    = {Hernán, Miguel A. and Robins, James M.},
+  title     = {Causal Inference: What If},
+  year      = {2025},
+  publisher = {Chapman \& Hall/CRC},
+  address   = {Boca Raton, FL},
+  note      = {Online edition},
+  url       = {https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/}
+}
+
+% Journal articles
+
+@article{robins2000msmepi,
+  author  = {Robins, James M. and Hernán, Miguel A. and Brumback, Babette},
+  title   = {Marginal structural models and causal inference in epidemiology},
+  journal = {Epidemiology},
+  year    = {2000},
+  volume  = {11},
+  number  = {5},
+  pages   = {550--560},
+  doi     = {10.1097/00001648-200009000-00011}
+}
+
+@article{cole2004adjusted,
+  author  = {Cole, Stephen R. and Hernán, Miguel A.},
+  title   = {Adjusted survival curves with inverse probability weights},
+  journal = {Computer Methods and Programs in Biomedicine},
+  year    = {2004},
+  volume  = {75},
+  number  = {1},
+  pages   = {45--49},
+  doi     = {10.1016/j.cmpb.2003.10.004}
+}
+
+@article{cole2008constructing,
+  author  = {Cole, Stephen R. and Hernán, Miguel A.},
+  title   = {Constructing inverse probability weights for marginal structural models},
+  journal = {American Journal of Epidemiology},
+  year    = {2008},
+  volume  = {168},
+  number  = {6},
+  pages   = {656--664},
+  doi     = {10.1093/aje/kwn164}
+}
+
+@article{dagostino1990pooled,
+  author  = {D'Agostino, Ralph B. and Lee, Mei-Ling and Belanger, Albert J. and Cupples, L. Adrienne and Anderson, Keaven and Kannel, William B.},
+  title   = {Relation of pooled logistic regression to time dependent {Cox} regression analysis: the {Framingham} {Heart} {Study}},
+  journal = {Statistics in Medicine},
+  year    = {1990},
+  volume  = {9},
+  number  = {12},
+  pages   = {1501--1515},
+  doi     = {10.1002/sim.4780091214}
+}
+
+@article{zivich2024ice,
+  author  = {Zivich, Paul N. and Ross, Rachael K. and Shook-Sa, Bonnie E. and Cole, Stephen R. and Edwards, Jessie K.},
+  title   = {Empirical sandwich variance estimator for iterated conditional expectation g-computation},
+  journal = {Statistics in Medicine},
+  year    = {2024},
+  volume  = {43},
+  number  = {29},
+  pages   = {5562--5572},
+  doi     = {10.1002/sim.10255}
+}
+
+@article{young2014simcox,
+  author  = {Young, Jessica G. and Tchetgen Tchetgen, Eric J.},
+  title   = {Simulation from a known {Cox} {MSM} using standard parametric models for the g-formula},
+  journal = {Statistics in Medicine},
+  year    = {2014},
+  volume  = {33},
+  number  = {6},
+  pages   = {1001--1014},
+  doi     = {10.1002/sim.5994}
+}
+
+@article{andersen2013yll,
+  author  = {Andersen, Per Kragh},
+  title   = {Decomposition of number of life years lost according to causes of death},
+  journal = {Statistics in Medicine},
+  year    = {2013},
+  volume  = {32},
+  number  = {30},
+  pages   = {5278--5285},
+  doi     = {10.1002/sim.5903}
+}
+
+@article{papke1996fractional,
+  author  = {Papke, Leslie E. and Wooldridge, Jeffrey M.},
+  title   = {Econometric methods for fractional response variables with an application to 401(k) plan participation rates},
+  journal = {Journal of Applied Econometrics},
+  year    = {1996},
+  volume  = {11},
+  number  = {6},
+  pages   = {619--632},
+  doi     = {10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1}
+}
+
+% Software
+
+@manual{huntingtonklein2021causaldata,
+  author = {Huntington-Klein, Nick},
+  title  = {causaldata: Example Data Sets for Causal Inference Textbooks},
+  year   = {2021},
+  note   = {R package},
+  url    = {https://CRAN.R-project.org/package=causaldata}
+}

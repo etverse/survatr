@@ -493,9 +493,9 @@ product). Three categories of finding:
 - Zivich PN, Ross RK, Shook-Sa BE, Cole SR, Edwards JK (2024).
   Empirical sandwich variance estimator for iterated conditional
   expectation g-computation. *Stat Med* 43:5562–5572.
-- Young JG, Tchetgen Tchetgen EJ (2014). Simulation from a known
-  cause-specific cumulative incidence function. *Stat Med*
-  33:1098–1114.
+- Young JG, Tchetgen Tchetgen EJ (2014). Simulation from a known Cox
+  MSM using standard parametric models for the g-formula. *Stat Med*
+  33(6):1001–1014.
 - D'Agostino RB, Lee ML, Belanger AJ, Cupples LA, Anderson K,
   Kannel WB (1990). Relation of pooled logistic regression to time
   dependent Cox regression analysis: the Framingham Heart Study.

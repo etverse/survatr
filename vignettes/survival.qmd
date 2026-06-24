@@ -6,6 +6,7 @@ vignette: >
   %\VignetteIndexEntry{Causal survival analysis: NHEFS Ch. 17 walkthrough}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
+bibliography: references.bib
 ---
 
 ```{r}
@@ -16,20 +17,20 @@ NOT_CRAN <- identical(Sys.getenv("NOT_CRAN"), "true")
 knitr::opts_chunk$set(eval = NOT_CRAN)
 ```
 
-This vignette walks through the Hernán & Robins *Causal Inference: What If*
-Chapter 17 analysis using survatr's two-step API. The analysis estimates the
-effect of smoking cessation (`qsmk`) on 10-year all-cause mortality in the
-NHEFS cohort.
+This vignette walks through the Chapter 17 analysis of @hernan_whatif using
+survatr's two-step API. The analysis estimates the effect of smoking cessation
+(`qsmk`) on 10-year all-cause mortality in the NHEFS cohort.
 
-**Reference target** (H&R 2024, Program 17.2): 120-month standardised survival
-≈ 80.7% under cessation, ≈ 80.5% under no cessation; risk difference ≈ 0.2%
+**Reference target** [@hernan_whatif, Program 17.2]: 120-month standardised
+survival ≈ 80.7% under cessation, ≈ 80.5% under no cessation; risk difference
+≈ 0.2%
 (95% CI −4.1% to 3.7% — essentially null).
 
 ## Data
 
 The `nhefs_surv` dataset ships with survatr. It was assembled from
-`causaldata::nhefs` (Huntington-Klein 2021) by expanding each of the 1629
-participants to a rectangular person-period grid of 120 monthly rows.
+`causaldata::nhefs` [@huntingtonklein2021causaldata] by expanding each of the
+1629 participants to a rectangular person-period grid of 120 monthly rows.
 
 ```{r}
 ## Load causatr first so survatr::contrast() shadows causatr's scalar-outcome
@@ -50,8 +51,8 @@ Table 17.1 are carried as baseline values across all rows for each participant.
 ## Step 1 — Fit the hazard model
 
 The discrete-time hazard model follows Program 17.2: a pooled logistic
-regression of `event` on `qsmk`, the nine confounders, a quadratic time
-baseline, and treatment-by-time interactions.
+regression [@dagostino1990pooled] of `event` on `qsmk`, the nine confounders, a
+quadratic time baseline, and treatment-by-time interactions.
 
 ```{r}
 #| cache: true
@@ -197,10 +198,5 @@ plot(res)
 
 ## References
 
-- Hernán MA, Robins JM (2024). *Causal Inference: What If.* Boca Raton: Chapman
-  & Hall / CRC. Chapter 17: Causal survival analysis.
-- Huntington-Klein N et al. (2021). causaldata: Example datasets for causal
-  inference textbooks. *R package version 0.1.*
-- D'Agostino RB et al. (1990). Relation of pooled logistic regression to
-  time dependent Cox regression analysis: the Framingham Heart Study. *Statistics
-  in Medicine* 9:1501–1515.
+::: {#refs}
+:::

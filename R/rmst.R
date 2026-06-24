@@ -16,7 +16,7 @@
 #' `times`, not just the last one -- users who want only `t* = max(times)`
 #' filter after the fact.
 #'
-#' Source: Hernán & Robins (2020), *Causal Inference: What If*, Ch. 17
+#' Source: Hernán & Robins (2025), *Causal Inference: What If*, Ch. 17
 #' (restricted mean survival as the area under the standardized survival
 #' curve); see also `CHUNK_2_CONTRAST_A.md`.
 #'
@@ -62,7 +62,7 @@ trapezoidal_rmst <- function(times, s_hat) {
 #' - `W[j, i] = 0` for `i > j` (future times do not enter RMST(t_j))
 #'
 #' Source: trapezoidal differentiation of the RMST integral in
-#' Hernán & Robins (2020), *Causal Inference: What If*, Ch. 17; the
+#' Hernán & Robins (2025), *Causal Inference: What If*, Ch. 17; the
 #' delta-method use of `W` is detailed in `CHUNK_3_SANDWICH_A.md`.
 #'
 #' @param times Numeric vector, sorted ascending, first value > 0.
