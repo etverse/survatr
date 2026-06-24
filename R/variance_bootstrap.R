@@ -10,6 +10,11 @@
 #' structure. Per-row resampling would break it and severely understate
 #' variance for longer time horizons.
 #'
+#' When `cluster_labels` is supplied the resampling unit becomes the **cluster**
+#' (all member ids travel together), the same unit-of-independence change the
+#' cluster-robust sandwich makes. A cluster drawn more than once contributes a
+#' fresh bootstrap-local copy of every member.
+#'
 #' @param fit A `survatr_fit`.
 #' @param interventions Named list of `causatr_intervention` objects.
 #' @param times User time grid (sorted unique, validated upstream).
@@ -21,6 +26,9 @@
 #' @param ncpus Integer >= 1.
 #' @param seed Integer or `NULL`; when non-null, `set.seed(seed)` before
 #'   the bootstrap loop so the entire replicate sequence is reproducible.
+#' @param cluster_labels `NULL` (resample individuals, the default) or the
+#'   name-keyed (id -> cluster) vector from `validate_cluster()`; when supplied,
+#'   whole clusters are resampled (all member ids together).
 #'
 #' @return A list with
 #' - `t0` -- numeric vector of the point-estimate quantities in the same
@@ -41,7 +49,8 @@ bootstrap_survival <- function(
   ncpus,
   seed,
   causes = NULL,
-  q = NULL
+  q = NULL,
+  cluster_labels = NULL
 ) {
   id_col <- fit$id
   ## Build a per-id row-index map once. `split()` keys on as.character().
@@ -49,6 +58,20 @@ bootstrap_survival <- function(
   id_to_rows <- split(seq_len(nrow(fit$pp_data)), id_vals)
   unique_ids <- names(id_to_rows)
   n_ids <- length(unique_ids)
+
+  ## Resampling unit. Default: the individual (each unit maps to itself). Under
+  ## clustering: the cluster (each unit maps to all its member ids), so an id's
+  ## whole within-id block always travels with its clustermates -- the same
+  ## unit-of-independence change the cluster-robust sandwich makes. `boot()`
+  ## then resamples indices into `resample_units`.
+  if (is.null(cluster_labels)) {
+    resample_units <- unique_ids
+    unit_to_ids <- stats::setNames(as.list(unique_ids), unique_ids)
+  } else {
+    ## `split(ids, labels)` groups ids by cluster; keys are the cluster labels.
+    unit_to_ids <- split(names(cluster_labels), unname(cluster_labels))
+    resample_units <- names(unit_to_ids)
+  }
 
   ## Metadata for column layout. The competing-risks CIF estimands add a cause
   ## dimension between intervention and time (intervention-major, cause-mid,
@@ -113,21 +136,27 @@ bootstrap_survival <- function(
   orig_weights <- if (is_ipw) NULL else fit$weights
 
   ## `boot::boot()` passes (data, indices) to the statistic function. We
-  ## do not use `data_arg` directly -- the id vector is closed over as
-  ## `unique_ids` -- but the signature must match boot's contract.
+  ## do not use `data_arg` directly -- the resampling units are closed over as
+  ## `resample_units` -- but the signature must match boot's contract.
   statistic_fn <- function(data_arg, indices) {
-    sampled_ids <- unique_ids[indices]
-    row_blocks <- vector("list", n_ids)
-    weight_blocks <- if (!is.null(orig_weights)) vector("list", n_ids) else NULL
-    for (i in seq_along(sampled_ids)) {
-      rows <- id_to_rows[[sampled_ids[i]]]
-      block <- data.table::copy(fit$pp_data[rows])
-      ## Re-id each sampled individual with a bootstrap-local integer so
-      ## doubled ids do not collapse back together in `prepare_pp_data()`.
-      block[, (id_col) := i]
-      row_blocks[[i]] <- block
-      if (!is.null(weight_blocks)) {
-        weight_blocks[[i]] <- orig_weights[rows]
+    sampled_units <- resample_units[indices]
+    row_blocks <- list()
+    weight_blocks <- if (!is.null(orig_weights)) list() else NULL
+    ## Running counter assigns each (sampled-unit, member-id) a fresh bootstrap-
+    ## local id. For id resampling each unit is a single id, so this reduces to
+    ## the per-id counter; for cluster resampling it spans the cluster's members
+    ## and gives a re-drawn cluster a brand-new set of ids (no collapse).
+    counter <- 0L
+    for (u in sampled_units) {
+      for (the_id in unit_to_ids[[u]]) {
+        counter <- counter + 1L
+        rows <- id_to_rows[[the_id]]
+        block <- data.table::copy(fit$pp_data[rows])
+        block[, (id_col) := counter]
+        row_blocks[[counter]] <- block
+        if (!is.null(weight_blocks)) {
+          weight_blocks[[counter]] <- orig_weights[rows]
+        }
       }
     }
     boot_pp <- data.table::rbindlist(row_blocks)
@@ -216,7 +245,7 @@ bootstrap_survival <- function(
   )
 
   b <- boot::boot(
-    data = unique_ids,
+    data = resample_units,
     statistic = statistic_fn,
     R = n_boot,
     parallel = parallel,

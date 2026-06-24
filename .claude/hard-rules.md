@@ -420,6 +420,58 @@ Do NOT flag these as bugs. Each has a regression test.
   columns retained), so the `is.na(cause)` filter holds. Per-cause RMST and CR
   `*_difference` contrasts stay out of scope.
 
+### Established invariants from 2026-06-24 cluster-robust SE (chunk 13)
+
+Do NOT flag these as bugs. Each has a regression test.
+
+- **The cluster-robust divisor is `n²` (number of INDIVIDUALS), NOT `G²`.**
+  `contrast(cluster = <col>)` sums each individual's IF row into its cluster's
+  row, then `crossprod(rowsum(IF, cluster)) / n²`. The estimator is the
+  person-level average `(1/n) Σ_i IF_i`, so its variance is `(1/n²)
+  Var(Σ_i IF_i)` and clustering only changes the *meat* (between-cluster outer
+  products replace between-individual ones). This matches `sandwich::vcovCL(type
+  = "HC0", cadjust = FALSE)` to 1e-10 (`test-variance-cluster.R`) and is the
+  divisor `causatr:::vcov_from_if()` already uses. The chunk-13 design doc's
+  original `G²` was WRONG (over-inflates by `(n/G)²`, factor 64 in the n=150
+  check); the doc has been corrected. Do NOT "fix" the divisor to `G²`.
+- **`cluster = id` reproduces the per-individual SE to machine tolerance** (1e-12
+  for survival / risk_difference / rmst_difference / quantile / CIF). Singleton
+  clusters give `G = n` and `rowsum` is the identity. This is the load-bearing
+  regression invariant — if it breaks, the cluster aggregation is wrong.
+- **One shared helper does the reduction everywhere.**
+  `clustered_pointwise_se(if_mat, n_ids, cluster)` wraps
+  `causatr:::vcov_from_if(asplit(if_mat, 2), n_ids, NULL, cluster)` and is called
+  by `fill_sandwich_ses()` (gcomp / IPW / IPCW), `fill_sandwich_ses_cr()`
+  (competing risks), and `assemble_quantile_result()` (the scalar `n×1` quantile
+  IF). With `cluster = NULL` it is exactly the previous inline
+  `sqrt(diag(crossprod(IF)) / n_ids²)`. Do NOT re-inline the reduction.
+- **Cluster labels are resolved ONCE (name-keyed) then reindexed per path.**
+  `validate_cluster()` returns a named (id → label) character vector;
+  `cluster_for_ids(labels, unique_ids)` aligns it onto each path's IF row order
+  by id NAME (not position), because the single-event / CR / quantile paths
+  derive `unique_ids` separately. A missing id aborts `survatr_if_failed`.
+- **The contrast SE need not widen even when the level SE does.** With treatment
+  randomized WITHIN cluster, a shared cluster effect cancels in the *difference*
+  IF (`IF_S_a0 − IF_S_a1`), so the difference SE may be ≈ or slightly below the
+  per-individual SE — correct. Widening on the difference requires cluster-level
+  treatment (the frailty does not cancel). The level (survival / risk) SE always
+  widens under positive within-cluster correlation. Do not flag a non-widening
+  difference SE as a bug.
+- **The bootstrap resamples whole clusters when `cluster` is set.**
+  `bootstrap_survival()` generalizes its resampling unit from id to cluster
+  (`unit_to_ids` maps a cluster to all its member ids); a re-drawn cluster gets a
+  brand-new set of bootstrap-local ids via the running counter. Cluster bootstrap
+  SE ≈ clustered sandwich SE and is wider than the per-individual bootstrap.
+- **Track B (ICE) + cluster is REJECTED** (`survatr_cluster_track_b_deferred`),
+  by design for chunk 13. Its at-risk-at-baseline IF row alignment (entry-
+  censored ids carry `NA` and drop from the ICE standardisation) needs separate
+  verification. The chunk-13 "composes transparently" list (5/7/11/12) excluded
+  Track B (6) deliberately. This is scoping, not a bug.
+- **Validation aborts:** `survatr_cluster_varies_within_id` (label not constant
+  within id), `survatr_cluster_na` (NA in the column), `survatr_cluster_degenerate`
+  (`G < 2`), `survatr_bad_cluster` (not a single existing column name). All
+  snapshot-pinned.
+
 ### Implementation conventions
 
 - **causatr is the engine.** Import `prepare_model_if()`,

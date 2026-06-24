@@ -1,6 +1,9 @@
 # Chunk 13 — Cluster-robust sandwich variance
 
-> **Status: ⬜ Not started**
+> **Status: ✅ Done** (`cluster =` on `contrast()`; gcomp / IPW / IPCW /
+> competing-risks sandwich + quantile + cluster-resampling bootstrap; Track B
+> deferred). Validated against `sandwich::vcovCL` and an empirical
+> cluster-sampling-SD oracle.
 > **Depends on:** Chunk 3 (sandwich IF: the `n × |t-grid|` per-individual IF
 > matrix).
 > **Oracle:** `cluster = id` must reproduce the current per-individual SE
@@ -21,30 +24,39 @@ This is a short doc precisely because the IF spine makes it near-free.
 
 Chunk 3 stores the per-individual influence function as an `n × |t-grid|`
 matrix `IF`, and the time-covariance is `V = crossprod(IF) / n²` (so pointwise
-SE is `sqrt(diag(V))`, RMST SE is `aᵀ V a`). The standard sandwich treats
-individuals as independent. Under clustering, the unit of independence is the
-**cluster**, not the individual. The cluster-robust covariance sums each
-individual's IF row into its cluster's IF row, then takes the crossproduct over
-the `G` cluster-level rows:
+SE is `sqrt(diag(V))`, RMST SE is `aᵀ V a`). The estimator is the
+person-level average `θ̂ − θ ≈ (1/n) Σ_i IF_i`, so its variance is
+`(1/n²) Var(Σ_i IF_i)`. The standard sandwich treats individuals as
+independent. Under clustering, the unit of independence is the **cluster**, not
+the individual, so the only change is in the *meat*: the between-individual
+outer products are replaced by between-**cluster** ones, summing each
+individual's IF row into its cluster's IF row first. The divisor stays `n²`
+(the estimator is still a person-level average of `n` IFs):
 
 ```
 IF_g = Σ_{i ∈ cluster g} IF_i          (row sum within cluster → G × |t-grid|)
-V_clustered = crossprod(IF_g) / G²      (G = number of clusters)
+V_clustered = crossprod(IF_g) / n²      (n = number of INDIVIDUALS, unchanged)
 ```
 
-When every cluster is a singleton (`cluster = id`), `IF_g ≡ IF_i` and `G = n`,
-so `V_clustered = crossprod(IF) / n² = V` — **identical to the current
-estimate**. This is the regression invariant: the cluster-robust path is a
-strict generalization that reduces to the shipped estimate at the finest
-partition.
+This matches `sandwich::vcovCL(type = "HC0", cadjust = FALSE)` exactly. When
+every cluster is a singleton (`cluster = id`), `IF_g ≡ IF_i`, so
+`V_clustered = crossprod(IF) / n² = V` — **identical to the current estimate**.
+This is the regression invariant: the cluster-robust path is a strict
+generalization that reduces to the shipped estimate at the finest partition.
+(An earlier draft of this doc wrote the divisor as `G²`; that is wrong — it
+over-inflates the variance by `(n/G)²`, verified numerically against `vcovCL`.
+The reuse mandate below points to the correct `n²`.)
 
 The aggregation commutes with all the downstream functionals: pointwise SE is
 `sqrt(diag(V_clustered))`, RMST / RMTL SE is `aᵀ V_clustered a`, contrast
 (difference / ratio) IFs are differenced row-wise **before** the cluster sum (a
 contrast IF is a per-individual quantity, then aggregated to clusters exactly
-like the level IF). The number of independent units drops from `n` to `G`, so
-the normalization changes from `n²` to `G²` — this is the entire source of the
-wider interval.
+like the level IF). With positive within-cluster correlation the between-cluster
+outer products are larger than the between-individual ones, so the cluster-robust
+interval is wider — that is the entire source of the wider interval. (When
+treatment is randomized *within* cluster a shared cluster effect cancels in the
+*difference* IF, so the difference SE may not widen even though the level SE
+does — correct, not a bug.)
 
 ## Design
 
@@ -123,8 +135,10 @@ result <- contrast(
   matrix — no refit, no new estimation, no change to the point estimate.
 - **`cluster = id` must reproduce the current SE exactly** (singleton clusters,
   `G = n`). This is the load-bearing regression invariant.
-- **Normalization changes from `n²` to `G²`** (independent units = clusters);
-  this is the entire mechanism of the wider interval.
+- **The divisor stays `n²`; only the meat changes** (within-cluster IF row sum
+  before the cross-product). The wider interval comes from the larger
+  between-cluster outer products under positive within-cluster correlation, NOT
+  from a divisor change. (`G²` is wrong — verified against `sandwich::vcovCL`.)
 - **Contrast IFs are differenced per-individual first, then summed within
   cluster** — the difference is a per-individual quantity; aggregating after
   the difference is correct, aggregating before is wrong.
@@ -148,10 +162,33 @@ result <- contrast(
   the clustered SE for free, because the aggregation is on the IF, not the
   functional.
 
+## Scope delivered
+
+Cluster-robust SE is wired wherever the variance flows through the
+`n × |t-grid|` IF matrix and reuses one shared helper
+(`clustered_pointwise_se()` → `causatr:::vcov_from_if()`):
+
+- **gcomp / IPW / IPCW** (single-event `fill_sandwich_ses()`),
+- **competing risks** (`fill_sandwich_ses_cr()` — CIF + all-cause),
+- **survival quantile** (`assemble_quantile_result()`),
+- **bootstrap** (resample whole clusters) for all of the above.
+
+**Track B (ICE) is deferred** (`survatr_cluster_track_b_deferred`): its
+at-risk-at-baseline IF row alignment with entry-censored `NA` ids needs its own
+verification. The chunk doc's "composes transparently" list (5/7/11/12) already
+excluded Track B (6). A follow-up can lift the rejection once the row order is
+pinned.
+
 ## Acceptance checklist
-- [ ] `cluster = id` reproduces the per-individual SE to machine tolerance.
-- [ ] On a correlated multi-site DGP, per-individual SE under-covers and the
-      clustered SE recovers nominal coverage; clustered SE ≥ per-individual SE.
-- [ ] Cluster validation aborts fire (varies-within-id, NA, single cluster).
-- [ ] Bootstrap resamples clusters when `cluster` is set.
-- [ ] `FEATURE_COVERAGE_MATRIX.md` + handoff §10 + CLAUDE.md updated.
+- [x] `cluster = id` reproduces the per-individual SE to machine tolerance
+      (gcomp survival / RD / RMST-diff / quantile + CR CIF).
+- [x] On a correlated multi-site DGP, the per-individual SE understates the
+      cluster-sampling SD and the clustered SE matches it; clustered SE ≥
+      per-individual SE; difference SE widens under cluster-level treatment.
+- [x] Cluster validation aborts fire (varies-within-id, NA, single cluster,
+      bad column) — snapshot-pinned.
+- [x] Bootstrap resamples clusters when `cluster` is set (cluster bootstrap SE ≈
+      clustered sandwich SE; wider than the per-individual bootstrap).
+- [x] Aggregation primitive pinned to `sandwich::vcovCL(type = "HC0",
+      cadjust = FALSE)` (divisor `n²`).
+- [x] `FEATURE_COVERAGE_MATRIX.md` + handoff §10 + CLAUDE.md updated.

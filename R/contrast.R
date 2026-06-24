@@ -111,6 +111,15 @@ contrast <- function(fit, ...) {
 #' @param seed Integer scalar or `NULL`. When non-null, `set.seed(seed)`
 #'   is called before the bootstrap loop so the replicate sequence is
 #'   reproducible. Default `NULL`.
+#' @param cluster `NULL` (the default; per-individual sandwich) or a single
+#'   column name in the fit's person-period data identifying the independent
+#'   sampling cluster (site, household, provider, repeated enrolment). The label
+#'   must be constant within `id` and have no NA. When supplied, the sandwich
+#'   variance is cluster-robust (the per-individual influence functions are
+#'   summed within cluster before the cross-product) and the bootstrap resamples
+#'   whole clusters. `cluster = "<id-column>"` reproduces the per-individual
+#'   sandwich exactly (singleton clusters). Not yet supported for Track B (ICE)
+#'   fits, which abort with `survatr_cluster_track_b_deferred`.
 #' @param ... Unused; reserved for future chunks.
 #'
 #' @return A `survatr_result` list with `estimates`, `contrasts`,
@@ -159,6 +168,7 @@ contrast.survatr_fit <- function(
   parallel = "no",
   ncpus = 1L,
   seed = NULL,
+  cluster = NULL,
   ...
 ) {
   ## A competing-risks fit (J cause-specific hazards) and a single-event fit
@@ -274,6 +284,11 @@ contrast.survatr_fit <- function(
   validate_n_boot(n_boot)
   validate_boot_ci(boot_ci)
   validate_parallel(parallel, ncpus)
+  ## Cluster-robust variance: resolve the cluster column to per-id labels once
+  ## (constant-within-id, no NA, G >= 2 are validated here). `NULL` keeps the
+  ## per-individual sandwich. The labels are name-keyed (id -> cluster) so each
+  ## variance path reindexes them onto its own IF row order.
+  cluster_labels <- validate_cluster(cluster, fit)
 
   ## Competing risks (cause-specific hazards + CIF). Builds per-cause cumulative
   ## incidence (or all-cause survival) from the J cause-specific models and a
@@ -295,6 +310,7 @@ contrast.survatr_fit <- function(
       parallel = parallel,
       ncpus = ncpus,
       seed = seed,
+      cluster_labels = cluster_labels,
       call = match.call()
     ))
   }
@@ -306,6 +322,25 @@ contrast.survatr_fit <- function(
   ## The estimand shape, contrast assembly, RMST integral, and CI fillers are
   ## all reused -- only the curve + influence-function construction differ.
   if (identical(fit$track, "B")) {
+    ## Cluster-robust variance for Track B needs the at-risk-at-baseline IF row
+    ## alignment (entry-censored ids carry NA and are dropped from the ICE
+    ## standardisation), which is verified separately from the single-event /
+    ## competing-risks IF spine. Reject upfront rather than silently ignoring
+    ## the `cluster` argument; the bootstrap would otherwise quietly resample
+    ## individuals on a Track B fit even when a cluster was requested.
+    if (!is.null(cluster_labels)) {
+      rlang::abort(
+        c(
+          "`cluster` is not yet supported for Track B (ICE) survival fits.",
+          i = paste0(
+            "Cluster-robust variance currently covers gcomp / IPW / IPCW / ",
+            "competing-risks fits. Refit with a Track A estimator, or omit ",
+            "`cluster`."
+          )
+        ),
+        class = "survatr_cluster_track_b_deferred"
+      )
+    }
     return(contrast_track_b(
       fit = fit,
       interventions = interventions,
@@ -354,6 +389,7 @@ contrast.survatr_fit <- function(
     iv_names <- names(interventions)
     s_by_iv <- survival_curves_by_iv(estimates, iv_names)
     if_list <- NULL
+    cl_aligned <- NULL
     n_ids <- length(unique(fit$pp_data[[fit$id]]))
     if (identical(ci_method, "sandwich")) {
       shared <- prepare_sandwich_shared(fit)
@@ -372,6 +408,8 @@ contrast.survatr_fit <- function(
         )$IF_mat
       })
       names(if_list) <- iv_names
+      ## Align the cluster labels onto the IF matrix row order for the sandwich.
+      cl_aligned <- cluster_for_ids(cluster_labels, shared$unique_ids)
     }
     return(finalize_quantile(
       fit = fit,
@@ -389,7 +427,9 @@ contrast.survatr_fit <- function(
       parallel = parallel,
       ncpus = ncpus,
       seed = seed,
-      call = match.call()
+      call = match.call(),
+      cluster_aligned = cl_aligned,
+      cluster_labels = cluster_labels
     ))
   }
 
@@ -442,7 +482,9 @@ contrast.survatr_fit <- function(
       reference = reference,
       times = times,
       conf_level = conf_level,
-      n_ids = length(shared$unique_ids)
+      n_ids = length(shared$unique_ids),
+      ## Align the name-keyed cluster labels onto the IF matrix row order.
+      cluster = cluster_for_ids(cluster_labels, shared$unique_ids)
     )
     estimates <- filled$estimates
     contrasts <- filled$contrasts
@@ -460,7 +502,8 @@ contrast.survatr_fit <- function(
       n_boot = n_boot,
       parallel = parallel,
       ncpus = ncpus,
-      seed = seed
+      seed = seed,
+      cluster_labels = cluster_labels
     )
     filled <- fill_bootstrap_ses(
       estimates = estimates,

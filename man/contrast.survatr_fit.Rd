@@ -19,6 +19,7 @@
   parallel = "no",
   ncpus = 1L,
   seed = NULL,
+  cluster = NULL,
   ...
 )
 }
@@ -91,6 +92,16 @@ ratios / RMST.}
 \item{seed}{Integer scalar or \code{NULL}. When non-null, \code{set.seed(seed)}
 is called before the bootstrap loop so the replicate sequence is
 reproducible. Default \code{NULL}.}
+
+\item{cluster}{\code{NULL} (the default; per-individual sandwich) or a single
+column name in the fit's person-period data identifying the independent
+sampling cluster (site, household, provider, repeated enrolment). The label
+must be constant within \code{id} and have no NA. When supplied, the sandwich
+variance is cluster-robust (the per-individual influence functions are
+summed within cluster before the cross-product) and the bootstrap resamples
+whole clusters. \code{cluster = "<id-column>"} reproduces the per-individual
+sandwich exactly (singleton clusters). Not yet supported for Track B (ICE)
+fits, which abort with \code{survatr_cluster_track_b_deferred}.}
 
 \item{...}{Unused; reserved for future chunks.}
 }

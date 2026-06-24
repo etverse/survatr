@@ -96,6 +96,24 @@ reflects **current** state, not planned scope. Planned scope lives in
 | `conf_level` in (0, 1) | 🟢 | `test-contrast-rejections.R` | Rejects values outside the open interval with `survatr_bad_conf_level`. |
 | `model_fn = mgcv::gam` (penalized `s(t)` baseline) × sandwich | 🟢 | `test-sandwich-gam.R` | Counterfactual design built on the gam `lpmatrix` basis via `causatr:::iv_design_matrix()` to match the `model$Vp` bread; `predict.gam` 1-D-array output coerced to plain numeric. GAM sandwich SE matches the analytically-anchored GLM sandwich SE within 2% on a constant-hazard DGP, and tracks the bootstrap SE identically to the GLM. `Vp`-as-bread justified for frequentist coverage by Marra & Wood (2012). A gam fit lacking `$Vp` still aborts in `causatr:::bread_inv()`. |
 
+### Cluster-robust sandwich (`contrast(cluster = "<column>")`, chunk 13)
+
+The per-individual IF rows are summed within cluster before `crossprod`; the
+divisor stays `n²` (`V = crossprod(IF_g) / n²`). One shared helper
+(`clustered_pointwise_se()` → `causatr:::vcov_from_if(cluster=)`) serves every
+sandwich path. `cluster = "<id-column>"` reproduces the per-individual SE.
+
+| Surface | Status | Test file | Oracle |
+|---|---|---|---|
+| Aggregation primitive vs `sandwich::vcovCL` | 🟢 | `test-variance-cluster.R` | `clustered_pointwise_se()` matches `vcovCL(type = "HC0", cadjust = FALSE)` to 1e-10 on the sample mean; singleton clusters match `vcovHC(type = "HC0")`. Confirms the `n²` divisor (not `G²`). |
+| `cluster = id` reproduces per-individual SE | 🟢 | `test-variance-cluster.R` | Machine-tolerance (1e-12) match for survival / risk_difference / rmst_difference / quantile (gcomp) and CIF (competing risks). The load-bearing regression invariant. |
+| Clustered SE ≥ per-individual SE (positive within-cluster corr) | 🟢 | `test-variance-cluster.R` | Multi-site frailty DGP: level (risk) SE widens uniformly (~2.3×); contrast SE widens under cluster-level treatment (~3.4×). |
+| Calibration to the cluster-sampling SD | 🟢 | `test-variance-cluster.R` | Skipped on CRAN. Empirical SD of risk@t* over 150 re-draws of the sites: clustered SE within 30%; per-individual SE < 0.85× the truth (under-states). |
+| Cluster-resampling bootstrap | 🟢 | `test-variance-cluster.R` | Skipped on CRAN. Resamples whole sites (B = 400); SE ≈ clustered sandwich within 25%, wider than the per-individual bootstrap. |
+| gcomp / IPW / IPCW / competing-risks / quantile coverage | 🟢 | `test-variance-cluster.R` | All flow through the shared helper (single-event `fill_sandwich_ses()` + CR `fill_sandwich_ses_cr()` + `assemble_quantile_result()`). |
+| Track B (ICE) deferral | 🔴 | `test-variance-cluster.R` | `survatr_cluster_track_b_deferred` — the at-risk-at-baseline IF row alignment needs separate verification. |
+| Validation aborts | 🔴 | `test-variance-cluster.R` | Snapshot-pinned: `survatr_cluster_varies_within_id`, `survatr_cluster_na`, `survatr_cluster_degenerate`, `survatr_bad_cluster`. |
+
 ### Bootstrap variance (`ci_method = "bootstrap"`, resample individuals)
 
 | Surface | Status | Test file | Oracle |

@@ -251,3 +251,98 @@ fixture_small_pp <- function() {
     )
   )
 }
+
+## Multi-site survival DGP with a site-level frailty, for the cluster-robust
+## variance tests. Each of `G` sites draws a frailty `u_g ~ N(0, sigma)` that
+## shifts the discrete-time hazard logit for every individual in the site, so
+## individuals within a site are positively correlated -- the per-individual
+## sandwich then under-covers and the cluster-robust (cluster = site) sandwich
+## restores calibration.
+##
+## - `n_per` individuals in each of `G` sites; K periods (1..K).
+## - Hazard logit h_{i,k} = -2 + alpha_t(k) + beta_A * A_i + u_{site(i)}.
+## - `cluster_trt = FALSE`: A ~ Bernoulli(0.5) per individual (within-site
+##   randomization); the shared frailty largely cancels in the risk DIFFERENCE
+##   but not in the level (survival / risk).
+## - `cluster_trt = TRUE`: A is assigned at the SITE level (cluster-randomized),
+##   so the frailty does NOT cancel in the difference and the contrast SE widens.
+## - First-event truncation + rectangular padding; columns id, site, t, A, Y.
+sim_clustered_survival <- function(
+  n_per = 25L,
+  G = 40L,
+  K = 8L,
+  sigma = 1.4,
+  beta_A = -0.5,
+  cluster_trt = FALSE,
+  seed = 11L
+) {
+  set.seed(seed)
+  u <- stats::rnorm(G, sd = sigma)
+  a_site <- stats::rbinom(G, 1L, 0.5)
+  alpha_t <- seq(0, 0.3, length.out = K)
+  rows <- vector("list", G * n_per)
+  idx <- 0L
+  for (g in seq_len(G)) {
+    for (j in seq_len(n_per)) {
+      idx <- idx + 1L
+      a_i <- if (cluster_trt) a_site[g] else stats::rbinom(1L, 1L, 0.5)
+      h <- stats::plogis(-2 + alpha_t + beta_A * a_i + u[g])
+      Y <- stats::rbinom(K, 1L, h)
+      first <- which(Y == 1L)[1L]
+      if (!is.na(first) && first < K) {
+        Y[(first + 1L):K] <- 0L
+      }
+      rows[[idx]] <- data.table::data.table(
+        id = idx,
+        site = g,
+        t = seq_len(K),
+        A = a_i,
+        Y = Y
+      )
+    }
+  }
+  data.table::rbindlist(rows)
+}
+
+## Confounded multi-site survival DGP for the IPW cluster-robust tests. Adds a
+## baseline confounder `L` that drives BOTH treatment and hazard (so IPW is
+## needed) on top of the site-level frailty `u_g` (so within-site individuals
+## are correlated). Columns id, site, t, A, L, Y.
+sim_clustered_confounded <- function(
+  n_per = 25L,
+  G = 40L,
+  K = 6L,
+  sigma = 1.2,
+  gamma = 0.8,
+  beta_A = -0.5,
+  beta_L = 0.7,
+  seed = 71L
+) {
+  set.seed(seed)
+  u <- stats::rnorm(G, sd = sigma)
+  alpha_t <- seq(0, 0.3, length.out = K)
+  rows <- vector("list", G * n_per)
+  idx <- 0L
+  for (g in seq_len(G)) {
+    for (j in seq_len(n_per)) {
+      idx <- idx + 1L
+      l_i <- stats::rnorm(1L)
+      a_i <- stats::rbinom(1L, 1L, stats::plogis(gamma * l_i))
+      h <- stats::plogis(-2 + alpha_t + beta_A * a_i + beta_L * l_i + u[g])
+      Y <- stats::rbinom(K, 1L, h)
+      first <- which(Y == 1L)[1L]
+      if (!is.na(first) && first < K) {
+        Y[(first + 1L):K] <- 0L
+      }
+      rows[[idx]] <- data.table::data.table(
+        id = idx,
+        site = g,
+        t = seq_len(K),
+        A = a_i,
+        L = l_i,
+        Y = Y
+      )
+    }
+  }
+  data.table::rbindlist(rows)
+}

@@ -161,6 +161,10 @@ quantile_if_vector <- function(if_mat, sol) {
 #' @param reference Reference intervention name for the contrasts, or `NULL`.
 #' @param conf_level Confidence level for the Wald CI.
 #' @param n_ids Number of individuals (IF normalization).
+#' @param cluster `NULL` for the per-individual sandwich (the default), or a
+#'   length-`n_ids` vector of cluster labels aligned to the IF matrix rows
+#'   (from `cluster_for_ids()`). The per-individual quantile IF is summed within
+#'   cluster before the cross-product, exactly as in the curve estimands.
 #'
 #' @returns A list `list(estimates, contrasts)` of q-indexed `data.table`s.
 #' @noRd
@@ -172,7 +176,8 @@ assemble_quantile_result <- function(
   iv_names,
   reference,
   conf_level,
-  n_ids
+  n_ids,
+  cluster = NULL
 ) {
   z <- stats::qnorm(1 - (1 - conf_level) / 2)
   ## Stash each (iv, q) solution + per-individual IF so contrasts reuse them.
@@ -192,7 +197,10 @@ assemble_quantile_result <- function(
       if (!is.null(if_list)) {
         ifv <- quantile_if_vector(if_list[[iv]], sol)
         if_tau[[key]] <- ifv
-        se <- sqrt(sum(ifv^2)) / n_ids
+        ## Scalar tau IF: one column, so `clustered_pointwise_se()` reduces to
+        ## `sqrt(sum(ifv^2)) / n_ids` when `cluster` is NULL and to the
+        ## cluster-robust within-cluster sum otherwise.
+        se <- clustered_pointwise_se(matrix(ifv, ncol = 1L), n_ids, cluster)
         cl <- sol$tau - z * se
         cu <- sol$tau + z * se
       }
@@ -238,7 +246,7 @@ assemble_quantile_result <- function(
       cu <- NA_real_
       if (!is.null(if_list)) {
         ifd <- if_tau[[key_a1]] - if_tau[[key_ref]]
-        se <- sqrt(sum(ifd^2)) / n_ids
+        se <- clustered_pointwise_se(matrix(ifd, ncol = 1L), n_ids, cluster)
         cl <- est - z * se
         cu <- est + z * se
       }
@@ -276,6 +284,10 @@ assemble_quantile_result <- function(
 #' @param ci_method,conf_level,n_boot,boot_ci,parallel,ncpus,seed Variance
 #'   controls forwarded from `contrast()`.
 #' @param call The `match.call()` for the result object.
+#' @param cluster_aligned `NULL`, or a length-`n_ids` vector of cluster labels
+#'   aligned to the IF matrix rows, used for the cluster-robust sandwich SE.
+#' @param cluster_labels `NULL`, or the name-keyed (id -> cluster) vector from
+#'   `validate_cluster()`, used to resample whole clusters in the bootstrap.
 #'
 #' @returns A `survatr_result` with q-indexed `estimates` / `contrasts`.
 #' @noRd
@@ -295,7 +307,9 @@ finalize_quantile <- function(
   parallel,
   ncpus,
   seed,
-  call
+  call,
+  cluster_aligned = NULL,
+  cluster_labels = NULL
 ) {
   res <- assemble_quantile_result(
     s_by_iv = s_by_iv,
@@ -305,7 +319,9 @@ finalize_quantile <- function(
     iv_names = names(interventions),
     reference = reference,
     conf_level = conf_level,
-    n_ids = n_ids
+    n_ids = n_ids,
+    ## Sandwich SE: aligned to the IF matrix rows (NULL unless ci is sandwich).
+    cluster = cluster_aligned
   )
   estimates <- res$estimates
   contrasts <- res$contrasts
@@ -325,7 +341,9 @@ finalize_quantile <- function(
       parallel = parallel,
       ncpus = ncpus,
       seed = seed,
-      q = q_vec
+      q = q_vec,
+      ## Cluster bootstrap resamples whole clusters (name-keyed map).
+      cluster_labels = cluster_labels
     )
     filled <- fill_bootstrap_ses(
       estimates = estimates,

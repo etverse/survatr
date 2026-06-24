@@ -50,7 +50,8 @@ R/
 │
 ├── # ── Inference ────────────────────────────────────
 ├── variance_if_survival.R # delta-method cross-time IF aggregation on cumulative product
-├── variance_bootstrap.R   # resample individuals, refit hazard model per replicate
+├── variance_cluster.R     # cluster-robust IF aggregation (rowsum within cluster, n^2 divisor)
+├── variance_bootstrap.R   # resample individuals (or clusters), refit hazard model per replicate
 │
 ├── # ── Data utilities ───────────────────────────────
 ├── risk_set.R             # drops rows at/after first event / censor per id
@@ -268,11 +269,12 @@ quasibinomial at k < K.
 chunk has a `CHUNK_<N>_*.md` doc at the repo root. Status legend: ✅ done
 (commit pinned) · 🚧 in progress · ⬜ not started.
 
-At a glance: **done = 1–12** (Track A gcomp + IPW + IPCW; Track B ICE; competing
+At a glance: **done = 1–13** (Track A gcomp + IPW + IPCW; Track B ICE; competing
 risks; matching rejection; NHEFS Ch. 17 acceptance test; `diagnose()`; survival
-quantiles / RMTL / YLL estimands via a central estimand registry).
+quantiles / RMTL / YLL estimands via a central estimand registry; cluster-robust
+sandwich + bootstrap).
 **v1 complete; v1.x in progress.**
-Next = 13 (cluster-robust SE — reuse `causatr:::vcov_from_if()`, see §10 audit).
+Next = 14 (left-truncation / delayed entry).
 Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext = 19–25 (deferred IPW /
 intervention work + missing-data MI), audit = 26–29 (numeric variance fallback,
 IPCW for gcomp/ICE, competing risks under IPW/ICE, Track A effect modification —
@@ -434,3 +436,30 @@ notes" for the style).
   (`survatr_yll_needs_cr`); all-cause RMST/RMTL now also run on a CR fit (the
   identity needs it), but per-cause RMST and CR `*_difference` contrasts are out
   of scope.
+
+- **Cluster-robust SE (chunk 13): only the meat changes; the `n²` divisor
+  stays.** `contrast(cluster = "<col>")` sums each individual's IF row into its
+  cluster's row before `crossprod`, then divides by `n²` (the number of
+  INDIVIDUALS, not `G²`). The estimator is still the person-level average
+  `(1/n) Σ_i IF_i`, so its variance is `(1/n²) Var(Σ_i IF_i)` and clustering
+  only replaces between-individual outer products with between-cluster ones —
+  `V = crossprod(rowsum(IF, cluster)) / n²`, matching `sandwich::vcovCL(type =
+  "HC0", cadjust = FALSE)` exactly. The chunk doc's original `G²` was wrong
+  (over-inflates by `(n/G)²`); do NOT "fix" the divisor to `G²`. `cluster = id`
+  (singletons, `G = n`) reproduces the per-individual SE to machine tolerance —
+  the load-bearing regression invariant. The reduction is one shared helper
+  `clustered_pointwise_se()` wrapping `causatr:::vcov_from_if(cluster=)` (the
+  causatr-reuse audit primitive), called by `fill_sandwich_ses()` (gcomp / IPW /
+  IPCW / Track B-eligible time-indexed estimands), `fill_sandwich_ses_cr()`
+  (competing risks), and `assemble_quantile_result()` (the scalar `n×1`
+  quantile IF). The bootstrap resamples whole clusters (`bootstrap_survival()`
+  generalizes its resampling unit from id to cluster). `validate_cluster()`
+  resolves the column to a name-keyed (id → label) vector once;
+  `cluster_for_ids()` reindexes it onto each path's IF row order by id name
+  (robust to first-appearance ordering). **Widening is correct only where the
+  contrast IF carries within-cluster correlation:** with treatment randomized
+  within cluster a shared cluster effect cancels in the *difference* IF, so the
+  difference SE need not widen even though the level SE does — not a bug.
+  **Track B (ICE) is deferred** (`survatr_cluster_track_b_deferred`): its
+  at-risk-at-baseline IF row alignment (entry-censored ids carry `NA`) needs
+  separate verification before the rejection is lifted.
