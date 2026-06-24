@@ -58,7 +58,26 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="../site_libs/quarto-nav/quarto-nav.js"></script>
@@ -397,9 +416,9 @@ window.Quarto = {
 </header>
 
 
-<p>survatr extends the <a href="https://github.com/etverse/causatr">causatr</a> engine to <strong>time-to-event outcomes</strong> via three building blocks:</p>
+<p>survatr extends the <a href="https://github.com/etverse/causatr">causatr</a> engine to <strong>time-to-event outcomes</strong>, following the causal survival analysis of <span class="citation" data-cites="hernan_whatif">Hernán and Robins (<a href="#ref-hernan_whatif" role="doc-biblioref">2025</a>)</span>, Ch. 17, via three building blocks:</p>
 <ul>
-<li><strong>Pooled-logistic hazard g-computation</strong> on person-period data: <span class="math inline">\(\text{logit}\, h(t \mid A, L) = \alpha(t) + \beta_A A + \beta_L L\)</span>, with survival cumulated across periods as <span class="math inline">\(\hat{S}^a_i(t) = \prod_{k \leq t}(1 - \hat{h}^a_{i,k})\)</span>.</li>
+<li><strong>Pooled-logistic hazard g-computation</strong> on person-period data: <span class="math inline">\(\text{logit}\, h(t \mid A, L) = \alpha(t) + \beta_A A + \beta_L L\)</span>, with survival cumulated across periods as <span class="math inline">\(\hat{S}^a_i(t) = \prod_{k \leq t}(1 - \hat{h}^a_{i,k})\)</span>. For small per-period hazards this discrete-time model approximates time-dependent Cox regression closely <span class="citation" data-cites="dagostino1990pooled">(<a href="#ref-dagostino1990pooled" role="doc-biblioref">D’Agostino et al. 1990</a>)</span>.</li>
 <li><strong>Delta-method sandwich variance</strong> that propagates per-row influence functions through the cumulative product into a cross-time covariance matrix on the survival curve.</li>
 <li><strong>Individual-level nonparametric bootstrap</strong> that resamples ids (all of each id’s person-period rows together) and refits the hazard model per replicate.</li>
 </ul>
@@ -919,7 +938,7 @@ window.Quarto = {
 <p>This vignette covered Track A g-computation. Two further estimators are implemented and have dedicated vignettes:</p>
 <ul>
 <li><strong>Track A under IPW</strong> (<code>vignette("ipw")</code>) — stabilized density-ratio weights broadcast onto person-period rows, fitting a weighted marginal hazard MSM.</li>
-<li><strong>Track B (ICE hazards)</strong> (<code>vignette("ice")</code>) — longitudinal survival for a time-varying treatment via iterated conditional expectations (Zivich et al.&nbsp;2024), with the hazard indicator at the final period and a survival-tail pseudo-outcome at earlier periods.</li>
+<li><strong>Track B (ICE hazards)</strong> (<code>vignette("ice")</code>) — longitudinal survival for a time-varying treatment via iterated conditional expectations <span class="citation" data-cites="zivich2024ice">(<a href="#ref-zivich2024ice" role="doc-biblioref">Zivich et al. 2024</a>)</span>, with the hazard indicator at the final period and a survival-tail pseudo-outcome at earlier periods.</li>
 </ul>
 <p>survatr’s full scope is laid out in <code>SURVIVAL_PACKAGE_HANDOFF.md</code>. v1 is now complete (chunks 1–10). v1.x will add:</p>
 <ul>
@@ -931,11 +950,17 @@ window.Quarto = {
 </section>
 <section id="references" class="level2">
 <h2 class="anchored" data-anchor-id="references">References</h2>
-<ul>
-<li>Hernán MA, Robins JM (2025). <em>Causal Inference: What If</em>. Chapman &amp; Hall/CRC. Chapter 17 (survival analysis via IP weighting and standardisation).</li>
-<li>Zivich PN, Ross RK, Shook-Sa BE, Cole SR, Edwards JK (2024). Empirical sandwich variance estimator for iterated conditional expectation g-computation. <em>Statistics in Medicine</em> 43:5562–5572.</li>
-<li>D’Agostino RB, Lee ML, Belanger AJ, Cupples LA, Anderson K, Kannel WB (1990). Relation of pooled logistic regression to time-dependent Cox regression analysis: the Framingham Heart Study. <em>Statistics in Medicine</em> 9:1501–1515.</li>
-</ul>
+<div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-dagostino1990pooled" class="csl-entry" role="listitem">
+D’Agostino, Ralph B., Mei-Ling Lee, Albert J. Belanger, L. Adrienne Cupples, Keaven Anderson, and William B. Kannel. 1990. <span>“Relation of Pooled Logistic Regression to Time Dependent <span>Cox</span> Regression Analysis: The <span>Framingham</span> <span>Heart</span> <span>Study</span>.”</span> <em>Statistics in Medicine</em> 9 (12): 1501–15. <a href="https://doi.org/10.1002/sim.4780091214">https://doi.org/10.1002/sim.4780091214</a>.
+</div>
+<div id="ref-hernan_whatif" class="csl-entry" role="listitem">
+Hernán, Miguel A., and James M. Robins. 2025. <em>Causal Inference: What If</em>. Chapman &amp; Hall/CRC. <a href="https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/">https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/</a>.
+</div>
+<div id="ref-zivich2024ice" class="csl-entry" role="listitem">
+Zivich, Paul N., Rachael K. Ross, Bonnie E. Shook-Sa, Stephen R. Cole, and Jessie K. Edwards. 2024. <span>“Empirical Sandwich Variance Estimator for Iterated Conditional Expectation g-Computation.”</span> <em>Statistics in Medicine</em> 43 (29): 5562–72. <a href="https://doi.org/10.1002/sim.10255">https://doi.org/10.1002/sim.10255</a>.
+</div>
+</div>
 
 
 <!-- -->
@@ -1402,328 +1427,324 @@ window.Quarto = {
 <span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="co">  %\VignetteIndexEntry{Introduction to survatr}</span></span>
 <span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="co">  %\VignetteEngine{quarto::html}</span></span>
 <span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="co">  %\VignetteEncoding{UTF-8}</span></span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: false</span></span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span>opts_chunk<span class="sc">$</span><span class="fu">set</span>(<span class="at">collapse =</span> <span class="cn">TRUE</span>, <span class="at">comment =</span> <span class="st">"#&gt;"</span>)</span>
-<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2026</span>)</span>
-<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>survatr extends the <span class="co">[</span><span class="ot">causatr</span><span class="co">](https://github.com/etverse/causatr)</span> engine</span>
-<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>to **time-to-event outcomes** via three building blocks:</span>
-<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Pooled-logistic hazard g-computation** on person-period data:</span>
-<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>  $\text{logit}\, h(t \mid A, L) = \alpha(t) + \beta_A A + \beta_L L$, with</span>
-<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>  survival cumulated across periods as</span>
-<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>  $\hat{S}^a_i(t) = \prod_{k \leq t}(1 - \hat{h}^a_{i,k})$.</span>
-<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Delta-method sandwich variance** that propagates per-row influence</span>
-<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>  functions through the cumulative product into a cross-time covariance</span>
-<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>  matrix on the survival curve.</span>
-<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Individual-level nonparametric bootstrap** that resamples ids (all of</span>
-<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>  each id's person-period rows together) and refits the hazard model per</span>
-<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>  replicate.</span>
-<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>The **estimand is a curve** (survival, risk, RMST) or a contrast of</span>
-<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>curves (risk difference, risk ratio, RMST difference), not a scalar. The</span>
-<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>entire API returns time-indexed <span class="in">`data.table`</span>s.</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="an">bibliography:</span><span class="co"> references.bib</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: false</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span>opts_chunk<span class="sc">$</span><span class="fu">set</span>(<span class="at">collapse =</span> <span class="cn">TRUE</span>, <span class="at">comment =</span> <span class="st">"#&gt;"</span>)</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2026</span>)</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>survatr extends the <span class="co">[</span><span class="ot">causatr</span><span class="co">](https://github.com/etverse/causatr)</span> engine</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>to **time-to-event outcomes**, following the causal survival analysis of</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>@hernan_whatif, Ch. 17, via three building blocks:</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Pooled-logistic hazard g-computation** on person-period data:</span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>  $\text{logit}\, h(t \mid A, L) = \alpha(t) + \beta_A A + \beta_L L$, with</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>  survival cumulated across periods as</span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>  $\hat{S}^a_i(t) = \prod_{k \leq t}(1 - \hat{h}^a_{i,k})$. For small</span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>  per-period hazards this discrete-time model approximates time-dependent</span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>  Cox regression closely <span class="co">[</span><span class="ot">@dagostino1990pooled</span><span class="co">]</span>.</span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Delta-method sandwich variance** that propagates per-row influence</span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>  functions through the cumulative product into a cross-time covariance</span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>  matrix on the survival curve.</span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Individual-level nonparametric bootstrap** that resamples ids (all of</span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>  each id's person-period rows together) and refits the hazard model per</span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>  replicate.</span>
 <span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a><span class="fu">## Two-step API</span></span>
-<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>All analyses follow the same two-step pattern that <span class="in">`causatr`</span> users will</span>
-<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a>recognise:</span>
-<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a><span class="in">```r</span></span>
-<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: Fit the hazard model once</span></span>
-<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">surv_fit</span>(</span>
-<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a>  data,</span>
-<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome     =</span> <span class="st">"Y"</span>,</span>
-<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a>  <span class="at">treatment   =</span> <span class="st">"A"</span>,</span>
-<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a>  <span class="at">confounders =</span> <span class="sc">~</span> L1 <span class="sc">+</span> L2,</span>
-<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a>  <span class="at">id          =</span> <span class="st">"id"</span>,</span>
-<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a>  <span class="at">time        =</span> <span class="st">"t"</span>,</span>
-<span id="cb13-51"><a href="#cb13-51" aria-hidden="true" tabindex="-1"></a>  <span class="at">censoring   =</span> <span class="st">"C"</span>,</span>
-<span id="cb13-52"><a href="#cb13-52" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_formula =</span> <span class="sc">~</span> splines<span class="sc">::</span><span class="fu">ns</span>(t, <span class="dv">4</span>)  <span class="co"># alpha(t) baseline hazard</span></span>
-<span id="cb13-53"><a href="#cb13-53" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb13-54"><a href="#cb13-54" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-55"><a href="#cb13-55" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 2: Contrast many interventions cheaply on the same fit</span></span>
-<span id="cb13-56"><a href="#cb13-56" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">contrast</span>(</span>
-<span id="cb13-57"><a href="#cb13-57" aria-hidden="true" tabindex="-1"></a>  fit,</span>
-<span id="cb13-58"><a href="#cb13-58" aria-hidden="true" tabindex="-1"></a>  <span class="at">interventions =</span> <span class="fu">list</span>(</span>
-<span id="cb13-59"><a href="#cb13-59" aria-hidden="true" tabindex="-1"></a>    <span class="at">treated =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">1</span>),</span>
-<span id="cb13-60"><a href="#cb13-60" aria-hidden="true" tabindex="-1"></a>    <span class="at">control =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">0</span>)</span>
-<span id="cb13-61"><a href="#cb13-61" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb13-62"><a href="#cb13-62" aria-hidden="true" tabindex="-1"></a>  <span class="at">times       =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">120</span>, <span class="at">by =</span> <span class="dv">12</span>),</span>
-<span id="cb13-63"><a href="#cb13-63" aria-hidden="true" tabindex="-1"></a>  <span class="at">type        =</span> <span class="st">"risk_difference"</span>,</span>
-<span id="cb13-64"><a href="#cb13-64" aria-hidden="true" tabindex="-1"></a>  <span class="at">reference   =</span> <span class="st">"control"</span>,</span>
-<span id="cb13-65"><a href="#cb13-65" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci_method   =</span> <span class="st">"sandwich"</span></span>
-<span id="cb13-66"><a href="#cb13-66" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb13-67"><a href="#cb13-67" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb13-68"><a href="#cb13-68" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-69"><a href="#cb13-69" aria-hidden="true" tabindex="-1"></a><span class="fu">## Quick example</span></span>
-<span id="cb13-70"><a href="#cb13-70" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-71"><a href="#cb13-71" aria-hidden="true" tabindex="-1"></a>The example below uses a simulated DGP: a constant discrete-time hazard</span>
-<span id="cb13-72"><a href="#cb13-72" aria-hidden="true" tabindex="-1"></a>of 6% per period, a single binary treatment with no causal effect, and</span>
-<span id="cb13-73"><a href="#cb13-73" aria-hidden="true" tabindex="-1"></a>one normal-distributed confounder that jointly affects the propensity of</span>
-<span id="cb13-74"><a href="#cb13-74" aria-hidden="true" tabindex="-1"></a>treatment and the hazard rate. Under this DGP the counterfactual</span>
-<span id="cb13-75"><a href="#cb13-75" aria-hidden="true" tabindex="-1"></a>survival under either intervention converges to $(1 - 0.06)^t$, so we</span>
-<span id="cb13-76"><a href="#cb13-76" aria-hidden="true" tabindex="-1"></a>can check the point estimates against the closed form.</span>
-<span id="cb13-77"><a href="#cb13-77" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-80"><a href="#cb13-80" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb13-81"><a href="#cb13-81" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
-<span id="cb13-82"><a href="#cb13-82" aria-hidden="true" tabindex="-1"></a><span class="do">## Attach `causatr` first so survatr's `contrast()` generic shadows</span></span>
-<span id="cb13-83"><a href="#cb13-83" aria-hidden="true" tabindex="-1"></a><span class="do">## causatr's scalar-outcome `contrast()` and dispatches correctly on</span></span>
-<span id="cb13-84"><a href="#cb13-84" aria-hidden="true" tabindex="-1"></a><span class="do">## `survatr_fit` objects. Call `causatr::contrast()` explicitly if you</span></span>
-<span id="cb13-85"><a href="#cb13-85" aria-hidden="true" tabindex="-1"></a><span class="do">## need the causatr path while survatr is loaded.</span></span>
-<span id="cb13-86"><a href="#cb13-86" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(causatr)</span>
-<span id="cb13-87"><a href="#cb13-87" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(survatr)</span>
-<span id="cb13-88"><a href="#cb13-88" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
-<span id="cb13-89"><a href="#cb13-89" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-90"><a href="#cb13-90" aria-hidden="true" tabindex="-1"></a><span class="do">## Simulate person-period data with a constant hazard and a confounder L.</span></span>
-<span id="cb13-91"><a href="#cb13-91" aria-hidden="true" tabindex="-1"></a>sim_pp <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">n =</span> <span class="dv">1500</span>L, <span class="at">K =</span> <span class="dv">10</span>L, <span class="at">h =</span> <span class="fl">0.06</span>, <span class="at">seed =</span> <span class="dv">1</span>L) {</span>
-<span id="cb13-92"><a href="#cb13-92" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set.seed</span>(seed)</span>
-<span id="cb13-93"><a href="#cb13-93" aria-hidden="true" tabindex="-1"></a>  L <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)                                 <span class="co"># single baseline confounder</span></span>
-<span id="cb13-94"><a href="#cb13-94" aria-hidden="true" tabindex="-1"></a>  A <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>L, <span class="fu">plogis</span>(<span class="fl">0.3</span> <span class="sc">*</span> L))           <span class="co"># L affects treatment</span></span>
-<span id="cb13-95"><a href="#cb13-95" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> <span class="fu">vector</span>(<span class="st">"list"</span>, n)</span>
-<span id="cb13-96"><a href="#cb13-96" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(n)) {</span>
-<span id="cb13-97"><a href="#cb13-97" aria-hidden="true" tabindex="-1"></a>    Y <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(K, <span class="dv">1</span>L, h)                        <span class="co"># hazard independent of A (null)</span></span>
-<span id="cb13-98"><a href="#cb13-98" aria-hidden="true" tabindex="-1"></a>    first <span class="ot">&lt;-</span> <span class="fu">which</span>(Y <span class="sc">==</span> <span class="dv">1</span>L)[<span class="dv">1</span>L]</span>
-<span id="cb13-99"><a href="#cb13-99" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.na</span>(first) <span class="sc">&amp;&amp;</span> first <span class="sc">&lt;</span> K) Y[(first <span class="sc">+</span> <span class="dv">1</span>L)<span class="sc">:</span>K] <span class="ot">&lt;-</span> <span class="dv">0</span>L</span>
-<span id="cb13-100"><a href="#cb13-100" aria-hidden="true" tabindex="-1"></a>    rows[[i]] <span class="ot">&lt;-</span> data.table<span class="sc">::</span><span class="fu">data.table</span>(</span>
-<span id="cb13-101"><a href="#cb13-101" aria-hidden="true" tabindex="-1"></a>      <span class="at">id =</span> i, <span class="at">t =</span> <span class="fu">seq_len</span>(K), <span class="at">A =</span> A[i], <span class="at">L =</span> L[i], <span class="at">Y =</span> Y</span>
-<span id="cb13-102"><a href="#cb13-102" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb13-103"><a href="#cb13-103" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb13-104"><a href="#cb13-104" aria-hidden="true" tabindex="-1"></a>  data.table<span class="sc">::</span><span class="fu">rbindlist</span>(rows)</span>
-<span id="cb13-105"><a href="#cb13-105" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb13-106"><a href="#cb13-106" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-107"><a href="#cb13-107" aria-hidden="true" tabindex="-1"></a>pp <span class="ot">&lt;-</span> <span class="fu">sim_pp</span>()</span>
-<span id="cb13-108"><a href="#cb13-108" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(pp, <span class="dv">5</span>)</span>
-<span id="cb13-109"><a href="#cb13-109" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>The **estimand is a curve** (survival, risk, RMST) or a contrast of</span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>curves (risk difference, risk ratio, RMST difference), not a scalar. The</span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>entire API returns time-indexed <span class="in">`data.table`</span>s.</span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a><span class="fu">## Two-step API</span></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a>All analyses follow the same two-step pattern that <span class="in">`causatr`</span> users will</span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a>recognise:</span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a><span class="in">```r</span></span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: Fit the hazard model once</span></span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">surv_fit</span>(</span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a>  data,</span>
+<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome     =</span> <span class="st">"Y"</span>,</span>
+<span id="cb13-51"><a href="#cb13-51" aria-hidden="true" tabindex="-1"></a>  <span class="at">treatment   =</span> <span class="st">"A"</span>,</span>
+<span id="cb13-52"><a href="#cb13-52" aria-hidden="true" tabindex="-1"></a>  <span class="at">confounders =</span> <span class="sc">~</span> L1 <span class="sc">+</span> L2,</span>
+<span id="cb13-53"><a href="#cb13-53" aria-hidden="true" tabindex="-1"></a>  <span class="at">id          =</span> <span class="st">"id"</span>,</span>
+<span id="cb13-54"><a href="#cb13-54" aria-hidden="true" tabindex="-1"></a>  <span class="at">time        =</span> <span class="st">"t"</span>,</span>
+<span id="cb13-55"><a href="#cb13-55" aria-hidden="true" tabindex="-1"></a>  <span class="at">censoring   =</span> <span class="st">"C"</span>,</span>
+<span id="cb13-56"><a href="#cb13-56" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_formula =</span> <span class="sc">~</span> splines<span class="sc">::</span><span class="fu">ns</span>(t, <span class="dv">4</span>)  <span class="co"># alpha(t) baseline hazard</span></span>
+<span id="cb13-57"><a href="#cb13-57" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-58"><a href="#cb13-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-59"><a href="#cb13-59" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 2: Contrast many interventions cheaply on the same fit</span></span>
+<span id="cb13-60"><a href="#cb13-60" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">contrast</span>(</span>
+<span id="cb13-61"><a href="#cb13-61" aria-hidden="true" tabindex="-1"></a>  fit,</span>
+<span id="cb13-62"><a href="#cb13-62" aria-hidden="true" tabindex="-1"></a>  <span class="at">interventions =</span> <span class="fu">list</span>(</span>
+<span id="cb13-63"><a href="#cb13-63" aria-hidden="true" tabindex="-1"></a>    <span class="at">treated =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">1</span>),</span>
+<span id="cb13-64"><a href="#cb13-64" aria-hidden="true" tabindex="-1"></a>    <span class="at">control =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">0</span>)</span>
+<span id="cb13-65"><a href="#cb13-65" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb13-66"><a href="#cb13-66" aria-hidden="true" tabindex="-1"></a>  <span class="at">times       =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">120</span>, <span class="at">by =</span> <span class="dv">12</span>),</span>
+<span id="cb13-67"><a href="#cb13-67" aria-hidden="true" tabindex="-1"></a>  <span class="at">type        =</span> <span class="st">"risk_difference"</span>,</span>
+<span id="cb13-68"><a href="#cb13-68" aria-hidden="true" tabindex="-1"></a>  <span class="at">reference   =</span> <span class="st">"control"</span>,</span>
+<span id="cb13-69"><a href="#cb13-69" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci_method   =</span> <span class="st">"sandwich"</span></span>
+<span id="cb13-70"><a href="#cb13-70" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-71"><a href="#cb13-71" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb13-72"><a href="#cb13-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-73"><a href="#cb13-73" aria-hidden="true" tabindex="-1"></a><span class="fu">## Quick example</span></span>
+<span id="cb13-74"><a href="#cb13-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-75"><a href="#cb13-75" aria-hidden="true" tabindex="-1"></a>The example below uses a simulated DGP: a constant discrete-time hazard</span>
+<span id="cb13-76"><a href="#cb13-76" aria-hidden="true" tabindex="-1"></a>of 6% per period, a single binary treatment with no causal effect, and</span>
+<span id="cb13-77"><a href="#cb13-77" aria-hidden="true" tabindex="-1"></a>one normal-distributed confounder that jointly affects the propensity of</span>
+<span id="cb13-78"><a href="#cb13-78" aria-hidden="true" tabindex="-1"></a>treatment and the hazard rate. Under this DGP the counterfactual</span>
+<span id="cb13-79"><a href="#cb13-79" aria-hidden="true" tabindex="-1"></a>survival under either intervention converges to $(1 - 0.06)^t$, so we</span>
+<span id="cb13-80"><a href="#cb13-80" aria-hidden="true" tabindex="-1"></a>can check the point estimates against the closed form.</span>
+<span id="cb13-81"><a href="#cb13-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-84"><a href="#cb13-84" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb13-85"><a href="#cb13-85" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
+<span id="cb13-86"><a href="#cb13-86" aria-hidden="true" tabindex="-1"></a><span class="do">## Attach `causatr` first so survatr's `contrast()` generic shadows</span></span>
+<span id="cb13-87"><a href="#cb13-87" aria-hidden="true" tabindex="-1"></a><span class="do">## causatr's scalar-outcome `contrast()` and dispatches correctly on</span></span>
+<span id="cb13-88"><a href="#cb13-88" aria-hidden="true" tabindex="-1"></a><span class="do">## `survatr_fit` objects. Call `causatr::contrast()` explicitly if you</span></span>
+<span id="cb13-89"><a href="#cb13-89" aria-hidden="true" tabindex="-1"></a><span class="do">## need the causatr path while survatr is loaded.</span></span>
+<span id="cb13-90"><a href="#cb13-90" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(causatr)</span>
+<span id="cb13-91"><a href="#cb13-91" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(survatr)</span>
+<span id="cb13-92"><a href="#cb13-92" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
+<span id="cb13-93"><a href="#cb13-93" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-94"><a href="#cb13-94" aria-hidden="true" tabindex="-1"></a><span class="do">## Simulate person-period data with a constant hazard and a confounder L.</span></span>
+<span id="cb13-95"><a href="#cb13-95" aria-hidden="true" tabindex="-1"></a>sim_pp <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">n =</span> <span class="dv">1500</span>L, <span class="at">K =</span> <span class="dv">10</span>L, <span class="at">h =</span> <span class="fl">0.06</span>, <span class="at">seed =</span> <span class="dv">1</span>L) {</span>
+<span id="cb13-96"><a href="#cb13-96" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set.seed</span>(seed)</span>
+<span id="cb13-97"><a href="#cb13-97" aria-hidden="true" tabindex="-1"></a>  L <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)                                 <span class="co"># single baseline confounder</span></span>
+<span id="cb13-98"><a href="#cb13-98" aria-hidden="true" tabindex="-1"></a>  A <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>L, <span class="fu">plogis</span>(<span class="fl">0.3</span> <span class="sc">*</span> L))           <span class="co"># L affects treatment</span></span>
+<span id="cb13-99"><a href="#cb13-99" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> <span class="fu">vector</span>(<span class="st">"list"</span>, n)</span>
+<span id="cb13-100"><a href="#cb13-100" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(n)) {</span>
+<span id="cb13-101"><a href="#cb13-101" aria-hidden="true" tabindex="-1"></a>    Y <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(K, <span class="dv">1</span>L, h)                        <span class="co"># hazard independent of A (null)</span></span>
+<span id="cb13-102"><a href="#cb13-102" aria-hidden="true" tabindex="-1"></a>    first <span class="ot">&lt;-</span> <span class="fu">which</span>(Y <span class="sc">==</span> <span class="dv">1</span>L)[<span class="dv">1</span>L]</span>
+<span id="cb13-103"><a href="#cb13-103" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.na</span>(first) <span class="sc">&amp;&amp;</span> first <span class="sc">&lt;</span> K) Y[(first <span class="sc">+</span> <span class="dv">1</span>L)<span class="sc">:</span>K] <span class="ot">&lt;-</span> <span class="dv">0</span>L</span>
+<span id="cb13-104"><a href="#cb13-104" aria-hidden="true" tabindex="-1"></a>    rows[[i]] <span class="ot">&lt;-</span> data.table<span class="sc">::</span><span class="fu">data.table</span>(</span>
+<span id="cb13-105"><a href="#cb13-105" aria-hidden="true" tabindex="-1"></a>      <span class="at">id =</span> i, <span class="at">t =</span> <span class="fu">seq_len</span>(K), <span class="at">A =</span> A[i], <span class="at">L =</span> L[i], <span class="at">Y =</span> Y</span>
+<span id="cb13-106"><a href="#cb13-106" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb13-107"><a href="#cb13-107" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb13-108"><a href="#cb13-108" aria-hidden="true" tabindex="-1"></a>  data.table<span class="sc">::</span><span class="fu">rbindlist</span>(rows)</span>
+<span id="cb13-109"><a href="#cb13-109" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb13-110"><a href="#cb13-110" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-111"><a href="#cb13-111" aria-hidden="true" tabindex="-1"></a><span class="fu">### Fit the hazard model</span></span>
-<span id="cb13-112"><a href="#cb13-112" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-115"><a href="#cb13-115" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb13-116"><a href="#cb13-116" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">surv_fit</span>(</span>
-<span id="cb13-117"><a href="#cb13-117" aria-hidden="true" tabindex="-1"></a>  pp,</span>
-<span id="cb13-118"><a href="#cb13-118" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome      =</span> <span class="st">"Y"</span>,</span>
-<span id="cb13-119"><a href="#cb13-119" aria-hidden="true" tabindex="-1"></a>  <span class="at">treatment    =</span> <span class="st">"A"</span>,</span>
-<span id="cb13-120"><a href="#cb13-120" aria-hidden="true" tabindex="-1"></a>  <span class="at">confounders  =</span> <span class="sc">~</span> L,</span>
-<span id="cb13-121"><a href="#cb13-121" aria-hidden="true" tabindex="-1"></a>  <span class="at">id           =</span> <span class="st">"id"</span>,</span>
-<span id="cb13-122"><a href="#cb13-122" aria-hidden="true" tabindex="-1"></a>  <span class="at">time         =</span> <span class="st">"t"</span>,</span>
-<span id="cb13-123"><a href="#cb13-123" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_formula =</span> <span class="sc">~</span> <span class="fu">factor</span>(t)   <span class="co"># non-parametric baseline hazard</span></span>
-<span id="cb13-124"><a href="#cb13-124" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb13-125"><a href="#cb13-125" aria-hidden="true" tabindex="-1"></a>fit</span>
-<span id="cb13-126"><a href="#cb13-126" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb13-127"><a href="#cb13-127" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-128"><a href="#cb13-128" aria-hidden="true" tabindex="-1"></a><span class="fu">### Survival curves under two interventions</span></span>
-<span id="cb13-129"><a href="#cb13-129" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-132"><a href="#cb13-132" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb13-133"><a href="#cb13-133" aria-hidden="true" tabindex="-1"></a>res_surv <span class="ot">&lt;-</span> <span class="fu">contrast</span>(</span>
-<span id="cb13-134"><a href="#cb13-134" aria-hidden="true" tabindex="-1"></a>  fit,</span>
-<span id="cb13-135"><a href="#cb13-135" aria-hidden="true" tabindex="-1"></a>  <span class="at">interventions =</span> <span class="fu">list</span>(</span>
-<span id="cb13-136"><a href="#cb13-136" aria-hidden="true" tabindex="-1"></a>    <span class="at">a1 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">1</span>),</span>
-<span id="cb13-137"><a href="#cb13-137" aria-hidden="true" tabindex="-1"></a>    <span class="at">a0 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">0</span>)</span>
-<span id="cb13-138"><a href="#cb13-138" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb13-139"><a href="#cb13-139" aria-hidden="true" tabindex="-1"></a>  <span class="at">times     =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>,</span>
-<span id="cb13-140"><a href="#cb13-140" aria-hidden="true" tabindex="-1"></a>  <span class="at">type      =</span> <span class="st">"survival"</span>,</span>
-<span id="cb13-141"><a href="#cb13-141" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci_method =</span> <span class="st">"sandwich"</span></span>
-<span id="cb13-142"><a href="#cb13-142" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb13-143"><a href="#cb13-143" aria-hidden="true" tabindex="-1"></a>res_surv</span>
-<span id="cb13-144"><a href="#cb13-144" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb13-145"><a href="#cb13-145" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-148"><a href="#cb13-148" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb13-149"><a href="#cb13-149" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
-<span id="cb13-150"><a href="#cb13-150" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
-<span id="cb13-151"><a href="#cb13-151" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(res_surv, <span class="at">main =</span> <span class="st">"Counterfactual survival under A = 1 vs A = 0"</span>)</span>
-<span id="cb13-152"><a href="#cb13-152" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb13-153"><a href="#cb13-153" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-154"><a href="#cb13-154" aria-hidden="true" tabindex="-1"></a><span class="fu">### Risk difference with sandwich CI</span></span>
-<span id="cb13-155"><a href="#cb13-155" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-158"><a href="#cb13-158" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb13-159"><a href="#cb13-159" aria-hidden="true" tabindex="-1"></a>res_rd <span class="ot">&lt;-</span> <span class="fu">contrast</span>(</span>
-<span id="cb13-160"><a href="#cb13-160" aria-hidden="true" tabindex="-1"></a>  fit,</span>
-<span id="cb13-161"><a href="#cb13-161" aria-hidden="true" tabindex="-1"></a>  <span class="at">interventions =</span> <span class="fu">list</span>(</span>
-<span id="cb13-162"><a href="#cb13-162" aria-hidden="true" tabindex="-1"></a>    <span class="at">a1 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">1</span>),</span>
-<span id="cb13-163"><a href="#cb13-163" aria-hidden="true" tabindex="-1"></a>    <span class="at">a0 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">0</span>)</span>
-<span id="cb13-164"><a href="#cb13-164" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb13-165"><a href="#cb13-165" aria-hidden="true" tabindex="-1"></a>  <span class="at">times     =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>,</span>
-<span id="cb13-166"><a href="#cb13-166" aria-hidden="true" tabindex="-1"></a>  <span class="at">type      =</span> <span class="st">"risk_difference"</span>,</span>
-<span id="cb13-167"><a href="#cb13-167" aria-hidden="true" tabindex="-1"></a>  <span class="at">reference =</span> <span class="st">"a0"</span>,</span>
-<span id="cb13-168"><a href="#cb13-168" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci_method =</span> <span class="st">"sandwich"</span></span>
-<span id="cb13-169"><a href="#cb13-169" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb13-170"><a href="#cb13-170" aria-hidden="true" tabindex="-1"></a>res_rd<span class="sc">$</span>contrasts[] <span class="co"># `[]` forces auto-print of a function-returned data.table</span></span>
-<span id="cb13-171"><a href="#cb13-171" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb13-172"><a href="#cb13-172" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-175"><a href="#cb13-175" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb13-176"><a href="#cb13-176" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
-<span id="cb13-177"><a href="#cb13-177" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
-<span id="cb13-178"><a href="#cb13-178" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(res_rd, <span class="at">main =</span> <span class="st">"Risk difference (a1 vs a0) with sandwich 95% CI"</span>)</span>
-<span id="cb13-179"><a href="#cb13-179" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb13-180"><a href="#cb13-180" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-181"><a href="#cb13-181" aria-hidden="true" tabindex="-1"></a>The DGP has no treatment effect, so the risk-difference CI should</span>
-<span id="cb13-182"><a href="#cb13-182" aria-hidden="true" tabindex="-1"></a>comfortably cover 0 at every time point.</span>
-<span id="cb13-183"><a href="#cb13-183" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-184"><a href="#cb13-184" aria-hidden="true" tabindex="-1"></a><span class="fu">## Estimand menu</span></span>
-<span id="cb13-185"><a href="#cb13-185" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-186"><a href="#cb13-186" aria-hidden="true" tabindex="-1"></a>Pass any of the following to <span class="in">`type =`</span>:</span>
+<span id="cb13-111"><a href="#cb13-111" aria-hidden="true" tabindex="-1"></a>pp <span class="ot">&lt;-</span> <span class="fu">sim_pp</span>()</span>
+<span id="cb13-112"><a href="#cb13-112" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(pp, <span class="dv">5</span>)</span>
+<span id="cb13-113"><a href="#cb13-113" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb13-114"><a href="#cb13-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-115"><a href="#cb13-115" aria-hidden="true" tabindex="-1"></a><span class="fu">### Fit the hazard model</span></span>
+<span id="cb13-116"><a href="#cb13-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-119"><a href="#cb13-119" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb13-120"><a href="#cb13-120" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">surv_fit</span>(</span>
+<span id="cb13-121"><a href="#cb13-121" aria-hidden="true" tabindex="-1"></a>  pp,</span>
+<span id="cb13-122"><a href="#cb13-122" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome      =</span> <span class="st">"Y"</span>,</span>
+<span id="cb13-123"><a href="#cb13-123" aria-hidden="true" tabindex="-1"></a>  <span class="at">treatment    =</span> <span class="st">"A"</span>,</span>
+<span id="cb13-124"><a href="#cb13-124" aria-hidden="true" tabindex="-1"></a>  <span class="at">confounders  =</span> <span class="sc">~</span> L,</span>
+<span id="cb13-125"><a href="#cb13-125" aria-hidden="true" tabindex="-1"></a>  <span class="at">id           =</span> <span class="st">"id"</span>,</span>
+<span id="cb13-126"><a href="#cb13-126" aria-hidden="true" tabindex="-1"></a>  <span class="at">time         =</span> <span class="st">"t"</span>,</span>
+<span id="cb13-127"><a href="#cb13-127" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_formula =</span> <span class="sc">~</span> <span class="fu">factor</span>(t)   <span class="co"># non-parametric baseline hazard</span></span>
+<span id="cb13-128"><a href="#cb13-128" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-129"><a href="#cb13-129" aria-hidden="true" tabindex="-1"></a>fit</span>
+<span id="cb13-130"><a href="#cb13-130" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb13-131"><a href="#cb13-131" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-132"><a href="#cb13-132" aria-hidden="true" tabindex="-1"></a><span class="fu">### Survival curves under two interventions</span></span>
+<span id="cb13-133"><a href="#cb13-133" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-136"><a href="#cb13-136" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb13-137"><a href="#cb13-137" aria-hidden="true" tabindex="-1"></a>res_surv <span class="ot">&lt;-</span> <span class="fu">contrast</span>(</span>
+<span id="cb13-138"><a href="#cb13-138" aria-hidden="true" tabindex="-1"></a>  fit,</span>
+<span id="cb13-139"><a href="#cb13-139" aria-hidden="true" tabindex="-1"></a>  <span class="at">interventions =</span> <span class="fu">list</span>(</span>
+<span id="cb13-140"><a href="#cb13-140" aria-hidden="true" tabindex="-1"></a>    <span class="at">a1 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">1</span>),</span>
+<span id="cb13-141"><a href="#cb13-141" aria-hidden="true" tabindex="-1"></a>    <span class="at">a0 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">0</span>)</span>
+<span id="cb13-142"><a href="#cb13-142" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb13-143"><a href="#cb13-143" aria-hidden="true" tabindex="-1"></a>  <span class="at">times     =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>,</span>
+<span id="cb13-144"><a href="#cb13-144" aria-hidden="true" tabindex="-1"></a>  <span class="at">type      =</span> <span class="st">"survival"</span>,</span>
+<span id="cb13-145"><a href="#cb13-145" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci_method =</span> <span class="st">"sandwich"</span></span>
+<span id="cb13-146"><a href="#cb13-146" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-147"><a href="#cb13-147" aria-hidden="true" tabindex="-1"></a>res_surv</span>
+<span id="cb13-148"><a href="#cb13-148" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb13-149"><a href="#cb13-149" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-152"><a href="#cb13-152" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb13-153"><a href="#cb13-153" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
+<span id="cb13-154"><a href="#cb13-154" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
+<span id="cb13-155"><a href="#cb13-155" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(res_surv, <span class="at">main =</span> <span class="st">"Counterfactual survival under A = 1 vs A = 0"</span>)</span>
+<span id="cb13-156"><a href="#cb13-156" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb13-157"><a href="#cb13-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-158"><a href="#cb13-158" aria-hidden="true" tabindex="-1"></a><span class="fu">### Risk difference with sandwich CI</span></span>
+<span id="cb13-159"><a href="#cb13-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-162"><a href="#cb13-162" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb13-163"><a href="#cb13-163" aria-hidden="true" tabindex="-1"></a>res_rd <span class="ot">&lt;-</span> <span class="fu">contrast</span>(</span>
+<span id="cb13-164"><a href="#cb13-164" aria-hidden="true" tabindex="-1"></a>  fit,</span>
+<span id="cb13-165"><a href="#cb13-165" aria-hidden="true" tabindex="-1"></a>  <span class="at">interventions =</span> <span class="fu">list</span>(</span>
+<span id="cb13-166"><a href="#cb13-166" aria-hidden="true" tabindex="-1"></a>    <span class="at">a1 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">1</span>),</span>
+<span id="cb13-167"><a href="#cb13-167" aria-hidden="true" tabindex="-1"></a>    <span class="at">a0 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">0</span>)</span>
+<span id="cb13-168"><a href="#cb13-168" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb13-169"><a href="#cb13-169" aria-hidden="true" tabindex="-1"></a>  <span class="at">times     =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>,</span>
+<span id="cb13-170"><a href="#cb13-170" aria-hidden="true" tabindex="-1"></a>  <span class="at">type      =</span> <span class="st">"risk_difference"</span>,</span>
+<span id="cb13-171"><a href="#cb13-171" aria-hidden="true" tabindex="-1"></a>  <span class="at">reference =</span> <span class="st">"a0"</span>,</span>
+<span id="cb13-172"><a href="#cb13-172" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci_method =</span> <span class="st">"sandwich"</span></span>
+<span id="cb13-173"><a href="#cb13-173" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-174"><a href="#cb13-174" aria-hidden="true" tabindex="-1"></a>res_rd<span class="sc">$</span>contrasts[] <span class="co"># `[]` forces auto-print of a function-returned data.table</span></span>
+<span id="cb13-175"><a href="#cb13-175" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb13-176"><a href="#cb13-176" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-179"><a href="#cb13-179" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb13-180"><a href="#cb13-180" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
+<span id="cb13-181"><a href="#cb13-181" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
+<span id="cb13-182"><a href="#cb13-182" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(res_rd, <span class="at">main =</span> <span class="st">"Risk difference (a1 vs a0) with sandwich 95% CI"</span>)</span>
+<span id="cb13-183"><a href="#cb13-183" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb13-184"><a href="#cb13-184" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-185"><a href="#cb13-185" aria-hidden="true" tabindex="-1"></a>The DGP has no treatment effect, so the risk-difference CI should</span>
+<span id="cb13-186"><a href="#cb13-186" aria-hidden="true" tabindex="-1"></a>comfortably cover 0 at every time point.</span>
 <span id="cb13-187"><a href="#cb13-187" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-188"><a href="#cb13-188" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`type`</span> <span class="pp">|</span> Estimand <span class="pp">|</span> Shape of result <span class="pp">|</span></span>
-<span id="cb13-189"><a href="#cb13-189" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
-<span id="cb13-190"><a href="#cb13-190" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"survival"`</span> <span class="pp">|</span> $\hat{S}^a(t)$ <span class="pp">|</span> One row per (intervention, time) <span class="pp">|</span></span>
-<span id="cb13-191"><a href="#cb13-191" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"risk"`</span> <span class="pp">|</span> $1 - \hat{S}^a(t)$ <span class="pp">|</span> One row per (intervention, time) <span class="pp">|</span></span>
-<span id="cb13-192"><a href="#cb13-192" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"rmst"`</span> <span class="pp">|</span> $\int_0^t \hat{S}^a(u)\,du$ <span class="pp">|</span> One row per (intervention, time) <span class="pp">|</span></span>
-<span id="cb13-193"><a href="#cb13-193" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"risk_difference"`</span> <span class="pp">|</span> $\hat{R}^{a_1}(t) - \hat{R}^{a_0}(t)$ <span class="pp">|</span> Pairwise contrasts <span class="pp">|</span></span>
-<span id="cb13-194"><a href="#cb13-194" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"risk_ratio"`</span> <span class="pp">|</span> $\hat{R}^{a_1}(t) / \hat{R}^{a_0}(t)$ <span class="pp">|</span> Pairwise contrasts (log-scale CI) <span class="pp">|</span></span>
-<span id="cb13-195"><a href="#cb13-195" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"rmst_difference"`</span> <span class="pp">|</span> $\mathrm{RMST}^{a_1}(t) - \mathrm{RMST}^{a_0}(t)$ <span class="pp">|</span> Pairwise contrasts <span class="pp">|</span></span>
-<span id="cb13-196"><a href="#cb13-196" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-197"><a href="#cb13-197" aria-hidden="true" tabindex="-1"></a><span class="in">`"survival"`</span>, <span class="in">`"risk"`</span>, and <span class="in">`"rmst"`</span> return an **empty contrasts table**</span>
-<span id="cb13-198"><a href="#cb13-198" aria-hidden="true" tabindex="-1"></a>(stable schema); the three pairwise types fill it.</span>
-<span id="cb13-199"><a href="#cb13-199" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-200"><a href="#cb13-200" aria-hidden="true" tabindex="-1"></a><span class="fu">## Intervention types</span></span>
-<span id="cb13-201"><a href="#cb13-201" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-202"><a href="#cb13-202" aria-hidden="true" tabindex="-1"></a>Interventions are constructed via <span class="in">`causatr`</span>:</span>
+<span id="cb13-188"><a href="#cb13-188" aria-hidden="true" tabindex="-1"></a><span class="fu">## Estimand menu</span></span>
+<span id="cb13-189"><a href="#cb13-189" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-190"><a href="#cb13-190" aria-hidden="true" tabindex="-1"></a>Pass any of the following to <span class="in">`type =`</span>:</span>
+<span id="cb13-191"><a href="#cb13-191" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-192"><a href="#cb13-192" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`type`</span> <span class="pp">|</span> Estimand <span class="pp">|</span> Shape of result <span class="pp">|</span></span>
+<span id="cb13-193"><a href="#cb13-193" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
+<span id="cb13-194"><a href="#cb13-194" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"survival"`</span> <span class="pp">|</span> $\hat{S}^a(t)$ <span class="pp">|</span> One row per (intervention, time) <span class="pp">|</span></span>
+<span id="cb13-195"><a href="#cb13-195" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"risk"`</span> <span class="pp">|</span> $1 - \hat{S}^a(t)$ <span class="pp">|</span> One row per (intervention, time) <span class="pp">|</span></span>
+<span id="cb13-196"><a href="#cb13-196" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"rmst"`</span> <span class="pp">|</span> $\int_0^t \hat{S}^a(u)\,du$ <span class="pp">|</span> One row per (intervention, time) <span class="pp">|</span></span>
+<span id="cb13-197"><a href="#cb13-197" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"risk_difference"`</span> <span class="pp">|</span> $\hat{R}^{a_1}(t) - \hat{R}^{a_0}(t)$ <span class="pp">|</span> Pairwise contrasts <span class="pp">|</span></span>
+<span id="cb13-198"><a href="#cb13-198" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"risk_ratio"`</span> <span class="pp">|</span> $\hat{R}^{a_1}(t) / \hat{R}^{a_0}(t)$ <span class="pp">|</span> Pairwise contrasts (log-scale CI) <span class="pp">|</span></span>
+<span id="cb13-199"><a href="#cb13-199" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"rmst_difference"`</span> <span class="pp">|</span> $\mathrm{RMST}^{a_1}(t) - \mathrm{RMST}^{a_0}(t)$ <span class="pp">|</span> Pairwise contrasts <span class="pp">|</span></span>
+<span id="cb13-200"><a href="#cb13-200" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-201"><a href="#cb13-201" aria-hidden="true" tabindex="-1"></a><span class="in">`"survival"`</span>, <span class="in">`"risk"`</span>, and <span class="in">`"rmst"`</span> return an **empty contrasts table**</span>
+<span id="cb13-202"><a href="#cb13-202" aria-hidden="true" tabindex="-1"></a>(stable schema); the three pairwise types fill it.</span>
 <span id="cb13-203"><a href="#cb13-203" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-204"><a href="#cb13-204" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Constructor <span class="pp">|</span> Description <span class="pp">|</span> Example <span class="pp">|</span></span>
-<span id="cb13-205"><a href="#cb13-205" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
-<span id="cb13-206"><a href="#cb13-206" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`causatr::static(value)`</span> <span class="pp">|</span> Set treatment to a fixed value <span class="pp">|</span> <span class="in">`static(1)`</span> <span class="pp">|</span></span>
-<span id="cb13-207"><a href="#cb13-207" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`causatr::shift(delta)`</span> <span class="pp">|</span> Add a constant to observed treatment <span class="pp">|</span> <span class="in">`shift(0.5)`</span> <span class="pp">|</span></span>
-<span id="cb13-208"><a href="#cb13-208" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`causatr::scale_by(factor)`</span> <span class="pp">|</span> Multiply observed treatment <span class="pp">|</span> <span class="in">`scale_by(0.5)`</span> <span class="pp">|</span></span>
-<span id="cb13-209"><a href="#cb13-209" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`causatr::threshold(lower, upper)`</span> <span class="pp">|</span> Clamp treatment within bounds <span class="pp">|</span> <span class="in">`threshold(0, 20)`</span> <span class="pp">|</span></span>
-<span id="cb13-210"><a href="#cb13-210" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`causatr::dynamic(rule)`</span> <span class="pp">|</span> Apply a user-defined rule <span class="pp">|</span> <span class="in">`dynamic(\(d, a) ifelse(d$L &gt; 0, 1, 0))`</span> <span class="pp">|</span></span>
-<span id="cb13-211"><a href="#cb13-211" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-212"><a href="#cb13-212" aria-hidden="true" tabindex="-1"></a>The <span class="in">`dynamic()`</span> rule and IPW (<span class="in">`estimator = "ipw"`</span>) are demonstrated in</span>
-<span id="cb13-213"><a href="#cb13-213" aria-hidden="true" tabindex="-1"></a><span class="in">`vignette("ipw")`</span>; longitudinal time-varying treatments via Track B ICE</span>
-<span id="cb13-214"><a href="#cb13-214" aria-hidden="true" tabindex="-1"></a>(<span class="in">`estimator = "ice"`</span>) are covered in <span class="in">`vignette("ice")`</span>. IPW-style</span>
-<span id="cb13-215"><a href="#cb13-215" aria-hidden="true" tabindex="-1"></a>stochastic (<span class="in">`ipsi()`</span>) interventions ship in a later chunk.</span>
-<span id="cb13-216"><a href="#cb13-216" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-217"><a href="#cb13-217" aria-hidden="true" tabindex="-1"></a><span class="fu">## Inference methods</span></span>
-<span id="cb13-218"><a href="#cb13-218" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-219"><a href="#cb13-219" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`ci_method`</span> <span class="pp">|</span> Description <span class="pp">|</span></span>
-<span id="cb13-220"><a href="#cb13-220" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
-<span id="cb13-221"><a href="#cb13-221" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"none"`</span> <span class="pp">|</span> Point estimates only (default). <span class="in">`se`</span> / <span class="in">`ci_*`</span> columns are <span class="in">`NA_real_`</span>. <span class="pp">|</span></span>
-<span id="cb13-222"><a href="#cb13-222" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"sandwich"`</span> <span class="pp">|</span> Delta-method cross-time influence function aggregation through the cumulative product. Pointwise Wald bands. Fast (single pass). <span class="pp">|</span></span>
-<span id="cb13-223"><a href="#cb13-223" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"bootstrap"`</span> <span class="pp">|</span> Nonparametric bootstrap with per-id resampling. Percentile (default) or Wald CIs. Slower; required for non-GLM outcome fitters (e.g. <span class="in">`mgcv::gam`</span>). <span class="pp">|</span></span>
-<span id="cb13-224"><a href="#cb13-224" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-227"><a href="#cb13-227" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb13-228"><a href="#cb13-228" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: true</span></span>
-<span id="cb13-229"><a href="#cb13-229" aria-hidden="true" tabindex="-1"></a>res_boot <span class="ot">&lt;-</span> <span class="fu">contrast</span>(</span>
-<span id="cb13-230"><a href="#cb13-230" aria-hidden="true" tabindex="-1"></a>  fit,</span>
-<span id="cb13-231"><a href="#cb13-231" aria-hidden="true" tabindex="-1"></a>  <span class="at">interventions =</span> <span class="fu">list</span>(</span>
-<span id="cb13-232"><a href="#cb13-232" aria-hidden="true" tabindex="-1"></a>    <span class="at">a1 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">1</span>),</span>
-<span id="cb13-233"><a href="#cb13-233" aria-hidden="true" tabindex="-1"></a>    <span class="at">a0 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">0</span>)</span>
-<span id="cb13-234"><a href="#cb13-234" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb13-235"><a href="#cb13-235" aria-hidden="true" tabindex="-1"></a>  <span class="at">times     =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>,</span>
-<span id="cb13-236"><a href="#cb13-236" aria-hidden="true" tabindex="-1"></a>  <span class="at">type      =</span> <span class="st">"risk_difference"</span>,</span>
-<span id="cb13-237"><a href="#cb13-237" aria-hidden="true" tabindex="-1"></a>  <span class="at">reference =</span> <span class="st">"a0"</span>,</span>
-<span id="cb13-238"><a href="#cb13-238" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci_method =</span> <span class="st">"bootstrap"</span>,</span>
-<span id="cb13-239"><a href="#cb13-239" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_boot    =</span> <span class="dv">200</span>L,</span>
-<span id="cb13-240"><a href="#cb13-240" aria-hidden="true" tabindex="-1"></a>  <span class="at">seed      =</span> <span class="dv">42</span>L</span>
-<span id="cb13-241"><a href="#cb13-241" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb13-242"><a href="#cb13-242" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(res_boot<span class="sc">$</span>contrasts, <span class="dv">3</span>)</span>
-<span id="cb13-243"><a href="#cb13-243" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb13-244"><a href="#cb13-244" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-245"><a href="#cb13-245" aria-hidden="true" tabindex="-1"></a>Sandwich and bootstrap SEs match each other — and the true sampling SD</span>
-<span id="cb13-246"><a href="#cb13-246" aria-hidden="true" tabindex="-1"></a>— to within 1–2% on this DGP at n = 1500 (confirmed via a 300-replicate</span>
-<span id="cb13-247"><a href="#cb13-247" aria-hidden="true" tabindex="-1"></a>empirical-SD oracle; see <span class="in">`tests/testthat/test-bootstrap-survival.R`</span>).</span>
+<span id="cb13-204"><a href="#cb13-204" aria-hidden="true" tabindex="-1"></a><span class="fu">## Intervention types</span></span>
+<span id="cb13-205"><a href="#cb13-205" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-206"><a href="#cb13-206" aria-hidden="true" tabindex="-1"></a>Interventions are constructed via <span class="in">`causatr`</span>:</span>
+<span id="cb13-207"><a href="#cb13-207" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-208"><a href="#cb13-208" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Constructor <span class="pp">|</span> Description <span class="pp">|</span> Example <span class="pp">|</span></span>
+<span id="cb13-209"><a href="#cb13-209" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
+<span id="cb13-210"><a href="#cb13-210" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`causatr::static(value)`</span> <span class="pp">|</span> Set treatment to a fixed value <span class="pp">|</span> <span class="in">`static(1)`</span> <span class="pp">|</span></span>
+<span id="cb13-211"><a href="#cb13-211" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`causatr::shift(delta)`</span> <span class="pp">|</span> Add a constant to observed treatment <span class="pp">|</span> <span class="in">`shift(0.5)`</span> <span class="pp">|</span></span>
+<span id="cb13-212"><a href="#cb13-212" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`causatr::scale_by(factor)`</span> <span class="pp">|</span> Multiply observed treatment <span class="pp">|</span> <span class="in">`scale_by(0.5)`</span> <span class="pp">|</span></span>
+<span id="cb13-213"><a href="#cb13-213" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`causatr::threshold(lower, upper)`</span> <span class="pp">|</span> Clamp treatment within bounds <span class="pp">|</span> <span class="in">`threshold(0, 20)`</span> <span class="pp">|</span></span>
+<span id="cb13-214"><a href="#cb13-214" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`causatr::dynamic(rule)`</span> <span class="pp">|</span> Apply a user-defined rule <span class="pp">|</span> <span class="in">`dynamic(\(d, a) ifelse(d$L &gt; 0, 1, 0))`</span> <span class="pp">|</span></span>
+<span id="cb13-215"><a href="#cb13-215" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-216"><a href="#cb13-216" aria-hidden="true" tabindex="-1"></a>The <span class="in">`dynamic()`</span> rule and IPW (<span class="in">`estimator = "ipw"`</span>) are demonstrated in</span>
+<span id="cb13-217"><a href="#cb13-217" aria-hidden="true" tabindex="-1"></a><span class="in">`vignette("ipw")`</span>; longitudinal time-varying treatments via Track B ICE</span>
+<span id="cb13-218"><a href="#cb13-218" aria-hidden="true" tabindex="-1"></a>(<span class="in">`estimator = "ice"`</span>) are covered in <span class="in">`vignette("ice")`</span>. IPW-style</span>
+<span id="cb13-219"><a href="#cb13-219" aria-hidden="true" tabindex="-1"></a>stochastic (<span class="in">`ipsi()`</span>) interventions ship in a later chunk.</span>
+<span id="cb13-220"><a href="#cb13-220" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-221"><a href="#cb13-221" aria-hidden="true" tabindex="-1"></a><span class="fu">## Inference methods</span></span>
+<span id="cb13-222"><a href="#cb13-222" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-223"><a href="#cb13-223" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`ci_method`</span> <span class="pp">|</span> Description <span class="pp">|</span></span>
+<span id="cb13-224"><a href="#cb13-224" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
+<span id="cb13-225"><a href="#cb13-225" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"none"`</span> <span class="pp">|</span> Point estimates only (default). <span class="in">`se`</span> / <span class="in">`ci_*`</span> columns are <span class="in">`NA_real_`</span>. <span class="pp">|</span></span>
+<span id="cb13-226"><a href="#cb13-226" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"sandwich"`</span> <span class="pp">|</span> Delta-method cross-time influence function aggregation through the cumulative product. Pointwise Wald bands. Fast (single pass). <span class="pp">|</span></span>
+<span id="cb13-227"><a href="#cb13-227" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`"bootstrap"`</span> <span class="pp">|</span> Nonparametric bootstrap with per-id resampling. Percentile (default) or Wald CIs. Slower; required for non-GLM outcome fitters (e.g. <span class="in">`mgcv::gam`</span>). <span class="pp">|</span></span>
+<span id="cb13-228"><a href="#cb13-228" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-231"><a href="#cb13-231" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb13-232"><a href="#cb13-232" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: true</span></span>
+<span id="cb13-233"><a href="#cb13-233" aria-hidden="true" tabindex="-1"></a>res_boot <span class="ot">&lt;-</span> <span class="fu">contrast</span>(</span>
+<span id="cb13-234"><a href="#cb13-234" aria-hidden="true" tabindex="-1"></a>  fit,</span>
+<span id="cb13-235"><a href="#cb13-235" aria-hidden="true" tabindex="-1"></a>  <span class="at">interventions =</span> <span class="fu">list</span>(</span>
+<span id="cb13-236"><a href="#cb13-236" aria-hidden="true" tabindex="-1"></a>    <span class="at">a1 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">1</span>),</span>
+<span id="cb13-237"><a href="#cb13-237" aria-hidden="true" tabindex="-1"></a>    <span class="at">a0 =</span> causatr<span class="sc">::</span><span class="fu">static</span>(<span class="dv">0</span>)</span>
+<span id="cb13-238"><a href="#cb13-238" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb13-239"><a href="#cb13-239" aria-hidden="true" tabindex="-1"></a>  <span class="at">times     =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>,</span>
+<span id="cb13-240"><a href="#cb13-240" aria-hidden="true" tabindex="-1"></a>  <span class="at">type      =</span> <span class="st">"risk_difference"</span>,</span>
+<span id="cb13-241"><a href="#cb13-241" aria-hidden="true" tabindex="-1"></a>  <span class="at">reference =</span> <span class="st">"a0"</span>,</span>
+<span id="cb13-242"><a href="#cb13-242" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci_method =</span> <span class="st">"bootstrap"</span>,</span>
+<span id="cb13-243"><a href="#cb13-243" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_boot    =</span> <span class="dv">200</span>L,</span>
+<span id="cb13-244"><a href="#cb13-244" aria-hidden="true" tabindex="-1"></a>  <span class="at">seed      =</span> <span class="dv">42</span>L</span>
+<span id="cb13-245"><a href="#cb13-245" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-246"><a href="#cb13-246" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(res_boot<span class="sc">$</span>contrasts, <span class="dv">3</span>)</span>
+<span id="cb13-247"><a href="#cb13-247" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb13-248"><a href="#cb13-248" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-249"><a href="#cb13-249" aria-hidden="true" tabindex="-1"></a><span class="fu">## Extracting results</span></span>
-<span id="cb13-250"><a href="#cb13-250" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-251"><a href="#cb13-251" aria-hidden="true" tabindex="-1"></a><span class="in">`tidy()`</span>, <span class="in">`plot()`</span>, <span class="in">`print()`</span>, and <span class="in">`forrest()`</span> all dispatch on the</span>
-<span id="cb13-252"><a href="#cb13-252" aria-hidden="true" tabindex="-1"></a>time-indexed <span class="in">`survatr_result`</span> shape:</span>
-<span id="cb13-253"><a href="#cb13-253" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-256"><a href="#cb13-256" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb13-257"><a href="#cb13-257" aria-hidden="true" tabindex="-1"></a>res_td <span class="ot">&lt;-</span> <span class="fu">tidy</span>(res_rd)</span>
-<span id="cb13-258"><a href="#cb13-258" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(res_td, <span class="dv">6</span>)</span>
-<span id="cb13-259"><a href="#cb13-259" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb13-260"><a href="#cb13-260" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-263"><a href="#cb13-263" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb13-264"><a href="#cb13-264" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
-<span id="cb13-265"><a href="#cb13-265" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 3</span></span>
-<span id="cb13-266"><a href="#cb13-266" aria-hidden="true" tabindex="-1"></a><span class="fu">forrest</span>(res_rd, <span class="at">t_ref =</span> <span class="dv">10</span>, <span class="at">main =</span> <span class="st">"Risk difference at t = 10"</span>)</span>
-<span id="cb13-267"><a href="#cb13-267" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb13-268"><a href="#cb13-268" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-269"><a href="#cb13-269" aria-hidden="true" tabindex="-1"></a><span class="fu">## Model diagnostics</span></span>
-<span id="cb13-270"><a href="#cb13-270" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-271"><a href="#cb13-271" aria-hidden="true" tabindex="-1"></a><span class="in">`diagnose()`</span> returns a <span class="in">`survatr_diag`</span> with five panels that operate on the</span>
-<span id="cb13-272"><a href="#cb13-272" aria-hidden="true" tabindex="-1"></a>same at-risk rows the hazard model was fit on:</span>
-<span id="cb13-273"><a href="#cb13-273" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-276"><a href="#cb13-276" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb13-277"><a href="#cb13-277" aria-hidden="true" tabindex="-1"></a>dx <span class="ot">&lt;-</span> <span class="fu">diagnose</span>(fit)</span>
-<span id="cb13-278"><a href="#cb13-278" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(dx)</span>
-<span id="cb13-279"><a href="#cb13-279" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb13-280"><a href="#cb13-280" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-281"><a href="#cb13-281" aria-hidden="true" tabindex="-1"></a>The panels are accessible as plain <span class="in">`data.table`</span>s:</span>
-<span id="cb13-282"><a href="#cb13-282" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-285"><a href="#cb13-285" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb13-286"><a href="#cb13-286" aria-hidden="true" tabindex="-1"></a><span class="do">## Per-period hazard distribution: h_min / h_mean / h_max, flag_low / flag_high</span></span>
-<span id="cb13-287"><a href="#cb13-287" aria-hidden="true" tabindex="-1"></a>dx<span class="sc">$</span>positivity</span>
-<span id="cb13-288"><a href="#cb13-288" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-289"><a href="#cb13-289" aria-hidden="true" tabindex="-1"></a><span class="do">## Standardized mean differences (or cor(A, L) for continuous A)</span></span>
-<span id="cb13-290"><a href="#cb13-290" aria-hidden="true" tabindex="-1"></a>dx<span class="sc">$</span>balance</span>
-<span id="cb13-291"><a href="#cb13-291" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb13-249"><a href="#cb13-249" aria-hidden="true" tabindex="-1"></a>Sandwich and bootstrap SEs match each other — and the true sampling SD</span>
+<span id="cb13-250"><a href="#cb13-250" aria-hidden="true" tabindex="-1"></a>— to within 1–2% on this DGP at n = 1500 (confirmed via a 300-replicate</span>
+<span id="cb13-251"><a href="#cb13-251" aria-hidden="true" tabindex="-1"></a>empirical-SD oracle; see <span class="in">`tests/testthat/test-bootstrap-survival.R`</span>).</span>
+<span id="cb13-252"><a href="#cb13-252" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-253"><a href="#cb13-253" aria-hidden="true" tabindex="-1"></a><span class="fu">## Extracting results</span></span>
+<span id="cb13-254"><a href="#cb13-254" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-255"><a href="#cb13-255" aria-hidden="true" tabindex="-1"></a><span class="in">`tidy()`</span>, <span class="in">`plot()`</span>, <span class="in">`print()`</span>, and <span class="in">`forrest()`</span> all dispatch on the</span>
+<span id="cb13-256"><a href="#cb13-256" aria-hidden="true" tabindex="-1"></a>time-indexed <span class="in">`survatr_result`</span> shape:</span>
+<span id="cb13-257"><a href="#cb13-257" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-260"><a href="#cb13-260" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb13-261"><a href="#cb13-261" aria-hidden="true" tabindex="-1"></a>res_td <span class="ot">&lt;-</span> <span class="fu">tidy</span>(res_rd)</span>
+<span id="cb13-262"><a href="#cb13-262" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(res_td, <span class="dv">6</span>)</span>
+<span id="cb13-263"><a href="#cb13-263" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb13-264"><a href="#cb13-264" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-267"><a href="#cb13-267" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb13-268"><a href="#cb13-268" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
+<span id="cb13-269"><a href="#cb13-269" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 3</span></span>
+<span id="cb13-270"><a href="#cb13-270" aria-hidden="true" tabindex="-1"></a><span class="fu">forrest</span>(res_rd, <span class="at">t_ref =</span> <span class="dv">10</span>, <span class="at">main =</span> <span class="st">"Risk difference at t = 10"</span>)</span>
+<span id="cb13-271"><a href="#cb13-271" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb13-272"><a href="#cb13-272" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-273"><a href="#cb13-273" aria-hidden="true" tabindex="-1"></a><span class="fu">## Model diagnostics</span></span>
+<span id="cb13-274"><a href="#cb13-274" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-275"><a href="#cb13-275" aria-hidden="true" tabindex="-1"></a><span class="in">`diagnose()`</span> returns a <span class="in">`survatr_diag`</span> with five panels that operate on the</span>
+<span id="cb13-276"><a href="#cb13-276" aria-hidden="true" tabindex="-1"></a>same at-risk rows the hazard model was fit on:</span>
+<span id="cb13-277"><a href="#cb13-277" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-280"><a href="#cb13-280" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb13-281"><a href="#cb13-281" aria-hidden="true" tabindex="-1"></a>dx <span class="ot">&lt;-</span> <span class="fu">diagnose</span>(fit)</span>
+<span id="cb13-282"><a href="#cb13-282" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(dx)</span>
+<span id="cb13-283"><a href="#cb13-283" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb13-284"><a href="#cb13-284" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-285"><a href="#cb13-285" aria-hidden="true" tabindex="-1"></a>The panels are accessible as plain <span class="in">`data.table`</span>s:</span>
+<span id="cb13-286"><a href="#cb13-286" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-289"><a href="#cb13-289" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb13-290"><a href="#cb13-290" aria-hidden="true" tabindex="-1"></a><span class="do">## Per-period hazard distribution: h_min / h_mean / h_max, flag_low / flag_high</span></span>
+<span id="cb13-291"><a href="#cb13-291" aria-hidden="true" tabindex="-1"></a>dx<span class="sc">$</span>positivity</span>
 <span id="cb13-292"><a href="#cb13-292" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-293"><a href="#cb13-293" aria-hidden="true" tabindex="-1"></a><span class="in">`$weights`</span> is non-<span class="in">`NULL`</span> for IPW fits and holds the per-id ESS, maximum</span>
-<span id="cb13-294"><a href="#cb13-294" aria-hidden="true" tabindex="-1"></a>weight, and top-5%-share. <span class="in">`$censoring`</span> is populated when a <span class="in">`censoring`</span></span>
-<span id="cb13-295"><a href="#cb13-295" aria-hidden="true" tabindex="-1"></a>column was supplied and reports per-arm censoring incidence (denominator is</span>
-<span id="cb13-296"><a href="#cb13-296" aria-hidden="true" tabindex="-1"></a>the full person-period row count, <span class="in">`n_pp_rows`</span>). <span class="in">`$competing`</span> appears for</span>
-<span id="cb13-297"><a href="#cb13-297" aria-hidden="true" tabindex="-1"></a>competing-risks fits and includes the partition-of-unity identity check.</span>
-<span id="cb13-298"><a href="#cb13-298" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-299"><a href="#cb13-299" aria-hidden="true" tabindex="-1"></a><span class="fu">## Reserved columns and error surface</span></span>
-<span id="cb13-300"><a href="#cb13-300" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-301"><a href="#cb13-301" aria-hidden="true" tabindex="-1"></a>survatr reserves column names prefixed with <span class="in">`.survatr_*`</span> for internal</span>
-<span id="cb13-302"><a href="#cb13-302" aria-hidden="true" tabindex="-1"></a>bookkeeping (<span class="in">`.survatr_prev_event`</span>, <span class="in">`.survatr_prev_cens`</span>). User-data</span>
-<span id="cb13-303"><a href="#cb13-303" aria-hidden="true" tabindex="-1"></a>collisions produce <span class="in">`survatr_reserved_col`</span>.</span>
+<span id="cb13-293"><a href="#cb13-293" aria-hidden="true" tabindex="-1"></a><span class="do">## Standardized mean differences (or cor(A, L) for continuous A)</span></span>
+<span id="cb13-294"><a href="#cb13-294" aria-hidden="true" tabindex="-1"></a>dx<span class="sc">$</span>balance</span>
+<span id="cb13-295"><a href="#cb13-295" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb13-296"><a href="#cb13-296" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-297"><a href="#cb13-297" aria-hidden="true" tabindex="-1"></a><span class="in">`$weights`</span> is non-<span class="in">`NULL`</span> for IPW fits and holds the per-id ESS, maximum</span>
+<span id="cb13-298"><a href="#cb13-298" aria-hidden="true" tabindex="-1"></a>weight, and top-5%-share. <span class="in">`$censoring`</span> is populated when a <span class="in">`censoring`</span></span>
+<span id="cb13-299"><a href="#cb13-299" aria-hidden="true" tabindex="-1"></a>column was supplied and reports per-arm censoring incidence (denominator is</span>
+<span id="cb13-300"><a href="#cb13-300" aria-hidden="true" tabindex="-1"></a>the full person-period row count, <span class="in">`n_pp_rows`</span>). <span class="in">`$competing`</span> appears for</span>
+<span id="cb13-301"><a href="#cb13-301" aria-hidden="true" tabindex="-1"></a>competing-risks fits and includes the partition-of-unity identity check.</span>
+<span id="cb13-302"><a href="#cb13-302" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-303"><a href="#cb13-303" aria-hidden="true" tabindex="-1"></a><span class="fu">## Reserved columns and error surface</span></span>
 <span id="cb13-304"><a href="#cb13-304" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-305"><a href="#cb13-305" aria-hidden="true" tabindex="-1"></a>All rejection paths raise **classed** errors with the <span class="in">`survatr_*`</span> prefix</span>
-<span id="cb13-306"><a href="#cb13-306" aria-hidden="true" tabindex="-1"></a>so downstream code can pattern-match on class rather than English:</span>
-<span id="cb13-307"><a href="#cb13-307" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-308"><a href="#cb13-308" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Class <span class="pp">|</span> Trigger <span class="pp">|</span></span>
-<span id="cb13-309"><a href="#cb13-309" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
-<span id="cb13-310"><a href="#cb13-310" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_interventions`</span> <span class="pp">|</span> Empty / unnamed / duplicate-named / wrong-type <span class="in">`interventions`</span>, or a pairwise-contrast <span class="in">`type`</span> with a single intervention <span class="pp">|</span></span>
-<span id="cb13-311"><a href="#cb13-311" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_times`</span> <span class="pp">|</span> Non-numeric / empty / NA <span class="in">`times`</span> <span class="pp">|</span></span>
-<span id="cb13-312"><a href="#cb13-312" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_time_extrapolation`</span> <span class="pp">|</span> <span class="in">`times`</span> outside <span class="in">`fit$time_grid`</span> <span class="pp">|</span></span>
-<span id="cb13-313"><a href="#cb13-313" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_reference`</span> <span class="pp">|</span> <span class="in">`reference`</span> not in <span class="in">`interventions`</span> names <span class="pp">|</span></span>
-<span id="cb13-314"><a href="#cb13-314" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_ci_method`</span> <span class="pp">|</span> <span class="in">`ci_method`</span> not in <span class="in">`{"none", "sandwich", "bootstrap"}`</span> <span class="pp">|</span></span>
-<span id="cb13-315"><a href="#cb13-315" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_conf_level`</span> <span class="pp">|</span> <span class="in">`conf_level`</span> outside <span class="in">`(0, 1)`</span> <span class="pp">|</span></span>
-<span id="cb13-316"><a href="#cb13-316" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_n_boot`</span> / <span class="in">`survatr_bad_boot_ci`</span> / <span class="in">`survatr_bad_parallel`</span> <span class="pp">|</span> Bootstrap argument misuse <span class="pp">|</span></span>
-<span id="cb13-317"><a href="#cb13-317" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_matching_rejected`</span> <span class="pp">|</span> <span class="in">`estimator = "matching"`</span> (use <span class="in">`survival::coxph(..., weights, cluster)`</span> instead) <span class="pp">|</span></span>
-<span id="cb13-318"><a href="#cb13-318" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_na_action`</span> <span class="pp">|</span> <span class="in">`na.action = na.exclude`</span> (silently corrupts sandwich variance) <span class="pp">|</span></span>
-<span id="cb13-319"><a href="#cb13-319" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_competing_misuse`</span> <span class="pp">|</span> Non-<span class="in">`NULL`</span> <span class="in">`competing`</span> argument (cause-specific path ships later) <span class="pp">|</span></span>
-<span id="cb13-320"><a href="#cb13-320" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-321"><a href="#cb13-321" aria-hidden="true" tabindex="-1"></a><span class="fu">## Learning more</span></span>
-<span id="cb13-322"><a href="#cb13-322" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-323"><a href="#cb13-323" aria-hidden="true" tabindex="-1"></a>This vignette covered Track A g-computation. Two further estimators are</span>
-<span id="cb13-324"><a href="#cb13-324" aria-hidden="true" tabindex="-1"></a>implemented and have dedicated vignettes:</span>
-<span id="cb13-325"><a href="#cb13-325" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-326"><a href="#cb13-326" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Track A under IPW** (<span class="in">`vignette("ipw")`</span>) — stabilized density-ratio</span>
-<span id="cb13-327"><a href="#cb13-327" aria-hidden="true" tabindex="-1"></a>  weights broadcast onto person-period rows, fitting a weighted marginal</span>
-<span id="cb13-328"><a href="#cb13-328" aria-hidden="true" tabindex="-1"></a>  hazard MSM.</span>
-<span id="cb13-329"><a href="#cb13-329" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Track B (ICE hazards)** (<span class="in">`vignette("ice")`</span>) — longitudinal survival</span>
-<span id="cb13-330"><a href="#cb13-330" aria-hidden="true" tabindex="-1"></a>  for a time-varying treatment via iterated conditional expectations</span>
-<span id="cb13-331"><a href="#cb13-331" aria-hidden="true" tabindex="-1"></a>  (Zivich et al. 2024), with the hazard indicator at the final period and</span>
-<span id="cb13-332"><a href="#cb13-332" aria-hidden="true" tabindex="-1"></a>  a survival-tail pseudo-outcome at earlier periods.</span>
-<span id="cb13-333"><a href="#cb13-333" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-334"><a href="#cb13-334" aria-hidden="true" tabindex="-1"></a>survatr's full scope is laid out in <span class="in">`SURVIVAL_PACKAGE_HANDOFF.md`</span>. v1 is now</span>
-<span id="cb13-335"><a href="#cb13-335" aria-hidden="true" tabindex="-1"></a>complete (chunks 1–10). v1.x will add:</span>
-<span id="cb13-336"><a href="#cb13-336" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-337"><a href="#cb13-337" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**IPCW** — per-period cumulative censoring weights wired into the hazard MSM.</span>
-<span id="cb13-338"><a href="#cb13-338" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Extended estimands** — survival quantiles / median, RMTL, per-cause</span>
-<span id="cb13-339"><a href="#cb13-339" aria-hidden="true" tabindex="-1"></a>  years-of-life-lost.</span>
-<span id="cb13-340"><a href="#cb13-340" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Cluster-robust sandwich** — <span class="in">`cluster=`</span> IF aggregation.</span>
-<span id="cb13-341"><a href="#cb13-341" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Left-truncation / delayed entry.**</span>
-<span id="cb13-342"><a href="#cb13-342" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-343"><a href="#cb13-343" aria-hidden="true" tabindex="-1"></a><span class="fu">## References</span></span>
-<span id="cb13-344"><a href="#cb13-344" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-345"><a href="#cb13-345" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Hernán MA, Robins JM (2025). *Causal Inference: What If*. Chapman &amp;</span>
-<span id="cb13-346"><a href="#cb13-346" aria-hidden="true" tabindex="-1"></a>  Hall/CRC. Chapter 17 (survival analysis via IP weighting and</span>
-<span id="cb13-347"><a href="#cb13-347" aria-hidden="true" tabindex="-1"></a>  standardisation).</span>
-<span id="cb13-348"><a href="#cb13-348" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Zivich PN, Ross RK, Shook-Sa BE, Cole SR, Edwards JK (2024). Empirical</span>
-<span id="cb13-349"><a href="#cb13-349" aria-hidden="true" tabindex="-1"></a>  sandwich variance estimator for iterated conditional expectation</span>
-<span id="cb13-350"><a href="#cb13-350" aria-hidden="true" tabindex="-1"></a>  g-computation. *Statistics in Medicine* 43:5562–5572.</span>
-<span id="cb13-351"><a href="#cb13-351" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>D'Agostino RB, Lee ML, Belanger AJ, Cupples LA, Anderson K, Kannel WB</span>
-<span id="cb13-352"><a href="#cb13-352" aria-hidden="true" tabindex="-1"></a>  (1990). Relation of pooled logistic regression to time-dependent Cox</span>
-<span id="cb13-353"><a href="#cb13-353" aria-hidden="true" tabindex="-1"></a>  regression analysis: the Framingham Heart Study. *Statistics in</span>
-<span id="cb13-354"><a href="#cb13-354" aria-hidden="true" tabindex="-1"></a>  Medicine* 9:1501–1515.</span>
+<span id="cb13-305"><a href="#cb13-305" aria-hidden="true" tabindex="-1"></a>survatr reserves column names prefixed with <span class="in">`.survatr_*`</span> for internal</span>
+<span id="cb13-306"><a href="#cb13-306" aria-hidden="true" tabindex="-1"></a>bookkeeping (<span class="in">`.survatr_prev_event`</span>, <span class="in">`.survatr_prev_cens`</span>). User-data</span>
+<span id="cb13-307"><a href="#cb13-307" aria-hidden="true" tabindex="-1"></a>collisions produce <span class="in">`survatr_reserved_col`</span>.</span>
+<span id="cb13-308"><a href="#cb13-308" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-309"><a href="#cb13-309" aria-hidden="true" tabindex="-1"></a>All rejection paths raise **classed** errors with the <span class="in">`survatr_*`</span> prefix</span>
+<span id="cb13-310"><a href="#cb13-310" aria-hidden="true" tabindex="-1"></a>so downstream code can pattern-match on class rather than English:</span>
+<span id="cb13-311"><a href="#cb13-311" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-312"><a href="#cb13-312" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Class <span class="pp">|</span> Trigger <span class="pp">|</span></span>
+<span id="cb13-313"><a href="#cb13-313" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
+<span id="cb13-314"><a href="#cb13-314" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_interventions`</span> <span class="pp">|</span> Empty / unnamed / duplicate-named / wrong-type <span class="in">`interventions`</span>, or a pairwise-contrast <span class="in">`type`</span> with a single intervention <span class="pp">|</span></span>
+<span id="cb13-315"><a href="#cb13-315" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_times`</span> <span class="pp">|</span> Non-numeric / empty / NA <span class="in">`times`</span> <span class="pp">|</span></span>
+<span id="cb13-316"><a href="#cb13-316" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_time_extrapolation`</span> <span class="pp">|</span> <span class="in">`times`</span> outside <span class="in">`fit$time_grid`</span> <span class="pp">|</span></span>
+<span id="cb13-317"><a href="#cb13-317" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_reference`</span> <span class="pp">|</span> <span class="in">`reference`</span> not in <span class="in">`interventions`</span> names <span class="pp">|</span></span>
+<span id="cb13-318"><a href="#cb13-318" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_ci_method`</span> <span class="pp">|</span> <span class="in">`ci_method`</span> not in <span class="in">`{"none", "sandwich", "bootstrap"}`</span> <span class="pp">|</span></span>
+<span id="cb13-319"><a href="#cb13-319" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_conf_level`</span> <span class="pp">|</span> <span class="in">`conf_level`</span> outside <span class="in">`(0, 1)`</span> <span class="pp">|</span></span>
+<span id="cb13-320"><a href="#cb13-320" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_n_boot`</span> / <span class="in">`survatr_bad_boot_ci`</span> / <span class="in">`survatr_bad_parallel`</span> <span class="pp">|</span> Bootstrap argument misuse <span class="pp">|</span></span>
+<span id="cb13-321"><a href="#cb13-321" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_matching_rejected`</span> <span class="pp">|</span> <span class="in">`estimator = "matching"`</span> (use <span class="in">`survival::coxph(..., weights, cluster)`</span> instead) <span class="pp">|</span></span>
+<span id="cb13-322"><a href="#cb13-322" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_bad_na_action`</span> <span class="pp">|</span> <span class="in">`na.action = na.exclude`</span> (silently corrupts sandwich variance) <span class="pp">|</span></span>
+<span id="cb13-323"><a href="#cb13-323" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`survatr_competing_misuse`</span> <span class="pp">|</span> Non-<span class="in">`NULL`</span> <span class="in">`competing`</span> argument (cause-specific path ships later) <span class="pp">|</span></span>
+<span id="cb13-324"><a href="#cb13-324" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-325"><a href="#cb13-325" aria-hidden="true" tabindex="-1"></a><span class="fu">## Learning more</span></span>
+<span id="cb13-326"><a href="#cb13-326" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-327"><a href="#cb13-327" aria-hidden="true" tabindex="-1"></a>This vignette covered Track A g-computation. Two further estimators are</span>
+<span id="cb13-328"><a href="#cb13-328" aria-hidden="true" tabindex="-1"></a>implemented and have dedicated vignettes:</span>
+<span id="cb13-329"><a href="#cb13-329" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-330"><a href="#cb13-330" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Track A under IPW** (<span class="in">`vignette("ipw")`</span>) — stabilized density-ratio</span>
+<span id="cb13-331"><a href="#cb13-331" aria-hidden="true" tabindex="-1"></a>  weights broadcast onto person-period rows, fitting a weighted marginal</span>
+<span id="cb13-332"><a href="#cb13-332" aria-hidden="true" tabindex="-1"></a>  hazard MSM.</span>
+<span id="cb13-333"><a href="#cb13-333" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Track B (ICE hazards)** (<span class="in">`vignette("ice")`</span>) — longitudinal survival</span>
+<span id="cb13-334"><a href="#cb13-334" aria-hidden="true" tabindex="-1"></a>  for a time-varying treatment via iterated conditional expectations</span>
+<span id="cb13-335"><a href="#cb13-335" aria-hidden="true" tabindex="-1"></a>  <span class="co">[</span><span class="ot">@zivich2024ice</span><span class="co">]</span>, with the hazard indicator at the final period and</span>
+<span id="cb13-336"><a href="#cb13-336" aria-hidden="true" tabindex="-1"></a>  a survival-tail pseudo-outcome at earlier periods.</span>
+<span id="cb13-337"><a href="#cb13-337" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-338"><a href="#cb13-338" aria-hidden="true" tabindex="-1"></a>survatr's full scope is laid out in <span class="in">`SURVIVAL_PACKAGE_HANDOFF.md`</span>. v1 is now</span>
+<span id="cb13-339"><a href="#cb13-339" aria-hidden="true" tabindex="-1"></a>complete (chunks 1–10). v1.x will add:</span>
+<span id="cb13-340"><a href="#cb13-340" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-341"><a href="#cb13-341" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**IPCW** — per-period cumulative censoring weights wired into the hazard MSM.</span>
+<span id="cb13-342"><a href="#cb13-342" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Extended estimands** — survival quantiles / median, RMTL, per-cause</span>
+<span id="cb13-343"><a href="#cb13-343" aria-hidden="true" tabindex="-1"></a>  years-of-life-lost.</span>
+<span id="cb13-344"><a href="#cb13-344" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Cluster-robust sandwich** — <span class="in">`cluster=`</span> IF aggregation.</span>
+<span id="cb13-345"><a href="#cb13-345" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Left-truncation / delayed entry.**</span>
+<span id="cb13-346"><a href="#cb13-346" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-347"><a href="#cb13-347" aria-hidden="true" tabindex="-1"></a><span class="fu">## References</span></span>
+<span id="cb13-348"><a href="#cb13-348" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-349"><a href="#cb13-349" aria-hidden="true" tabindex="-1"></a>::: {#refs}</span>
+<span id="cb13-350"><a href="#cb13-350" aria-hidden="true" tabindex="-1"></a>:::</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
