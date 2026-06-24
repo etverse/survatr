@@ -6,6 +6,9 @@ vignette: >
   %\VignetteIndexEntry{Competing risks with survatr}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
+bibliography: references.bib
+nocite: |
+  @young2014simcox
 ---
 
 ```{r}
@@ -48,7 +51,8 @@ F^{(j)}_i(t) = \sum_{k \le t} S_i(k-1)\, h^{(j)}_{i,k},
 $$
 
 averaged across individuals (cumulate within id, then average — never average
-hazards first). By construction $\sum_j F^{(j)}(t) + S(t) = 1$.
+hazards first). By construction $\sum_j F^{(j)}(t) + S(t) = 1$. This
+cause-specific decomposition follows @hernan_whatif, Ch. 17.
 
 ## A two-cause data set
 
@@ -194,7 +198,8 @@ forrest(rd_all, t_ref = 6)
 ## Years of life lost
 
 Per-cause **years of life lost** up to $t^*$ is the integral of the cause-$j$
-cumulative incidence, $\mathrm{YLL}^{(j),a}(t^*) = \int_0^{t^*} F^{(j),a}(u)\,du$.
+cumulative incidence, $\mathrm{YLL}^{(j),a}(t^*) = \int_0^{t^*} F^{(j),a}(u)\,du$
+[@andersen2013yll].
 It carries the same `cause` dimension as the CIF (and the same truncation-by-
 death caveat), and the per-cause years lost add up to the all-cause restricted
 mean time lost: $\sum_j \mathrm{YLL}^{(j),a}(t^*) = \mathrm{RMTL}^a(t^*)$.
@@ -242,7 +247,5 @@ all-cause survival alongside them.
 
 ## References
 
-- Hernán MA, Robins JM (2025). *Causal Inference: What If*, Ch. 17. Chapman &
-  Hall/CRC.
-- Young JG, Tchetgen Tchetgen EJ (2014). Simulation from a known cause-specific
-  cumulative incidence function. *Statistics in Medicine* 33:1098–1114.
+::: {#refs}
+:::

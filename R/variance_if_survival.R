@@ -32,7 +32,7 @@
 #' derivation.
 #'
 #' Source: cumulative-product survival standardization in Hernán & Robins
-#' (2020), *Causal Inference: What If*, Ch. 17; the cross-time delta chain
+#' (2025), *Causal Inference: What If*, Ch. 17; the cross-time delta chain
 #' is derived in `CHUNK_3_SANDWICH_A.md`.
 #'
 #' @param fit A `survatr_fit`.

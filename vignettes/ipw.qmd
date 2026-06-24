@@ -6,6 +6,7 @@ vignette: >
   %\VignetteIndexEntry{IPW survival with survatr}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
+bibliography: references.bib
 ---
 
 ```{r}
@@ -16,8 +17,10 @@ set.seed(2026)
 
 Inverse-probability weighting (IPW) estimates the counterfactual survival curve
 by reweighting the observed data so that confounders are balanced across
-treatment groups, then fitting a **weighted marginal hazard MSM** rather than a
-covariate-adjusted hazard. It is the second of survatr's two Track A estimators
+treatment groups, then fitting a **weighted marginal hazard MSM**
+[@robins2000msmepi] rather than a covariate-adjusted hazard — the IP-weighted
+approach to survival analysis of @hernan_whatif, Ch. 17. It is the second of
+survatr's two Track A estimators
 (alongside g-computation) and a methodologically distinct route to the same
 estimand — when the two agree you can be more confident in the result.
 
@@ -228,7 +231,7 @@ res_dyn$contrasts[]
 When the propensity model yields extreme density ratios (near-positivity
 violations, strong confounding), the IPW estimator can be unstable. The `trim`
 argument on `surv_fit()` winsorizes the per-id stabilized weights at a quantile
-(Cole & Hernán 2008) **before** they are broadcast onto the person-period rows;
+[@cole2008constructing] **before** they are broadcast onto the person-period rows;
 the resolved cutoff is held fixed and reused by the sandwich variance.
 
 ```{r}
@@ -262,11 +265,5 @@ For a time-varying treatment, use `estimator = "ice"` — see `vignette("ice")`.
 
 ## References
 
-Hernán MA, Robins JM (2025). *Causal Inference: What If*. Chapman & Hall/CRC.
-Chapter 17 (survival analysis via IP weighting and standardization).
-
-Robins JM, Hernán MA, Brumback B (2000). Marginal structural models and causal
-inference in epidemiology. *Epidemiology* 11:550–560.
-
-Cole SR, Hernán MA (2008). Constructing inverse probability weights for marginal
-structural models. *American Journal of Epidemiology* 168:656–664.
+::: {#refs}
+:::

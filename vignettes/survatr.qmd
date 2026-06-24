@@ -6,6 +6,7 @@ vignette: >
   %\VignetteIndexEntry{Introduction to survatr}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
+bibliography: references.bib
 ---
 
 ```{r}
@@ -15,12 +16,15 @@ set.seed(2026)
 ```
 
 survatr extends the [causatr](https://github.com/etverse/causatr) engine
-to **time-to-event outcomes** via three building blocks:
+to **time-to-event outcomes**, following the causal survival analysis of
+@hernan_whatif, Ch. 17, via three building blocks:
 
 - **Pooled-logistic hazard g-computation** on person-period data:
   $\text{logit}\, h(t \mid A, L) = \alpha(t) + \beta_A A + \beta_L L$, with
   survival cumulated across periods as
-  $\hat{S}^a_i(t) = \prod_{k \leq t}(1 - \hat{h}^a_{i,k})$.
+  $\hat{S}^a_i(t) = \prod_{k \leq t}(1 - \hat{h}^a_{i,k})$. For small
+  per-period hazards this discrete-time model approximates time-dependent
+  Cox regression closely [@dagostino1990pooled].
 - **Delta-method sandwich variance** that propagates per-row influence
   functions through the cumulative product into a cross-time covariance
   matrix on the survival curve.
@@ -304,7 +308,7 @@ implemented and have dedicated vignettes:
   hazard MSM.
 - **Track B (ICE hazards)** (`vignette("ice")`) — longitudinal survival
   for a time-varying treatment via iterated conditional expectations
-  (Zivich et al. 2024), with the hazard indicator at the final period and
+  [@zivich2024ice], with the hazard indicator at the final period and
   a survival-tail pseudo-outcome at earlier periods.
 
 survatr's full scope is laid out in `SURVIVAL_PACKAGE_HANDOFF.md`. v1 is now
@@ -318,13 +322,5 @@ complete (chunks 1–10). v1.x will add:
 
 ## References
 
-- Hernán MA, Robins JM (2025). *Causal Inference: What If*. Chapman &
-  Hall/CRC. Chapter 17 (survival analysis via IP weighting and
-  standardisation).
-- Zivich PN, Ross RK, Shook-Sa BE, Cole SR, Edwards JK (2024). Empirical
-  sandwich variance estimator for iterated conditional expectation
-  g-computation. *Statistics in Medicine* 43:5562–5572.
-- D'Agostino RB, Lee ML, Belanger AJ, Cupples LA, Anderson K, Kannel WB
-  (1990). Relation of pooled logistic regression to time-dependent Cox
-  regression analysis: the Framingham Heart Study. *Statistics in
-  Medicine* 9:1501–1515.
+::: {#refs}
+:::

@@ -6,6 +6,7 @@ vignette: >
   %\VignetteIndexEntry{Longitudinal survival via ICE (Track B) with survatr}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
+bibliography: references.bib
 ---
 
 ```{r}
@@ -20,7 +21,7 @@ baseline. When the treatment varies over time and there is
 to past treatment and drives future treatment and the hazard — a point-treatment
 hazard model is biased, and no single weighted MSM recovers the counterfactual
 curve. survatr's **Track B** (`estimator = "ice"`) solves this with iterated
-conditional expectations (ICE) on the discrete-time hazard (Zivich et al. 2024).
+conditional expectations (ICE) on the discrete-time hazard [@zivich2024ice].
 
 This vignette explains the ICE backward sweep, the Track-B arguments
 (`confounders_tv`, `history`), and shows the estimator recovering the
@@ -50,9 +51,10 @@ pseudo-outcome. Inference is a stacked-EE sandwich across the per-step models
 
 ## A treatment–confounder-feedback DGP
 
-We simulate a discrete-time survival process (Hernán & Robins Ch. 21 structure)
-where the time-varying confounder $L_k$ drives both the current treatment $A_k$
-and the hazard, and past treatment $A_{k-1}$ feeds forward into $L_k$:
+We simulate a discrete-time survival process following the Ch. 21 structure of
+@hernan_whatif, where the time-varying confounder $L_k$ drives both the current
+treatment $A_k$ and the hazard, and past treatment $A_{k-1}$ feeds forward into
+$L_k$:
 
 $$
 \begin{aligned}
@@ -272,9 +274,5 @@ all-`NA` curve.
 
 ## References
 
-Hernán MA, Robins JM (2025). *Causal Inference: What If*. Chapman & Hall/CRC.
-Chapter 21 (g-methods for time-varying treatments).
-
-Zivich PN, Ross RK, Shook-Sa BE, Cole SR, Edwards JK (2024). Empirical sandwich
-variance estimator for iterated conditional expectation g-computation.
-*Statistics in Medicine* 43:5562–5572.
+::: {#refs}
+:::

@@ -46,7 +46,7 @@
 #' \url{https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/}.
 #'
 #' @references
-#' Hernán MA, Robins JM (2024). *Causal Inference: What If.* Chapman &
+#' Hernán MA, Robins JM (2025). *Causal Inference: What If.* Chapman &
 #' Hall / CRC. Chapter 17: Causal survival analysis.
 #'
 #' Huntington-Klein N et al. (2021). causaldata: Example Datasets for

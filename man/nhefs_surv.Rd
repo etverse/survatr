@@ -59,7 +59,7 @@ nhefs_surv[, .N, by = "seqn"][, range(N)]  # all 120 periods per id
 sum(nhefs_surv$event)                       # 318 deaths
 }
 \references{
-Hernán MA, Robins JM (2024). \emph{Causal Inference: What If.} Chapman &
+Hernán MA, Robins JM (2025). \emph{Causal Inference: What If.} Chapman &
 Hall / CRC. Chapter 17: Causal survival analysis.
 
 Huntington-Klein N et al. (2021). causaldata: Example Datasets for
