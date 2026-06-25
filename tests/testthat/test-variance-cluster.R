@@ -8,7 +8,7 @@
 ##   3. calibration on a multi-site frailty DGP (naive under-covers, clustered
 ##      restores the cluster-sampling SD) + clustered SE >= per-individual SE;
 ##   4. cluster-resampling bootstrap agreement with the clustered sandwich;
-##   5. coverage across gcomp / IPW / IPCW / Track B (ICE) / competing risks;
+##   5. coverage across gcomp / IPW / IPCW / longitudinal ICE-hazard / competing risks;
 ##   6. the validation aborts.
 
 ## ---- 1. aggregation primitive vs sandwich::vcovCL -------------------------
@@ -301,7 +301,7 @@ test_that("bootstrap resamples clusters and matches the clustered sandwich", {
 
 ## ---- 5. deferrals and validation aborts -------------------------------------
 
-test_that("Track B (ICE): cluster = id reproduces the per-individual SE", {
+test_that("longitudinal ICE-hazard: cluster = id reproduces the per-individual SE", {
   ## Time-varying-treatment ICE DGP (feedback) so the chain is not rank-
   ## deficient; the IF rows are in first-period id order, aligned by name.
   pp <- sim_clustered_ice(n_per = 50L, G = 20L, K = 4L, seed = 51L)
@@ -334,7 +334,7 @@ test_that("Track B (ICE): cluster = id reproduces the per-individual SE", {
   }
 })
 
-test_that("Track B (ICE): clustered SE >= per-individual SE under frailty", {
+test_that("longitudinal ICE-hazard: clustered SE >= per-individual SE under frailty", {
   pp <- sim_clustered_ice(n_per = 50L, G = 25L, K = 4L, sigma = 1.1, seed = 52L)
   fit <- surv_fit(
     pp,

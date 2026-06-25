@@ -58,11 +58,12 @@ SURVATR_INTERNAL_COLS <- c(
 #' @param trim The `trim` quantile level passed to `surv_fit()` (not the
 #'   resolved cutoff), or `NULL`. Stored so the bootstrap re-estimates the
 #'   winsorization per replicate.
-#' @param confounders_tv Time-varying confounders formula under
-#'   `estimator = "ice"` (Track B), or `NULL` (Track A). Threaded to the
-#'   bootstrap refit and the contrast ICE path.
+#' @param confounders_tv Time-varying confounders formula under the
+#'   longitudinal ICE-hazard estimator (`estimator = "ice"`), or `NULL` for
+#'   point-treatment g-computation. Threaded to the bootstrap refit and the
+#'   contrast ICE path.
 #' @param history Markov lag order under `estimator = "ice"`, or `NULL`
-#'   (Track A).
+#'   (point-treatment g-computation).
 #' @param ice_details Per-step ICE metadata (`build_ice_surv_details()` output)
 #'   under `estimator = "ice"`, or `NULL`. Lets `contrast()` / the bootstrap
 #'   reconstruct the ICE machinery without re-parsing.

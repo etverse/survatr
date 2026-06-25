@@ -3,7 +3,7 @@
 > **Status: ✅ Done.** `R/competing_risks.R` + `R/variance_if_competing.R`;
 > tests `test-competing-risks.R`, `test-competing-risks-sandwich.R`; oracle
 > `helper-cr-oracle.R` + `data-raw/delicatessen_competing_risks.py`. gcomp /
-> Track A only; IPW / ICE competing risks and per-cause RMST / YLL deferred.
+> point-treatment g-computation only; IPW / ICE competing risks and per-cause RMST / YLL deferred.
 > **Depends on:** Chunk 2 (contrast spine), Chunk 3 (sandwich IF).
 > **Oracle:** closed-form two-cause constant-hazard DGP (analytic CIF);
 > `riskRegression::ate()` / `survtmle` for CIF point estimates;
@@ -109,7 +109,7 @@ result <- contrast(fit, interventions = list(a1 = causatr::static(1),
 - Fine–Gray subdistribution hazards (out of scope, documented).
 - Years-of-life-lost per cause (integral of CIF) — **pending scope
   ratification**; would fold in here cheaply once approved.
-- Competing risks under Track B — composes after Chunk 6.
+- Competing risks under longitudinal ICE-hazard — composes after Chunk 6.
 
 ## Dependencies & composition
 - Chunks 2, 3. Reuses `causatr:::prepare_model_if()` per cause-specific model.

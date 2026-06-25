@@ -1,4 +1,4 @@
-#' Fit the pooled-logistic hazard model (Track A, gcomp)
+#' Fit the pooled-logistic hazard model (point-treatment, gcomp)
 #'
 #' Internal fit-only helper. Assembles the model formula
 #' `outcome ~ alpha(t) + A + L` from `time_formula`, `treatment`, and

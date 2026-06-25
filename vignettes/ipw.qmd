@@ -20,7 +20,7 @@ by reweighting the observed data so that confounders are balanced across
 treatment groups, then fitting a **weighted marginal hazard MSM**
 [@robins2000msmepi] rather than a covariate-adjusted hazard — the IP-weighted
 approach to survival analysis of @hernan_whatif, Ch. 17. It is the second of
-survatr's two Track A estimators
+survatr's two point-treatment estimators
 (alongside g-computation) and a methodologically distinct route to the same
 estimand — when the two agree you can be more confident in the result.
 

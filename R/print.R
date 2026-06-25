@@ -39,8 +39,9 @@ print.survatr_fit <- function(x, ...) {
   cat(sprintf("  ID:          %s\n", x$id))
   cat(sprintf("  Time:        %s\n", x$time))
   cat(sprintf("  Censoring:   %s\n", cens_info))
-  ## Track B (ICE) carries time-varying confounders + a Markov lag order that
-  ## Track A does not; surface them so the printout reflects the actual model.
+  ## The longitudinal ICE-hazard fit carries time-varying confounders + a Markov
+  ## lag order that point-treatment g-computation does not; surface them so the
+  ## printout reflects the actual model.
   if (identical(x$track, "B")) {
     tv <- if (is.null(x$confounders_tv)) {
       "none"

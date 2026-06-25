@@ -16,7 +16,7 @@
     Condition
       Error in `surv_fit()`:
       ! Built-in IPCW (`ipcw =`) is only supported with `estimator = "ipw"` in this release.
-      i IPCW for `estimator = "gcomp"` and Track B (`"ice"`) ship in later chunks. Got `estimator = "gcomp"`.
+      i IPCW for `estimator = "gcomp"` and the longitudinal ICE-hazard estimator (`estimator = "ice"`) ship in later chunks. Got `estimator = "gcomp"`.
 
 ---
 

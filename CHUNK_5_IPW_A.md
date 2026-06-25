@@ -1,4 +1,4 @@
-# Chunk 5 — Track A under IPW (weighted hazard MSM)
+# Chunk 5 — point-treatment g-computation under IPW (weighted hazard MSM)
 
 > **Status: ✅ Done** (binary treatment + `static` / `dynamic`; continuous /
 > categorical / count treatment types and `ipsi()` deferred to chunks 19 / 20).

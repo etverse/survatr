@@ -1,7 +1,7 @@
 # Chunk 13 — Cluster-robust sandwich variance
 
 > **Status: ✅ Done** (`a03ed39`; `cluster =` on `contrast()`; gcomp / IPW / IPCW /
-> Track B (ICE) / competing-risks sandwich + quantile + cluster-resampling
+> longitudinal ICE-hazard / competing-risks sandwich + quantile + cluster-resampling
 > bootstrap). Validated against `sandwich::vcovCL` and an empirical
 > cluster-sampling-SD oracle.
 > **Depends on:** Chunk 3 (sandwich IF: the `n × |t-grid|` per-individual IF
@@ -169,13 +169,13 @@ Cluster-robust SE is wired wherever the variance flows through the
 (`clustered_pointwise_se()` → `causatr:::vcov_from_if()`):
 
 - **gcomp / IPW / IPCW** (single-event `fill_sandwich_ses()`),
-- **Track B (ICE)** (`contrast_track_b()` → `fill_sandwich_ses()`, IF rows
+- **longitudinal ICE-hazard** (`contrast_track_b()` → `fill_sandwich_ses()`, IF rows
   aligned by first-period id),
 - **competing risks** (`fill_sandwich_ses_cr()` — CIF + all-cause),
 - **survival quantile** (`assemble_quantile_result()`),
 - **bootstrap** (resample whole clusters) for all of the above.
 
-Track B alignment is verified the same way as the other paths: `cluster = id`
+Longitudinal ICE-hazard alignment is verified the same way as the other paths: `cluster = id`
 reproduces the per-individual SE to machine tolerance, and the clustered SE
 matches an independent within-cluster `rowsum` of the ICE IF matrix exactly. The
 time-varying-treatment (feedback) DGP keeps the ICE chain full-rank; a static

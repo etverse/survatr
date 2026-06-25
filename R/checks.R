@@ -180,7 +180,8 @@ check_ipcw <- function(
           "`estimator = \"ipw\"` in this release."
         ),
         i = paste0(
-          "IPCW for `estimator = \"gcomp\"` and Track B (`\"ice\"`) ship ",
+          "IPCW for `estimator = \"gcomp\"` and the longitudinal ICE-hazard ",
+          "estimator (`estimator = \"ice\"`) ship ",
           "in later chunks. Got `estimator = \"",
           estimator,
           "\"`."
@@ -416,7 +417,8 @@ check_competing_col <- function(data, competing, call = rlang::caller_env()) {
 
 #' Reject NA values in predictor columns
 #'
-#' Track A's contrast path predicts the counterfactual hazard on **every**
+#' The point-treatment contrast path predicts the counterfactual hazard on
+#' **every**
 #' person-period row (including rows that were censored / had the event
 #' in reality — the cumulative product `prod_{k <= t} (1 - h^a_{i,k})`
 #' needs every per-period hazard). Any NA in a predictor column would
@@ -456,8 +458,8 @@ check_no_na_in_predictors <- function(data, cols, call = rlang::caller_env()) {
         paste0(
           "Predictor column(s) ",
           paste0("`", bad, "`", collapse = ", "),
-          " contain NA values. Track A's contrast path predicts the ",
-          "counterfactual hazard on every person-period row and cannot ",
+          " contain NA values. The point-treatment contrast path predicts ",
+          "the counterfactual hazard on every person-period row and cannot ",
           "be NA-safe."
         ),
         i = paste0(

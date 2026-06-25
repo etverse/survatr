@@ -18,15 +18,15 @@ MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/
 engine to **time-to-event outcomes**. It estimates counterfactual
 survival via pooled-logistic discrete-time hazard models on
 person-period data, with three complementary estimators: g-computation
-(Track A), inverse-probability weighting (IPW, Track A), and iterated
-conditional expectations (ICE) for longitudinal, time-varying treatments
-(Track B). The **estimand is a curve** — survival $S^a(t)$, risk
-$1 - S^a(t)$, risk difference, risk ratio, restricted mean survival time
-(RMST) or time lost (RMTL), survival quantiles / median, and per-cause
-years of life lost — not a scalar. Inference is by a delta-method
-sandwich that propagates per-row influence functions through the
-cumulative-product survival curve, or by an individual-level
-nonparametric bootstrap.
+(point-treatment), inverse-probability weighting (IPW, point-treatment),
+and iterated conditional expectations (ICE) for longitudinal,
+time-varying treatments (longitudinal ICE-hazard). The **estimand is a
+curve** — survival $S^a(t)$, risk $1 - S^a(t)$, risk difference, risk
+ratio, restricted mean survival time (RMST) or time lost (RMTL),
+survival quantiles / median, and per-cause years of life lost — not a
+scalar. Inference is by a delta-method sandwich that propagates per-row
+influence functions through the cumulative-product survival curve, or by
+an individual-level nonparametric bootstrap.
 
 The package implements the survival methods of Hernán & Robins (2025)
 *Causal Inference: What If* (Chapter 17) with the same two-step API
@@ -115,7 +115,7 @@ covers 0 at every time point.
 - **Three estimators**: g-computation (`estimator = "gcomp"`,
   pooled-logistic standardization), IPW (`estimator = "ipw"`, a weighted
   marginal hazard MSM with stabilized density-ratio weights), and ICE
-  (`estimator = "ice"`, Track B longitudinal survival via backward
+  (`estimator = "ice"`, longitudinal ICE-hazard survival via backward
   iterated conditional expectations for a time-varying treatment).
   Matching + survival is a hard reject — use
   `survival::coxph(..., weights, cluster)` directly.
@@ -142,8 +142,8 @@ covers 0 at every time point.
 ## Learning more
 
 - `vignette("survatr")` — introduction and the two-step API
-- `vignette("ipw")` — Track A IPW (weighted hazard MSM)
-- `vignette("ice")` — Track B longitudinal survival via ICE
+- `vignette("ipw")` — point-treatment IPW (weighted hazard MSM)
+- `vignette("ice")` — longitudinal ICE-hazard survival
 
 ## References
 

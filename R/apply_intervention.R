@@ -2,7 +2,7 @@
 #'
 #' Thin wrapper around `causatr:::apply_intervention()` that (a) works on
 #' person-period data (the intervention is applied row-wise to the
-#' treatment column -- for baseline-constant Track A treatments this
+#' treatment column -- for baseline-constant point-treatment treatments this
 #' broadcasts the intervened value to every period for each id, which is
 #' exactly what we want), and (b) guarantees the returned `data.table` is a
 #' copy, never a view into `fit$pp_data`.

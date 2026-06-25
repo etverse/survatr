@@ -404,7 +404,7 @@ sim_clustered_censoring <- function(
   data.table::rbindlist(rows)
 }
 
-## Clustered time-varying-treatment ICE DGP for Track B cluster-robust tests.
+## Clustered time-varying-treatment ICE DGP for longitudinal ICE-hazard cluster-robust tests.
 ## Extends `sim_ice_feedback()` (treatment-confounder feedback, the proper Track
 ## B / ICE setting) with a site-level frailty `u_g` on the hazard, so within-site
 ## individuals are positively correlated. Treatment is time-varying (A_k depends

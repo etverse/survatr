@@ -255,7 +255,7 @@ data.frame(
 The bootstrap honours the same unit of independence — `ci_method =
 "bootstrap"` with `cluster = "site"` resamples whole sites rather than
 individuals. Cluster-robust SEs are available for the gcomp, IPW, IPCW, and
-competing-risks paths; Track B (ICE) fits are not yet supported.
+competing-risks paths; longitudinal ICE-hazard fits are not yet supported.
 
 ## Plot
 

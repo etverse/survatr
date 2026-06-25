@@ -1,4 +1,4 @@
-#' Empirical bootstrap for Track A survival curves / contrasts
+#' Empirical bootstrap for point-treatment survival curves / contrasts
 #'
 #' Resamples **individuals** (all of each id's PP rows together), refits the
 #' hazard model on each resample, recomputes the per-intervention survival
@@ -181,8 +181,9 @@ bootstrap_survival <- function(
           stats::glm
         },
         trim = fit$trim,
-        ## Track B (ice) needs the time-varying confounders + lag order; both
-        ## are NULL for Track A, where `surv_fit()` ignores them.
+        ## Longitudinal ICE-hazard (ice) needs the time-varying confounders + lag
+        ## order; both are NULL for point-treatment g-computation, where
+        ## `surv_fit()` ignores them.
         confounders_tv = fit$confounders_tv,
         history = if (is.null(fit$history)) Inf else fit$history,
         ## Competing risks: re-activate the cause-specific path each replicate

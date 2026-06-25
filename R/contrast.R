@@ -119,7 +119,7 @@ contrast <- function(fit, ...) {
 #'   summed within cluster before the cross-product) and the bootstrap resamples
 #'   whole clusters. `cluster = "<id-column>"` reproduces the per-individual
 #'   sandwich exactly (singleton clusters). Supported for gcomp, IPW, IPCW,
-#'   Track B (ICE), and competing-risks fits.
+#'   longitudinal ICE-hazard, and competing-risks fits.
 #' @param ... Unused; reserved for future chunks.
 #'
 #' @return A `survatr_result` list with `estimates`, `contrasts`,
@@ -315,10 +315,10 @@ contrast.survatr_fit <- function(
     ))
   }
 
-  ## Track B (longitudinal ICE-hazard survival). The curve is built by a
+  ## Longitudinal ICE-hazard survival. The curve is built by a
   ## per-(intervention, horizon) backward sequential regression on the
-  ## survival-tail pseudo-outcome rather than the Track A predict-hazard /
-  ## cumulative-product path, so it takes a dedicated branch and returns early.
+  ## survival-tail pseudo-outcome rather than the point-treatment predict-hazard
+  ## / cumulative-product path, so it takes a dedicated branch and returns early.
   ## The estimand shape, contrast assembly, RMST integral, and CI fillers are
   ## all reused -- only the curve + influence-function construction differ.
   if (identical(fit$track, "B")) {

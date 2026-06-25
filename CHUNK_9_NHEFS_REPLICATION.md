@@ -1,14 +1,14 @@
 # Chunk 9 — NHEFS Ch. 17 replication + survival vignette
 
 > **Status: ✅ Done**
-> **Depends on:** Chunks 2–7 (the full Track A surface; IPW for the weighted
+> **Depends on:** Chunks 2–7 (the full point-treatment g-computation surface; IPW for the weighted
 > arm; CR optional).
 > **Oracle:** Hernán & Robins *Causal Inference: What If* Ch. 17 published
 > numbers; `survival::survfit()` (unadjusted KM sanity).
 
 ## Goal
 
-The headline acceptance test for Track A: reproduce the Hernán & Robins Ch. 17
+The headline acceptance test for point-treatment g-computation: reproduce the Hernán & Robins Ch. 17
 NHEFS analysis, and ship a `survival` vignette that walks the two-step API end
 to end. This is the package's "it actually works on a real, published analysis"
 proof.
@@ -59,7 +59,7 @@ setup.
 - Monthly person-period grid to 120; censor at administrative end.
 
 ## Non-goals (deferred)
-- Track B / longitudinal NHEFS (the Ch. 17 analysis is point-treatment).
+- Longitudinal ICE-hazard / longitudinal NHEFS (the Ch. 17 analysis is point-treatment).
 
 ## Dependencies & composition
 - Chunks 2–4 are the minimum; Chunk 5 (IPW) adds the weighted arm Ch. 17 also

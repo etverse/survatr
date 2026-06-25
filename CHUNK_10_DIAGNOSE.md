@@ -21,8 +21,8 @@ competing risks.
    zone noted in the GAM/bread discussion).
 2. **Cross-time covariate balance.** Balance of confounders by treatment arm at
    each time step (standardized mean differences), surfacing time-varying
-   imbalance for Track B.
-3. **Weight diagnostics (IPW).** Per-period (Track B) / per-id (Track A)
+   imbalance for the longitudinal ICE path.
+3. **Weight diagnostics (IPW).** Per-period (longitudinal ICE) / per-id (point-treatment)
    density-ratio weight distribution, ESS, max weight, share of weight in the
    top quantile (the truncation decision input).
 4. **Censoring-by-arm.** Censoring incidence per period per treatment arm — the

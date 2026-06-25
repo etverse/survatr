@@ -1,4 +1,4 @@
-## Oracles + DGP for Track B (ICE-hazard longitudinal survival) tests.
+## Oracles + DGP for longitudinal ICE-hazard tests.
 ##
 ## The DGP is a treatment-confounder-feedback discrete-time survival process
 ## (Hernan & Robins Ch. 21 / Table 20.1 structure): a time-varying confounder

@@ -79,7 +79,7 @@ test_that("CR sandwich matches the delicatessen oracle on shared data", {
 
 test_that("the per-time row guard returns one row per id per time", {
   ## Defensive parity with the single-event `compute_survival_if_matrix()`
-  ## guard. Track A PP is rectangular so the public path never trips this, but a
+  ## guard. point-treatment g-computation PP is rectangular so the public path never trips this, but a
   ## future ragged-PP / left-truncation path must abort loudly rather than
   ## `colMeans` over the wrong row set.
   ## A valid (id, time) layout: 3 ids x 2 times -> 3 rows at each time.

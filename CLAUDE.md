@@ -43,9 +43,9 @@ R/
 ├── diagnose.R             # survival-aware diagnostics (per-period positivity, balance)
 │
 ├── # ── Estimation engines ───────────────────────────
-├── gcomp_survival.R       # Track A: pooled-logistic g-formula on person-period data
+├── gcomp_survival.R       # point-treatment g-computation: pooled-logistic g-formula on person-period data
 ├── ipw_survival.R         # IPW survival: density-ratio weights broadcast onto PP rows
-├── ice_survival.R         # Track B: ICE hazards (Zivich et al. 2024 extended)
+├── ice_survival.R         # longitudinal ICE-hazard: ICE hazards (Zivich et al. 2024 extended)
 ├── competing_risks.R      # parallel cause-specific hazards + CIF decomposition
 │
 ├── # ── Inference ────────────────────────────────────
@@ -134,8 +134,8 @@ Run this in the shell:
 - Use `expect_snapshot(error = TRUE)` for testing error conditions
 - NEVER delete or mock away failing tests — fix the source code
 - NEVER add complex mocking to make tests pass
-- **Truth-based simulation tests are mandatory for new features.** Every supported (track × estimator × treatment type × intervention × variance) combination MUST assert against an analytical or external reference (`lmtp::lmtp_tmle(outcome_type = "survival")` for point estimates; `survival::survfit` / `survival::coxph` for unadjusted KM / Cox sanity; `gfoRmula::gformula_survival()` for Track B). Smoke tests accepted only where no oracle exists and should be marked 🟡 in `FEATURE_COVERAGE_MATRIX.md`.
-- **NHEFS Ch. 17 replication** (handoff §9) is the acceptance target for Track A: 120-month survival ≈ 80.7% under treatment / 80.5% under no treatment; risk difference ≈ 0.2% (95% CI: −4.1% to 3.7%).
+- **Truth-based simulation tests are mandatory for new features.** Every supported (track × estimator × treatment type × intervention × variance) combination MUST assert against an analytical or external reference (`lmtp::lmtp_tmle(outcome_type = "survival")` for point estimates; `survival::survfit` / `survival::coxph` for unadjusted KM / Cox sanity; `gfoRmula::gformula_survival()` for the longitudinal ICE path). Smoke tests accepted only where no oracle exists and should be marked 🟡 in `FEATURE_COVERAGE_MATRIX.md`.
+- **NHEFS Ch. 17 replication** (handoff §9) is the acceptance target for point-treatment g-computation: 120-month survival ≈ 80.7% under treatment / 80.5% under no treatment; risk difference ≈ 0.2% (95% CI: −4.1% to 3.7%).
 - **External reference cross-checks.** When the analytical truth is hard to derive (longitudinal MTPs, competing risks under non-static interventions), validate against `lmtp::lmtp_tmle(outcome_type = "survival")` once at test design time, then pin the expected value with a comment block citing the validation.
 
 ## Constraints
@@ -148,9 +148,10 @@ Run this in the shell:
 ## Scope
 
 survatr is a **causal survival analysis package** for time-to-event outcomes,
-built on top of causatr. It owns: pooled-logistic hazard g-computation (Track
-A), iterated-conditional-expectation hazards for longitudinal survival
-(Track B), IPW weighted hazard MSM, built-in IPCW, **parametric** doubly-robust
+built on top of causatr. It owns: pooled-logistic hazard g-computation
+(point-treatment g-computation), iterated-conditional-expectation hazards for
+longitudinal survival (longitudinal ICE-hazard), IPW weighted hazard MSM,
+built-in IPCW, **parametric** doubly-robust
 (AIPW) survival, cause-specific hazards + CIF for competing risks, recurrent-
 event and multi-state (illness-death) extensions, left-truncation, and a
 curve-valued estimand surface (survival, risk, RD, RR, RMST, RMTL, survival
@@ -196,7 +197,7 @@ quasibinomial at k < K.
 | Engine (interventions, IF primitives, `to_person_period`, NHEFS) | `causatr` | **Imports** (GitHub remote `etverse/causatr`) |
 | Unadjusted KM / Cox sanity | `survival` | **Suggests** (test oracles only) |
 | TMLE / SDR survival | `lmtp` | **Suggests** (point-estimate oracle only; EIF-SE not comparable) |
-| Forward g-formula survival | `gfoRmula` | **Suggests** (Track B oracle) |
+| Forward g-formula survival | `gfoRmula` | **Suggests** (longitudinal ICE-hazard oracle) |
 | Matching rejection test | `MatchIt` | **Suggests** (rejection path only) |
 | GAMs for time-spline baseline hazard | `mgcv` | **Suggests** (via `model_fn`) |
 | Natural splines for `s(t)` | `splines` | **Suggests** |
@@ -269,7 +270,8 @@ quasibinomial at k < K.
 chunk has a `CHUNK_<N>_*.md` doc at the repo root. Status legend: ✅ done
 (commit pinned) · 🚧 in progress · ⬜ not started.
 
-At a glance: **done = 1–13** (Track A gcomp + IPW + IPCW; Track B ICE; competing
+At a glance: **done = 1–13** (point-treatment g-computation gcomp + IPW + IPCW;
+longitudinal ICE-hazard; competing
 risks; matching rejection; NHEFS Ch. 17 acceptance test; `diagnose()`; survival
 quantiles / RMTL / YLL estimands via a central estimand registry; cluster-robust
 sandwich + bootstrap).
@@ -277,8 +279,9 @@ sandwich + bootstrap).
 Next = 14 (left-truncation / delayed entry).
 Phasing: v1 = 1–10, v1.x = 11–15, v2 = 16–18, ext = 19–25 (deferred IPW /
 intervention work + missing-data MI), audit = 26–29 (numeric variance fallback,
-IPCW for gcomp/ICE, competing risks under IPW/ICE, Track A effect modification —
-surfaced by the 2026-06-11 causatr-reuse audit; see handoff §10). When a chunk
+IPCW for gcomp/ICE, competing risks under IPW/ICE, point-treatment effect
+modification — surfaced by the 2026-06-11 causatr-reuse audit; see handoff §10).
+When a chunk
 flips status, update the handoff §10 table (the only copy).
 
 ## Architecture notes
@@ -316,8 +319,8 @@ notes" for the style).
   Validated to ~1e-4 against a delicatessen M-estimation oracle. Full derivation
   + the "do-not-re-flag" invariants live in `.claude/hard-rules.md` (round-3) and
   `CHUNK_5_IPW_A.md`.
-- **Track B ICE (chunk 6): causatr's plain ICE chain is NOT reusable for
-  survival; survatr owns the backward loop + the cross-step IF cascade.**
+- **Longitudinal ICE-hazard (chunk 6): causatr's plain ICE chain is NOT reusable
+  for survival; survatr owns the backward loop + the cross-step IF cascade.**
   causatr's `ice_iterate()` / `variance_if_ice_one()` are built for a single
   terminal `Y`: the backward step regresses the raw next-step prediction
   `q_{k+1}`, with no failure carry-forward. survatr's survival pseudo-outcome is
@@ -363,8 +366,8 @@ notes" for the style).
   cross-multiplied (`crossprod(IF)/n²`), capturing the within-id cross-cause
   correlation. Validated by exact agreement with an independent `delicatessen`
   stacked-EE oracle (`data-raw/delicatessen_competing_risks.py`) and the
-  bootstrap. gcomp / Track A only; IPW / ICE / per-cause RMST deferred; Fine–Gray
-  out of scope. Full invariants in `.claude/hard-rules.md` and
+  bootstrap. point-treatment g-computation only; IPW / ICE / per-cause RMST
+  deferred; Fine–Gray out of scope. Full invariants in `.claude/hard-rules.md` and
   `CHUNK_7_COMPETING_RISKS.md`.
 - **IPCW (chunk 11): per-period running-product censoring weights composed in
   survatr; three-block stacked-EE sandwich (beta + alpha_trt + gamma_cens);
@@ -423,9 +426,9 @@ notes" for the style).
   through `fill_sandwich_ses()`, and the bootstrap is generalized over a minor
   index (`meta$index_col` ∈ {`time`, `q`}). A single intervention is accepted
   (the strict-pair guard is keyed on `estimand_requires_pair()`, which excludes
-  the `q`-indexed quantile). Wired across gcomp / IPW / IPCW / Track B / CR
-  all-cause; near-flat curves abort `survatr_quantile_unreached` and bootstrap is
-  the documented SE fallback.
+  the `q`-indexed quantile). Wired across gcomp / IPW / IPCW / longitudinal ICE /
+  CR all-cause; near-flat curves abort `survatr_quantile_unreached` and bootstrap
+  is the documented SE fallback.
 - **YLL is the CIF integral; `Σ_j YLL^(j)(t*) = RMTL(t*)`.** `YLL^(j)(t*) =
   ∫ F^(j)` reuses the chunk-7 CIF IF mapped through `rmst_weights()` (the CIF
   starts at `F(0) = 0`, so the quadrature is exactly `W %*% cif`, no `S(0) = 1`
@@ -450,7 +453,7 @@ notes" for the style).
   the load-bearing regression invariant. The reduction is one shared helper
   `clustered_pointwise_se()` wrapping `causatr:::vcov_from_if(cluster=)` (the
   causatr-reuse audit primitive), called by `fill_sandwich_ses()` (gcomp / IPW /
-  IPCW / Track B-eligible time-indexed estimands), `fill_sandwich_ses_cr()`
+  IPCW / longitudinal-ICE-eligible time-indexed estimands), `fill_sandwich_ses_cr()`
   (competing risks), and `assemble_quantile_result()` (the scalar `n×1`
   quantile IF). The bootstrap resamples whole clusters (`bootstrap_survival()`
   generalizes its resampling unit from id to cluster). `validate_cluster()`
@@ -460,8 +463,8 @@ notes" for the style).
   contrast IF carries within-cluster correlation:** with treatment randomized
   within cluster a shared cluster effect cancels in the *difference* IF, so the
   difference SE need not widen even though the level SE does — not a bug.
-  **Track B (ICE) is supported too:** `contrast_track_b()` aligns the cluster
-  labels onto the ICE IF matrix's first-period id order (`cluster_for_ids()` on
+  **The longitudinal ICE path is supported too:** `contrast_track_b()` aligns the
+  cluster labels onto the ICE IF matrix's first-period id order (`cluster_for_ids()` on
   `base$data_lag` at the first time point) and routes through the same
   `fill_sandwich_ses()`; entry-censored ids carry a near-zero IF row and sum
   into their cluster like any other. Verified by `cluster = id` reproduction and

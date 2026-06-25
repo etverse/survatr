@@ -21,10 +21,11 @@ Python at test time.
   `test-gcomp-delicatessen.R`. **Reuses `ipw_survival_data.csv`** — gcomp and
   IPW target the same counterfactual `S^a(t)` on the same confounded data
   (gcomp adjusts via the outcome model, with `L` in the hazard design; IPW via
-  weights). Pins the foundational Track A sandwich (`estimator = "gcomp"`)
-  against an independent M-estimator across the full estimand surface.
+  weights). Pins the foundational point-treatment sandwich
+  (`estimator = "gcomp"`) against an independent M-estimator across the full
+  estimand surface.
 - `ice_survival_data.csv` — shared person-period fixture (`id, t, A, L, Y`) for
-  Track B (longitudinal ICE). Generated in R from `sim_ice_feedback(n = 1500,
+  the longitudinal ICE-hazard engine. Generated in R from `sim_ice_feedback(n = 1500,
   K = 3, seed = 41)` (treatment-confounder feedback). Both R and Python read
   this.
 - `ice_survival_delicatessen.csv` — delicatessen output (`quantity, time,
@@ -90,7 +91,7 @@ Rscript -e 'devtools::load_all(); source("tests/testthat/helper-dgp.R"); \
 # gcomp sandwich reference (Python; reuses ipw_survival_data.csv):
 ../causatr/data-raw/zepid_venv/bin/python data-raw/delicatessen_gcomp_survival.py
 
-# Track B (ICE) fixtures:
+# Longitudinal ICE-hazard fixtures:
 #   (1) data fixture (R):
 Rscript -e 'source("tests/testthat/helper-ice-survival-oracle.R"); \
   dt <- sim_ice_feedback(n=1500L, K=3L, seed=41L); \

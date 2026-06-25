@@ -144,8 +144,8 @@ test_that("RMTL is wired across estimators (IPW, IPCW, ICE inheritance)", {
   expect_true(all(is.finite(r_ipcw$estimates$rmtl_hat)))
   expect_true(all(r_ipcw$estimates$se >= 0))
 
-  ## Track B (ICE): the shared fill_sandwich_ses() consumes the ICE IF matrix,
-  ## so RMTL is available with no Track-B-specific code.
+  ## longitudinal ICE-hazard: the shared fill_sandwich_ses() consumes the ICE IF matrix,
+  ## so RMTL is available with no longitudinal-ICE-specific code.
   dt_ice <- sim_ice_feedback(n = 500L, K = 4L, seed = 437L)
   fit_ice <- surv_fit(
     dt_ice,

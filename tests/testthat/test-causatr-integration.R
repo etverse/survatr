@@ -89,7 +89,7 @@ test_that("causatr:::truncate_weights + apply_model_correction signatures", {
   expect_equal(length(res$correction), 100L)
 })
 
-test_that("causatr ICE internals reused by Track B keep their signatures", {
+test_that("causatr ICE internals reused by longitudinal ICE-hazard keep their signatures", {
   ns <- asNamespace("causatr")
   ## Per-step fit / predict / formula primitives.
   expect_identical(
@@ -152,7 +152,7 @@ test_that("causatr ICE internals reused by Track B keep their signatures", {
   }
 })
 
-test_that("causatr:::new_causatr_fit accepts the fields the Track B fit sets", {
+test_that("causatr:::new_causatr_fit accepts the fields the longitudinal ICE-hazard fit sets", {
   ## survatr hand-builds a minimal longitudinal causatr_fit for the ICE
   ## sandwich; pin the constructor args it relies on.
   fmls <- names(formals(causatr:::new_causatr_fit))

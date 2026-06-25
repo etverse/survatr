@@ -268,7 +268,8 @@ assemble_quantile_result <- function(
 #'
 #' @description
 #' Shared tail for the quantile estimand across all paths (gcomp / IPW / IPCW
-#' main path, Track B, competing-risks all-cause). Given the per-intervention
+#' main path, longitudinal ICE-hazard, competing-risks all-cause). Given the
+#' per-intervention
 #' survival curves and -- under sandwich -- the per-intervention IF matrices,
 #' assemble the q-indexed result and fill the variance: implicit-function delta
 #' for the sandwich, replicate SD for the bootstrap.
@@ -373,7 +374,8 @@ finalize_quantile <- function(
 #' @description
 #' Pull the `s_hat` vector (ordered by `time`) for each intervention out of the
 #' chunk-2 time-indexed `estimates` table, as the input `assemble_quantile_
-#' result()` needs. Track B and competing-risks all-cause curves use the same
+#' result()` needs. Longitudinal ICE-hazard and competing-risks all-cause curves
+#' use the same
 #' `s_hat` column name, so this helper is path-agnostic.
 #'
 #' @param estimates A time-indexed `estimates` `data.table` with `intervention`,

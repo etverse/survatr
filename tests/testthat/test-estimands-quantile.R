@@ -242,7 +242,7 @@ test_that("quantile is wired across estimators (IPW / ICE / competing risks)", {
   expect_true(all(is.finite(r_ipw$estimates$tau_hat)))
   expect_true(all(r_ipw$estimates$se >= 0))
 
-  ## Track B (ICE): the shared quantile assembly consumes the ICE IF matrix.
+  ## longitudinal ICE-hazard: the shared quantile assembly consumes the ICE IF matrix.
   ## q = 0.3 is reachable on this high-survival 4-period feedback DGP.
   dt_ice <- sim_ice_feedback(n = 1500L, K = 4L, seed = 553L)
   fit_ice <- surv_fit(
