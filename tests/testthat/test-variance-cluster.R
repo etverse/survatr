@@ -744,3 +744,99 @@ test_that("cluster bootstrap is reproducible under a fixed seed", {
   expect_equal(r1$estimates$se, r2$estimates$se)
   expect_equal(r1$estimates$ci_lower, r2$estimates$ci_lower)
 })
+
+## ---- 12. cluster_for_ids alignment unit (covers the defensive guard) --------
+
+test_that("cluster_for_ids reindexes by name and guards missing ids", {
+  expect_null(cluster_for_ids(NULL, c("a", "b")))
+  labels <- c(a = "S1", b = "S2", c = "S1")
+  ## Reindexed onto an arbitrary id order, by NAME not position.
+  expect_equal(cluster_for_ids(labels, c("c", "a", "b")), c("S1", "S1", "S2"))
+  ## An id absent from the label map is an internal row-order / id mismatch and
+  ## must abort rather than form a phantom NA cluster in `rowsum()`.
+  expect_error(
+    cluster_for_ids(labels, c("a", "z")),
+    class = "survatr_if_failed"
+  )
+})
+
+## ---- 13. non-singleton clustered meat oracles (IPW / IPCW) ------------------
+
+test_that("IPW: clustered sandwich SE agrees with the cluster bootstrap", {
+  skip_on_cran()
+  ## Non-singleton oracle for the two-stage clustered meat: the cluster
+  ## bootstrap refits the propensity per replicate AND resamples whole sites, so
+  ## agreement pins the clustered IPW stacked-EE sandwich (not just the
+  ## cluster = id reduction).
+  pp <- sim_clustered_confounded(n_per = 25L, G = 45L, K = 5L, seed = 72L)
+  fit <- surv_fit(
+    pp,
+    "Y",
+    "A",
+    ~L,
+    "id",
+    "t",
+    time_formula = ~ factor(t),
+    estimator = "ipw"
+  )
+  ivs <- list(a1 = causatr::static(1), a0 = causatr::static(0))
+  s_sand <- contrast(
+    fit,
+    ivs,
+    times = c(3, 5),
+    type = "risk",
+    ci_method = "sandwich",
+    cluster = "site"
+  )$estimates[get("intervention") == "a1"]$se
+  s_boot <- contrast(
+    fit,
+    ivs,
+    times = c(3, 5),
+    type = "risk",
+    ci_method = "bootstrap",
+    cluster = "site",
+    n_boot = 300L,
+    seed = 5L
+  )$estimates[get("intervention") == "a1"]$se
+  expect_equal(s_boot, s_sand, tolerance = 0.30)
+})
+
+test_that("IPCW: clustered sandwich SE agrees with the cluster bootstrap", {
+  skip_on_cran()
+  ## Non-singleton oracle for the three-block (beta + alpha + gamma) clustered
+  ## meat. The cluster bootstrap refits BOTH the treatment and censoring models
+  ## per replicate and resamples whole sites.
+  pp <- sim_clustered_censoring(n_per = 25L, G = 45L, K = 5L, seed = 73L)
+  fit <- surv_fit(
+    pp,
+    "Y",
+    "A",
+    ~L,
+    "id",
+    "t",
+    time_formula = ~ factor(t),
+    censoring = "C",
+    estimator = "ipw",
+    ipcw = ~L
+  )
+  ivs <- list(a1 = causatr::static(1), a0 = causatr::static(0))
+  s_sand <- contrast(
+    fit,
+    ivs,
+    times = c(3, 5),
+    type = "risk",
+    ci_method = "sandwich",
+    cluster = "site"
+  )$estimates[get("intervention") == "a1"]$se
+  s_boot <- contrast(
+    fit,
+    ivs,
+    times = c(3, 5),
+    type = "risk",
+    ci_method = "bootstrap",
+    cluster = "site",
+    n_boot = 300L,
+    seed = 6L
+  )$estimates[get("intervention") == "a1"]$se
+  expect_equal(s_boot, s_sand, tolerance = 0.30)
+})

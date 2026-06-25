@@ -1,6 +1,6 @@
 # Chunk 13 — Cluster-robust sandwich variance
 
-> **Status: ✅ Done** (`cluster =` on `contrast()`; gcomp / IPW / IPCW /
+> **Status: ✅ Done** (`a03ed39`; `cluster =` on `contrast()`; gcomp / IPW / IPCW /
 > competing-risks sandwich + quantile + cluster-resampling bootstrap; Track B
 > deferred). Validated against `sandwich::vcovCL` and an empirical
 > cluster-sampling-SD oracle.

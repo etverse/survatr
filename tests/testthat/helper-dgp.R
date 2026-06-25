@@ -346,3 +346,60 @@ sim_clustered_confounded <- function(
   }
   data.table::rbindlist(rows)
 }
+
+## Multi-site informative-censoring DGP for the IPCW cluster-robust tests. Site
+## frailty `u_g` on the event hazard (within-site correlation) plus a baseline
+## confounder `L` that drives treatment, the event hazard, AND the censoring
+## hazard (so IPCW is needed). Columns id, site, t, A, L, Y, C.
+sim_clustered_censoring <- function(
+  n_per = 25L,
+  G = 40L,
+  K = 5L,
+  sigma = 1.0,
+  gamma = 0.7,
+  beta_A = -0.5,
+  beta_L = 0.6,
+  cens0 = -2.5,
+  delta_cens = 0.7,
+  seed = 73L
+) {
+  set.seed(seed)
+  u <- stats::rnorm(G, sd = sigma)
+  alpha_t <- seq(0, 0.4, length.out = K)
+  rows <- vector("list", G * n_per)
+  idx <- 0L
+  for (g in seq_len(G)) {
+    for (j in seq_len(n_per)) {
+      idx <- idx + 1L
+      l_i <- stats::rnorm(1L)
+      a_i <- stats::rbinom(1L, 1L, stats::plogis(gamma * l_i))
+      h_y <- stats::plogis(-2.2 + alpha_t + beta_A * a_i + beta_L * l_i + u[g])
+      h_c <- stats::plogis(cens0 + delta_cens * l_i)
+      Y <- integer(K)
+      C <- integer(K)
+      alive <- TRUE
+      for (k in seq_len(K)) {
+        if (!alive) {
+          break
+        }
+        Y[k] <- stats::rbinom(1L, 1L, h_y[k])
+        if (Y[k] == 1L) {
+          alive <- FALSE
+        } else {
+          C[k] <- stats::rbinom(1L, 1L, h_c)
+          if (C[k] == 1L) alive <- FALSE
+        }
+      }
+      rows[[idx]] <- data.table::data.table(
+        id = idx,
+        site = g,
+        t = seq_len(K),
+        A = a_i,
+        L = l_i,
+        Y = Y,
+        C = C
+      )
+    }
+  }
+  data.table::rbindlist(rows)
+}
