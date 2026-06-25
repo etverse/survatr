@@ -482,7 +482,7 @@ F^{(j)}_i(t) = \sum_{k \le t} S_i(k-1)\, h^{(j)}_{i,k},
 </section>
 <section id="fitting" class="level2">
 <h2 class="anchored" data-anchor-id="fitting">Fitting</h2>
-<p>Pass the multi-valued column to <strong>both</strong> <code>outcome</code> and <code>competing</code> (they name the same column). Competing risks is a g-computation / Track A estimator in this release.</p>
+<p>Pass the multi-valued column to <strong>both</strong> <code>outcome</code> and <code>competing</code> (they name the same column). Competing risks is a point-treatment g-computation estimator in this release.</p>
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
@@ -665,7 +665,7 @@ F^{(j)}_i(t) = \sum_{k \le t} S_i(k-1)\, h^{(j)}_{i,k},
 <h2 class="anchored" data-anchor-id="scope-and-rejections">Scope and rejections</h2>
 <ul>
 <li><strong>Cause-specific hazards only.</strong> Fine–Gray / subdistribution hazards (a different estimand and data structure) are out of scope.</li>
-<li><strong>g-computation / Track A only this release.</strong> <code>estimator = "ipw"</code> or <code>"ice"</code> with <code>competing =</code> aborts (<code>survatr_competing_estimator</code>); longitudinal and IPW competing risks ship in later chunks.</li>
+<li><strong>Point-treatment g-computation only this release.</strong> <code>estimator = "ipw"</code> or <code>"ice"</code> with <code>competing =</code> aborts (<code>survatr_competing_estimator</code>); longitudinal and IPW competing risks ship in later chunks.</li>
 <li><strong><code>competing</code> must name the same column as <code>outcome</code></strong>, with at least two distinct positive causes (else <code>survatr_competing_misuse</code>), and hold non-negative integer cause codes (else <code>survatr_bad_competing</code>).</li>
 <li><strong>Estimand / fit must match:</strong> a CIF estimand needs a competing-risks fit and a single-event contrast (e.g.&nbsp;<code>rmst_difference</code>) is not defined for one (<code>survatr_competing_type</code>).</li>
 <li><strong>Per-cause RMST / years-of-life-lost</strong> (the integral of the CIF) is deferred to a later estimands chunk.</li>
@@ -1249,8 +1249,8 @@ Young, Jessica G., and Eric J. Tchetgen Tchetgen. 2014. <span>“Simulation from
 <span id="cb10-109"><a href="#cb10-109" aria-hidden="true" tabindex="-1"></a><span class="fu">## Fitting</span></span>
 <span id="cb10-110"><a href="#cb10-110" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-111"><a href="#cb10-111" aria-hidden="true" tabindex="-1"></a>Pass the multi-valued column to **both** <span class="in">`outcome`</span> and <span class="in">`competing`</span> (they name the</span>
-<span id="cb10-112"><a href="#cb10-112" aria-hidden="true" tabindex="-1"></a>same column). Competing risks is a g-computation / Track A estimator in this</span>
-<span id="cb10-113"><a href="#cb10-113" aria-hidden="true" tabindex="-1"></a>release.</span>
+<span id="cb10-112"><a href="#cb10-112" aria-hidden="true" tabindex="-1"></a>same column). Competing risks is a point-treatment g-computation estimator in</span>
+<span id="cb10-113"><a href="#cb10-113" aria-hidden="true" tabindex="-1"></a>this release.</span>
 <span id="cb10-114"><a href="#cb10-114" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-117"><a href="#cb10-117" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
 <span id="cb10-118"><a href="#cb10-118" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">surv_fit</span>(</span>
@@ -1377,7 +1377,7 @@ Young, Jessica G., and Eric J. Tchetgen Tchetgen. 2014. <span>“Simulation from
 <span id="cb10-253"><a href="#cb10-253" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-254"><a href="#cb10-254" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Cause-specific hazards only.** Fine–Gray / subdistribution hazards (a</span>
 <span id="cb10-255"><a href="#cb10-255" aria-hidden="true" tabindex="-1"></a>  different estimand and data structure) are out of scope.</span>
-<span id="cb10-256"><a href="#cb10-256" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**g-computation / Track A only this release.** <span class="in">`estimator = "ipw"`</span> or</span>
+<span id="cb10-256"><a href="#cb10-256" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Point-treatment g-computation only this release.** <span class="in">`estimator = "ipw"`</span> or</span>
 <span id="cb10-257"><a href="#cb10-257" aria-hidden="true" tabindex="-1"></a>  <span class="in">`"ice"`</span> with <span class="in">`competing = `</span> aborts (<span class="in">`survatr_competing_estimator`</span>);</span>
 <span id="cb10-258"><a href="#cb10-258" aria-hidden="true" tabindex="-1"></a>  longitudinal and IPW competing risks ship in later chunks.</span>
 <span id="cb10-259"><a href="#cb10-259" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**`competing` must name the same column as `outcome`**, with at least two</span>

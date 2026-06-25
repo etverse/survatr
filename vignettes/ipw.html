@@ -414,7 +414,7 @@ window.Quarto = {
 </header>
 
 
-<p>Inverse-probability weighting (IPW) estimates the counterfactual survival curve by reweighting the observed data so that confounders are balanced across treatment groups, then fitting a <strong>weighted marginal hazard MSM</strong> <span class="citation" data-cites="robins2000msmepi">(<a href="#ref-robins2000msmepi" role="doc-biblioref">Robins et al. 2000</a>)</span> rather than a covariate-adjusted hazard — the IP-weighted approach to survival analysis of <span class="citation" data-cites="hernan_whatif">Hernán and Robins (<a href="#ref-hernan_whatif" role="doc-biblioref">2025</a>)</span>, Ch. 17. It is the second of survatr’s two Track A estimators (alongside g-computation) and a methodologically distinct route to the same estimand — when the two agree you can be more confident in the result.</p>
+<p>Inverse-probability weighting (IPW) estimates the counterfactual survival curve by reweighting the observed data so that confounders are balanced across treatment groups, then fitting a <strong>weighted marginal hazard MSM</strong> <span class="citation" data-cites="robins2000msmepi">(<a href="#ref-robins2000msmepi" role="doc-biblioref">Robins et al. 2000</a>)</span> rather than a covariate-adjusted hazard — the IP-weighted approach to survival analysis of <span class="citation" data-cites="hernan_whatif">Hernán and Robins (<a href="#ref-hernan_whatif" role="doc-biblioref">2025</a>)</span>, Ch. 17. It is the second of survatr’s two point-treatment estimators (alongside g-computation) and a methodologically distinct route to the same estimand — when the two agree you can be more confident in the result.</p>
 <p>This vignette covers <code>estimator = "ipw"</code> for a <strong>binary point treatment</strong>: the weight construction, the supported estimands and interventions, sandwich vs bootstrap inference, and weight truncation.</p>
 <section id="how-survatrs-ipw-differs-from-g-computation" class="level2">
 <h2 class="anchored" data-anchor-id="how-survatrs-ipw-differs-from-g-computation">How survatr’s IPW differs from g-computation</h2>
@@ -1239,7 +1239,7 @@ Robins, James M., Miguel A. Hernán, and Babette Brumback. 2000. <span>“Margin
 <span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>treatment groups, then fitting a **weighted marginal hazard MSM**</span>
 <span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">@robins2000msmepi</span><span class="co">]</span> rather than a covariate-adjusted hazard — the IP-weighted</span>
 <span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>approach to survival analysis of @hernan_whatif, Ch. 17. It is the second of</span>
-<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>survatr's two Track A estimators</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>survatr's two point-treatment estimators</span>
 <span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>(alongside g-computation) and a methodologically distinct route to the same</span>
 <span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>estimand — when the two agree you can be more confident in the result.</span>
 <span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a></span>

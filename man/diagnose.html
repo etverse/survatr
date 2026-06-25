@@ -416,7 +416,7 @@ Unused; reserved for future arguments.
 </section>
 <section id="details" class="level3">
 <h3 class="anchored" data-anchor-id="details">Details</h3>
-<p>Most panels operate on the at-risk rows from <code>build_risk_set()</code> (the rows the hazard model was fit on). <strong>Exception:</strong> <code style="white-space: pre;">$censoring</code> uses the full person-period grid so that the censoring event itself is visible at the period it occurs; its <code>n_pp_rows</code> denominator therefore includes post-event rows and differs from <code style="white-space: pre;">$positivity$n_at_risk</code>. For Track B (ICE) the hazard model is fit lazily inside <code>contrast()</code>, so the positivity panel reports the empirical per-period event rate rather than model-predicted hazards.</p>
+<p>Most panels operate on the at-risk rows from <code>build_risk_set()</code> (the rows the hazard model was fit on). <strong>Exception:</strong> <code style="white-space: pre;">$censoring</code> uses the full person-period grid so that the censoring event itself is visible at the period it occurs; its <code>n_pp_rows</code> denominator therefore includes post-event rows and differs from <code style="white-space: pre;">$positivity$n_at_risk</code>. For the longitudinal ICE-hazard estimator the hazard model is fit lazily inside <code>contrast()</code>, so the positivity panel reports the empirical per-period event rate rather than model-predicted hazards.</p>
 </section>
 <section id="value" class="level3">
 <h3 class="anchored" data-anchor-id="value">Value</h3>

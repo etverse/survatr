@@ -371,6 +371,7 @@ contrast(
   parallel = "no",
   ncpus = 1L,
   seed = NULL,
+  cluster = NULL,
   ...
 )
 </code></pre>
@@ -488,6 +489,14 @@ Integer; number of CPUs for parallel bootstrap. Default <code>1L</code>.
 </td>
 <td>
 Integer scalar or <code>NULL</code>. When non-null, <code>set.seed(seed)</code> is called before the bootstrap loop so the replicate sequence is reproducible. Default <code>NULL</code>.
+</td>
+</tr>
+<tr>
+<td style="white-space: collapse; font-family: monospace; vertical-align: top">
+<code id="cluster">cluster</code>
+</td>
+<td>
+<code>NULL</code> (the default; per-individual sandwich) or a single column name in the fit’s person-period data identifying the independent sampling cluster (site, household, provider, repeated enrolment). The label must be constant within <code>id</code> and have no NA. When supplied, the sandwich variance is cluster-robust (the per-individual influence functions are summed within cluster before the cross-product) and the bootstrap resamples whole clusters. <code>cluster = “&lt;id-column&gt;”</code> reproduces the per-individual sandwich exactly (singleton clusters). Supported for gcomp, IPW, IPCW, longitudinal ICE-hazard, and competing-risks fits.
 </td>
 </tr>
 <tr>
