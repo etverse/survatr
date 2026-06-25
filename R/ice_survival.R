@@ -1,4 +1,4 @@
-#' Assemble the Track B (ICE survival) fit metadata
+#' Assemble the longitudinal ICE-hazard fit metadata
 #'
 #' @description
 #' Fit-only entry for `estimator = "ice"`, called by `surv_fit()`. No model is
@@ -8,7 +8,7 @@
 #' that `contrast()` and the bootstrap reuse.
 #'
 #' A treatment that is constant within id is **valid** for ICE (the strategy
-#' is applied to a static treatment); we `inform()` once that Track A
+#' is applied to a static treatment); we `inform()` once that point-treatment g-computation
 #' (`estimator = "gcomp"`) is cheaper for that case, but do not abort or
 #' silently switch tracks -- they are different estimators.
 #'
@@ -38,12 +38,12 @@ fit_ice_survival <- function(
   model_fn = stats::glm,
   ...
 ) {
-  ## Track B models the treatment as a numeric main effect (binary is the
+  ## longitudinal ICE-hazard models the treatment as a numeric main effect (binary is the
   ## special case; a numeric dose enters linearly, the user's modelling
   ## choice). A factor / character treatment is NOT supported here: the
   ## intervention sets a numeric counterfactual value, which collides with a
   ## factor column (a cryptic data.table error), and nominal categories need a
-  ## `treatment_form = ~ factor(A)` design that Track B does not yet thread.
+  ## `treatment_form = ~ factor(A)` design that longitudinal ICE-hazard does not yet thread.
   ## Reject with a classed error pointing at the future extended-types chunk.
   if (!is.numeric(data[[treatment]])) {
     rlang::abort(
@@ -69,11 +69,11 @@ fit_ice_survival <- function(
         paste0(
           "`estimator = \"ice\"` with a treatment constant within `",
           id,
-          "` is valid (Track B applies the strategy to a static treatment)."
+          "` is valid (longitudinal ICE-hazard applies the strategy to a static treatment)."
         ),
         i = paste0(
           "For a point (baseline-constant) treatment, ",
-          "`estimator = \"gcomp\"` (Track A) is cheaper."
+          "`estimator = \"gcomp\"` (point-treatment g-computation) is cheaper."
         )
       ),
       class = "survatr_ice_static_treatment",
@@ -106,8 +106,8 @@ fit_ice_survival <- function(
 #' @description
 #' Detect whether the treatment column takes more than one distinct value
 #' within any individual -- the signature of a time-varying treatment that
-#' Track A's single-`beta_A` pooled-logistic hazard cannot represent and that
-#' Track B (ICE) is built for.
+#' the point-treatment g-computation single-`beta_A` pooled-logistic hazard cannot represent and that
+#' longitudinal ICE-hazard is built for.
 #'
 #' @param data Person-period `data.table`.
 #' @param treatment Treatment column name.
@@ -123,12 +123,12 @@ treatment_is_time_varying <- function(data, treatment, id) {
   any(per_id$.nu > 1L)
 }
 
-#' Track B contrast driver (longitudinal ICE-hazard survival)
+#' Longitudinal ICE-hazard contrast driver
 #'
 #' @description
 #' The `contrast.survatr_fit()` branch for `fit$track == "B"`. Builds the
 #' per-intervention survival curves via the ICE backward sweep
-#' (`compute_ice_survival_curve()`), then reuses the Track A estimand
+#' (`compute_ice_survival_curve()`), then reuses the point-treatment g-computation estimand
 #' machinery wholesale: `build_contrasts()` for pairwise contrasts,
 #' `add_rmst_to_estimates()` for RMST, `fill_sandwich_ses()` for the
 #' delta-method CIs (fed the ICE influence-function matrices), and
@@ -138,6 +138,10 @@ treatment_is_time_varying <- function(data, treatment, id) {
 #' @inheritParams contrast.survatr_fit
 #' @param call The `match.call()` captured in `contrast.survatr_fit()` for the
 #'   result's `call` slot.
+#' @param cluster_labels `NULL`, or the name-keyed (id -> cluster) vector from
+#'   `validate_cluster()`. When supplied, the sandwich is cluster-robust (the
+#'   ICE IF rows are summed within cluster, aligned by first-period id) and the
+#'   bootstrap resamples whole clusters.
 #'
 #' @return A `survatr_result`.
 #' @noRd
@@ -155,9 +159,10 @@ contrast_track_b <- function(
   parallel,
   ncpus,
   seed,
-  call
+  call,
+  cluster_labels = NULL
 ) {
-  ## Track B v1 supports only deterministic plug-in interventions (`static`,
+  ## longitudinal ICE-hazard v1 supports only deterministic plug-in interventions (`static`,
   ## `shift`, `scale_by`, `threshold`, `dynamic`). Two families are rejected
   ## upfront:
   ##   - `ipsi()` reweights the propensity (weight-path estimand, IPW-only);
@@ -182,7 +187,7 @@ contrast_track_b <- function(
       c(
         paste0(
           "Only deterministic interventions (`static`, `shift`, `scale_by`, ",
-          "`threshold`, `dynamic`) are supported for Track B (ice)."
+          "`threshold`, `dynamic`) are supported for longitudinal ICE-hazard."
         ),
         i = paste0(
           "Incremental-propensity (`ipsi()`) and stochastic / Monte-Carlo ",
@@ -197,6 +202,18 @@ contrast_track_b <- function(
   ## Lags + risk set, once (intervention-agnostic).
   base <- prepare_track_b_base(fit, details)
   n_ids <- length(unique(as.character(base$data_lag[[fit$id]])))
+
+  ## Cluster-robust variance: the ICE IF matrix has one row per FIRST-PERIOD id
+  ## (the order `build_ice_if_list()` / `ice_if_setup()` use via the `target`
+  ## mask over first-period rows), so align the name-keyed cluster labels onto
+  ## that order. Entry-censored ids still carry a (near-zero) IF row and sum
+  ## into their cluster like any other -- at-risk-at-baseline standardisation
+  ## affects the IF values, not the row set. NULL keeps the per-individual SE.
+  first_t <- details$time_points[1]
+  first_period_ids <- base$data_lag[[fit$id]][
+    base$data_lag[[fit$time]] == first_t
+  ]
+  cl_aligned <- cluster_for_ids(cluster_labels, first_period_ids)
 
   ## Per-intervention survival curves (+ stashed per-horizon ice_results for
   ## the sandwich bridge).
@@ -242,7 +259,9 @@ contrast_track_b <- function(
       parallel = parallel,
       ncpus = ncpus,
       seed = seed,
-      call = call
+      call = call,
+      cluster_aligned = cl_aligned,
+      cluster_labels = cluster_labels
     ))
   }
 
@@ -275,7 +294,8 @@ contrast_track_b <- function(
       reference = reference,
       times = times,
       conf_level = conf_level,
-      n_ids = n_ids
+      n_ids = n_ids,
+      cluster = cl_aligned
     )
     estimates <- filled$estimates
     contrasts <- filled$contrasts
@@ -283,7 +303,7 @@ contrast_track_b <- function(
     ## Resample ids, refit the ICE chain per replicate (lags rebuilt inside
     ## surv_fit), recompute curves / contrasts. `bootstrap_survival()` is
     ## track-agnostic: it refits via `surv_fit(estimator = fit$estimator)`,
-    ## which dispatches to Track B and threads `confounders_tv` / `history`.
+    ## which dispatches to longitudinal ICE-hazard and threads `confounders_tv` / `history`.
     boot_out <- bootstrap_survival(
       fit = fit,
       interventions = interventions,
@@ -293,7 +313,8 @@ contrast_track_b <- function(
       n_boot = n_boot,
       parallel = parallel,
       ncpus = ncpus,
-      seed = seed
+      seed = seed,
+      cluster_labels = cluster_labels
     )
     filled <- fill_bootstrap_ses(
       estimates = estimates,
@@ -322,7 +343,7 @@ contrast_track_b <- function(
 #'
 #' @description
 #' Construct the `n_ids x |times|` survival IF matrix for each intervention via
-#' causatr's stacked-EE ICE chain, reused per horizon. Shared by the Track B
+#' causatr's stacked-EE ICE chain, reused per horizon. Shared by the longitudinal ICE-hazard
 #' sandwich path (time-indexed estimands -> `fill_sandwich_ses()`) and the
 #' quantile path (which feeds the IF into `assemble_quantile_result()`), so the
 #' `min_fit` / `target` / `event_by_step` construction lives in one place.
@@ -334,7 +355,7 @@ contrast_track_b <- function(
 #' `event_by_step` supplies the per-period event indicators that feed the chain's
 #' `(1 - D_k)` survival failure carry-forward factor.
 #'
-#' @param fit A Track B `survatr_fit`.
+#' @param fit A longitudinal ICE-hazard `survatr_fit`.
 #' @param details `fit$ice_details`.
 #' @param base Output of `prepare_track_b_base(fit, details)`.
 #' @param per_iv Per-intervention `compute_ice_survival_curve()` outputs (carry
@@ -381,7 +402,7 @@ build_ice_if_list <- function(
 #'
 #' @description
 #' Construct the per-row survival-tail pseudo-outcome used as the response of
-#' the quasibinomial backward-step model in Track B. For an individual at risk
+#' the quasibinomial backward-step model in longitudinal ICE-hazard. For an individual at risk
 #' at period `k` with all-cause event indicator `D_k` and next-step predicted
 #' tail risk `q_next` (the counterfactual `1 - Ŝ^d_{k+1:τ}` carried back from
 #' the later step), the pseudo-outcome is
@@ -411,7 +432,7 @@ ice_surv_pseudo <- function(d_k, q_next) {
   ifelse(d_k == 1, 1, q_next)
 }
 
-#' Build per-step metadata for Track B ICE survival
+#' Build per-step metadata for longitudinal ICE-hazard ICE survival
 #'
 #' @description
 #' Resolve the survival-aware mirror of `causatr::fit_ice()`'s `details`: the
@@ -436,7 +457,7 @@ ice_surv_pseudo <- function(d_k, q_next) {
 #'   `n_times - 1`).
 #' @param model_fn Per-step fitting function (e.g. `stats::glm`).
 #' @param dots User `...` captured at `surv_fit()` time, replayed per step.
-#' @param weights External weight vector or `NULL` (Track B v1: always `NULL`).
+#' @param weights External weight vector or `NULL` (longitudinal ICE-hazard v1: always `NULL`).
 #'
 #' @return A named list of ICE survival details (see body) with the same field
 #'   names `causatr:::ice_iterate()` / `variance_if_ice_one()` read off a
@@ -478,7 +499,7 @@ build_ice_surv_details <- function(
     character(0)
   }
 
-  ## Bare-numeric treatment main effect (survatr Track B does not expose a
+  ## Bare-numeric treatment main effect (survatr longitudinal ICE-hazard does not expose a
   ## `treatment_form`; the intervention always sets the numeric column).
   treatment_terms <- treatment
 
@@ -509,7 +530,7 @@ build_ice_surv_details <- function(
   )
 }
 
-#' Prepare the intervention-agnostic Track B working data
+#' Prepare the intervention-agnostic longitudinal ICE-hazard working data
 #'
 #' @description
 #' Build the lag columns (`lag1_A`, `lag1_L`, ...) via
@@ -698,7 +719,7 @@ run_ice_survival_horizon <- function(
       details$treatment_terms
     )
 
-    ## External weights (Track B v1: always NULL) subset to the kept fit rows.
+    ## External weights (longitudinal ICE-hazard v1: always NULL) subset to the kept fit rows.
     w_k <- if (!is.null(external_weights)) {
       external_weights[which(fit_mask)][keep]
     } else {
@@ -747,13 +768,13 @@ run_ice_survival_horizon <- function(
   )
 }
 
-#' Compute the Track B survival curve for one intervention
+#' Compute the longitudinal ICE-hazard survival curve for one intervention
 #'
 #' @description
 #' Driver over the requested horizons: one independent ICE backward pass per
 #' `t` (the survival-tail pseudo-outcome is defined relative to a fixed final
 #' horizon, so each `t` is its own terminal step). Returns the estimates table
-#' (same shape as Track A's `compute_survival_curve()`) plus the per-horizon
+#' (same shape as the point-treatment g-computation `compute_survival_curve()`) plus the per-horizon
 #' `ice_result`s for the sandwich bridge.
 #'
 #' @param base Output of `prepare_track_b_base()`.

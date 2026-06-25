@@ -1,4 +1,4 @@
-## Track B (longitudinal ICE-hazard survival) -- point estimates, structural
+## longitudinal ICE-hazard survival -- point estimates, structural
 ## invariants, and sandwich/bootstrap variance. The primary point oracle is the
 ## forward-simulation Monte-Carlo g-formula truth (`true_ice_survival()` in
 ## helper-ice-survival-oracle.R), which is the exact functional the ICE
@@ -6,7 +6,7 @@
 ## test-ice-survival-oracle.R; the delicatessen M-estimation variance oracle in
 ## test-ice-survival-delicatessen.R.
 
-test_that("estimator = 'ice' builds a Track B fit", {
+test_that("estimator = 'ice' builds a longitudinal ICE-hazard fit", {
   dat <- sim_ice_feedback(n = 200L, K = 4L, seed = 5L)
   fit <- expect_silent(
     surv_fit(
@@ -26,12 +26,12 @@ test_that("estimator = 'ice' builds a Track B fit", {
   expect_null(fit$model) # per-step models are fit lazily in contrast()
   expect_false(is.null(fit$ice_details))
   expect_identical(fit$confounders_tv, ~L)
-  ## print shows the Track B extras.
+  ## print shows the longitudinal ICE-hazard extras.
   expect_output(print(fit), "Track:       B")
   expect_output(print(fit), "TV covars:   L")
 })
 
-test_that("Track B risk curve matches the forward-sim g-formula truth", {
+test_that("longitudinal ICE-hazard risk curve matches the forward-sim g-formula truth", {
   ## Treatment-confounder-feedback DGP: only the longitudinal g-formula (ICE)
   ## recovers the static counterfactual; a naive curve is biased. Large n +
   ## the analytic MC truth -> tight tolerance.
@@ -154,7 +154,7 @@ test_that("intervention sets current treatment but lags hold observed values", {
   expect_equal(data_iv$lag1_A, base$data_lag$lag1_A)
 })
 
-test_that("Track B sandwich SEs are finite and contrasts are well-formed", {
+test_that("longitudinal ICE-hazard sandwich SEs are finite and contrasts are well-formed", {
   dat <- sim_ice_feedback(n = 800L, K = 4L, seed = 13L)
   fit <- surv_fit(
     dat,
@@ -194,7 +194,7 @@ test_that("Track B sandwich SEs are finite and contrasts are well-formed", {
   }
 })
 
-test_that("Track B sandwich SEs agree with the empirical bootstrap", {
+test_that("longitudinal ICE-hazard sandwich SEs agree with the empirical bootstrap", {
   ## The numerical confirmation that the survival-aware IF chain (with the
   ## (1 - D_k) failure carry-forward factor) is correct. Reusing causatr's
   ## chain verbatim over-covers at later horizons; this test guards against a
@@ -240,11 +240,11 @@ test_that("Track B sandwich SEs agree with the empirical bootstrap", {
   expect_lt(max(rel), 0.20)
 })
 
-test_that("Track B handles (MCAR) entry censoring without NA-ing the curve", {
+test_that("longitudinal ICE-hazard handles (MCAR) entry censoring without NA-ing the curve", {
   ## Entry-censoring regression: individuals censored at the FIRST period are
   ## never in the period-1 risk set, so they carry NA pseudo-outcomes. Before
   ## the fix, `mean()` without `na.rm` plus a `target` of all ids turned the
-  ## entire Track B curve / SE into NA. The fix restricts the standardisation
+  ## entire longitudinal ICE-hazard curve / SE into NA. The fix restricts the standardisation
   ## population to the at-risk-at-baseline ids (the consistent ICE behaviour
   ## under MCAR entry censoring), so the curve stays finite and unbiased.
   set.seed(3)
@@ -288,7 +288,7 @@ test_that("Track B handles (MCAR) entry censoring without NA-ing the curve", {
 
 test_that("ICE on a constant-within-id treatment informs but works", {
   ## A point (baseline-constant) treatment is valid for ICE; we inform that
-  ## Track A is cheaper but do not abort.
+  ## point-treatment g-computation is cheaper but do not abort.
   dat <- sim_confounded_survival(n = 300L, K = 4L, seed = 2L, gamma = 0.5)
   expect_message(
     fit <- surv_fit(
@@ -306,7 +306,7 @@ test_that("ICE on a constant-within-id treatment informs but works", {
   expect_identical(fit$track, "B")
 })
 
-test_that("time-varying treatment with Track A warns, pointing to ice", {
+test_that("time-varying treatment with point-treatment g-computation warns, pointing to ice", {
   dat <- sim_ice_feedback(n = 200L, K = 4L, seed = 5L)
   expect_warning(
     surv_fit(dat, "Y", "A", ~L, "id", "t", time_formula = ~ factor(t)),
@@ -314,11 +314,11 @@ test_that("time-varying treatment with Track A warns, pointing to ice", {
   )
 })
 
-test_that("Track B rejects a non-numeric (factor) treatment", {
+test_that("longitudinal ICE-hazard rejects a non-numeric (factor) treatment", {
   ## Factor-treatment regression: a factor treatment previously produced a
   ## cryptic data.table error (the intervention assigns a numeric value to a
   ## factor column); a numeric-coded categorical was silently modelled linearly.
-  ## Track B now requires a numeric treatment and rejects factors with a clear
+  ## longitudinal ICE-hazard now requires a numeric treatment and rejects factors with a clear
   ## classed error.
   dat <- sim_ice_feedback(n = 200L, K = 3L, seed = 5L)
   dat[, A := factor(A)]
@@ -337,7 +337,7 @@ test_that("Track B rejects a non-numeric (factor) treatment", {
   )
 })
 
-test_that("Track B rejects external weights and stochastic interventions", {
+test_that("longitudinal ICE-hazard rejects external weights and stochastic interventions", {
   dat <- sim_ice_feedback(n = 150L, K = 4L, seed = 5L)
   expect_error(
     surv_fit(

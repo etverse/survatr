@@ -183,7 +183,7 @@ result <- contrast(fit, interventions = list(a1 = causatr::static(1),
 ## Non-goals (deferred)
 - **ML / TMLE / SDR / cross-fitted** survival estimators — permanently out of
   scope (the explicit boundary above); defer to `lmtp` / `concrete`.
-- **AIPW under Track B** (longitudinal DR) — composes after Chunk 6; far more
+- **AIPW under longitudinal ICE-hazard** (longitudinal DR) — composes after Chunk 6; far more
   involved (sequential DR), flagged as a future major lift, not this chunk.
 - **One-step / targeting iteration** (TMLE-style fluctuation) — that is the ML
   arm and stays out.

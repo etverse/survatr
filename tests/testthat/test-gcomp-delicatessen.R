@@ -1,4 +1,4 @@
-## Track A g-computation sandwich vs an independent delicatessen M-estimation
+## point-treatment g-computation sandwich vs an independent delicatessen M-estimation
 ## oracle. The foundational gcomp variance previously had only a closed-form
 ## analytic SE + empirical-SD + bootstrap check; this pins the full estimand
 ## surface (S^a(t), risk difference, risk ratio, RMST, RMST difference; point +

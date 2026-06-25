@@ -1,4 +1,4 @@
-## Track A acceptance test: Hernán & Robins Ch. 17 NHEFS replication.
+## point-treatment g-computation acceptance test: Hernán & Robins Ch. 17 NHEFS replication.
 ## Reference: Hernán MA, Robins JM (2024). Causal Inference: What If. Ch. 17.
 ##   Targets (standardised survival curves, Program 17.2):
 ##     120-month survival ≈ 80.7% under qsmk = 1, ≈ 80.5% under qsmk = 0.

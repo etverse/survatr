@@ -105,8 +105,8 @@ head(pp)
 ## Fitting
 
 Pass the multi-valued column to **both** `outcome` and `competing` (they name the
-same column). Competing risks is a g-computation / Track A estimator in this
-release.
+same column). Competing risks is a point-treatment g-computation estimator in
+this release.
 
 ```{r}
 fit <- surv_fit(
@@ -233,7 +233,7 @@ all-cause survival alongside them.
 
 - **Cause-specific hazards only.** Fine–Gray / subdistribution hazards (a
   different estimand and data structure) are out of scope.
-- **g-computation / Track A only this release.** `estimator = "ipw"` or
+- **Point-treatment g-computation only this release.** `estimator = "ipw"` or
   `"ice"` with `competing = ` aborts (`survatr_competing_estimator`);
   longitudinal and IPW competing risks ship in later chunks.
 - **`competing` must name the same column as `outcome`**, with at least two

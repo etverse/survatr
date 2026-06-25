@@ -248,6 +248,139 @@ validate_q <- function(q, call = rlang::caller_env()) {
   sort(unique(q))
 }
 
+#' Validate the `cluster` argument and resolve per-id cluster labels
+#'
+#' @description
+#' For cluster-robust variance, `cluster` names a column of the fit's
+#' person-period data that labels the independent sampling unit (site,
+#' household, provider, repeated enrolment). The cluster label must be constant
+#' within `id` (an individual belongs to exactly one cluster) and have no NA;
+#' there must be at least two clusters (a single cluster is not estimable). The
+#' validated labels are collapsed to one value per `id` and returned as a
+#' **named** character vector keyed by the id (as character), so each variance
+#' path can reindex it onto its own influence-function row order via
+#' `cluster_for_ids()`.
+#'
+#' @details
+#' Returning the labels keyed by id (rather than aligned to a particular IF
+#' matrix) decouples validation from row order: the single-event sandwich, the
+#' competing-risks sandwich, the quantile assembly, and the bootstrap each have
+#' their own id ordering, and they all reindex this one name-keyed vector. The
+#' column is read but never mutated, so the fit's person-period data is left
+#' untouched.
+#'
+#' @param cluster `NULL` (per-individual sandwich, the default) or a single
+#'   column name in `fit$pp_data`.
+#' @param fit A `survatr_fit` (supplies `pp_data` and the `id` column name).
+#' @param call Caller frame for the error signal.
+#'
+#' @returns `NULL` when `cluster` is `NULL`, otherwise a named character vector
+#'   of length `n_ids` mapping each id (as character) to its cluster label.
+#' @family checks
+#' @noRd
+validate_cluster <- function(cluster, fit, call = rlang::caller_env()) {
+  if (is.null(cluster)) {
+    return(NULL)
+  }
+  ## A single existing column name. Anything else is a usage error rather than
+  ## one of the data-shape failures below.
+  if (
+    !is.character(cluster) ||
+      length(cluster) != 1L ||
+      is.na(cluster) ||
+      !nzchar(cluster)
+  ) {
+    rlang::abort(
+      paste0(
+        "`cluster` must be `NULL` or a single column name (character scalar). ",
+        "Got ",
+        deparse(cluster),
+        "."
+      ),
+      class = "survatr_bad_cluster",
+      call = call
+    )
+  }
+  pp <- fit$pp_data
+  if (!cluster %in% names(pp)) {
+    rlang::abort(
+      paste0(
+        "`cluster = \"",
+        cluster,
+        "\"` is not a column in the fit's person-period data."
+      ),
+      class = "survatr_bad_cluster",
+      call = call
+    )
+  }
+  id_col <- fit$id
+  ## NA cluster labels would silently drop ids from the within-cluster row sum
+  ## (and `rowsum()` would create a phantom NA cluster), corrupting G and the
+  ## meat -- reject upfront.
+  if (anyNA(pp[[cluster]])) {
+    rlang::abort(
+      paste0(
+        "`cluster = \"",
+        cluster,
+        "\"` has NA values; every row must carry a cluster label."
+      ),
+      class = "survatr_cluster_na",
+      call = call
+    )
+  }
+  ## An individual belongs to exactly one cluster. If a cluster label varies
+  ## within an id, the per-id collapse below would be ambiguous and the
+  ## row-sum unit-of-independence would be ill-defined.
+  per_id_nu <- pp[,
+    list(.nu = data.table::uniqueN(get(cluster))),
+    by = c(id_col)
+  ]
+  if (any(per_id_nu$.nu > 1L)) {
+    n_bad <- sum(per_id_nu$.nu > 1L)
+    rlang::abort(
+      c(
+        paste0(
+          "`cluster = \"",
+          cluster,
+          "\"` is not constant within `",
+          id_col,
+          "`: ",
+          n_bad,
+          " id(s) span more than one cluster."
+        ),
+        i = "Each individual must belong to exactly one cluster."
+      ),
+      class = "survatr_cluster_varies_within_id",
+      call = call
+    )
+  }
+  ## Collapse to one label per id, first-appearance order. Coerce to character
+  ## so numeric / factor cluster columns key consistently and `rowsum()`'s
+  ## factor() sees stable levels.
+  per_id <- pp[,
+    list(.cl = as.character(get(cluster))[1L]),
+    by = c(id_col)
+  ]
+  labels <- per_id$.cl
+  names(labels) <- as.character(per_id[[id_col]])
+  ## Cluster-robust variance treats the cluster as the independent unit; with a
+  ## single cluster there is exactly one unit and the between-cluster variance
+  ## is undefined. Demand G >= 2.
+  if (length(unique(labels)) < 2L) {
+    rlang::abort(
+      paste0(
+        "`cluster = \"",
+        cluster,
+        "\"` resolves to a single cluster; cluster-robust variance needs at ",
+        "least two clusters."
+      ),
+      class = "survatr_cluster_degenerate",
+      call = call
+    )
+  }
+  labels
+}
+
 #' Validate the `ci_method` argument
 #'
 #' Accepts `"none"`, `"sandwich"`, and `"bootstrap"`. Anything else is
@@ -265,7 +398,8 @@ validate_ci_method <- function(ci_method, call = rlang::caller_env()) {
   }
   rlang::abort(
     paste0(
-      "`ci_method` must be one of \"none\", \"sandwich\", \"bootstrap\". Got \"",
+      "`ci_method` must be one of \"none\", \"sandwich\", \"bootstrap\". ",
+      "Got \"",
       ci_method,
       "\"."
     ),

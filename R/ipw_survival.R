@@ -1,4 +1,4 @@
-#' Fit the IPW weighted hazard MSM (Track A, ipw)
+#' Fit the IPW weighted hazard MSM (point-treatment, ipw)
 #'
 #' @description
 #' Internal fit-only helper for `estimator = "ipw"`. Estimates the
@@ -82,10 +82,10 @@ fit_ipw_survival <- function(
   baseline_idx <- data[, .I[1L], by = c(id)]$V1
   baseline <- data[baseline_idx]
 
-  ## The point treatment must be constant within id for Track A: the weight is a
-  ## single per-id quantity broadcast across periods. A time-varying treatment
-  ## here means the user has longitudinal data (a Track B / longitudinal-IPW
-  ## problem), which this path cannot weight correctly.
+  ## The point treatment must be constant within id for point-treatment
+  ## g-computation: the weight is a single per-id quantity broadcast across
+  ## periods. A time-varying treatment here means the user has longitudinal data
+  ## (a longitudinal-IPW problem), which this path cannot weight correctly.
   trt_uniq <- data[,
     list(.nuniq = data.table::uniqueN(.SD[[1L]])),
     by = c(id),
@@ -225,7 +225,7 @@ fit_ipw_survival <- function(
   )
 }
 
-#' Fit the IPW + IPCW weighted hazard MSM (Track A, ipw + built-in IPCW)
+#' Fit the IPW + IPCW weighted hazard MSM (point-treatment, ipw + built-in IPCW)
 #'
 #' @description
 #' Extends `fit_ipw_survival()` with a per-period inverse-probability-of-

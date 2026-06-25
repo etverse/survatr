@@ -1,7 +1,7 @@
-# Chunk 1 — Skeleton + Track A fit path
+# Chunk 1 — Skeleton + point-treatment g-computation fit path
 
 > **Status: ✅ done** — landed in `6e911d3`
-> (`feat(chunk-1): Track A fit skeleton -- surv_fit() pooled-logistic hazard`).
+> (`feat(chunk-1): point-treatment g-computation fit skeleton -- surv_fit() pooled-logistic hazard`).
 > 79 tests passing. `devtools::check()`: 0 errors / 0 warnings.
 
 > Per-chunk implementation guide for `survatr` chunk 1. Reads alongside
@@ -11,7 +11,7 @@
 
 ## Goal
 
-Ship a fit-only Track A entry point: `surv_fit()` takes person-period (PP)
+Ship a fit-only point-treatment g-computation entry point: `surv_fit()` takes person-period (PP)
 data + outcome/treatment/confounders/id/time/(optional censoring) +
 `time_formula` + `model_fn`, builds the risk set, fits the pooled-logistic
 hazard model, and returns a `survatr_fit` S3 object. **No contrast, no
@@ -57,7 +57,7 @@ classes and reserved columns).
 - Update [FEATURE_COVERAGE_MATRIX.md](FEATURE_COVERAGE_MATRIX.md) — no
   user-facing feature ships yet, so add a short "Chunk 1 (fit-only): ✓
   `surv_fit()` binomial / quasibinomial — smoke + closed-form β₀ oracle"
-  line under a **Track A** section.
+  line under a **point-treatment g-computation** section.
 
 ## API contract
 
@@ -72,7 +72,7 @@ surv_fit(
   censoring = NULL,                  # optional censoring indicator column
   time_formula = ~ splines::ns(time, 4),  # alpha(t) baseline hazard RHS
   weights = NULL,                    # external weights on PP rows
-  estimator = "gcomp",               # Track A only in chunk 1; "ipw"/"ice" deferred
+  estimator = "gcomp",               # point-treatment g-computation only in chunk 1; "ipw"/"ice" deferred
   model_fn = stats::glm,             # fitting function
   ...                                # forwarded to model_fn; na.exclude rejected
 )
@@ -111,11 +111,11 @@ surv_fit(
 - Bootstrap + `plot` / `tidy` / `forrest` — chunk 4.
 - IPW weighted MSM — chunk 5 (family switch in place but no density-ratio
   weight construction yet).
-- Track B (ICE) — chunk 6.
+- Longitudinal ICE-hazard (`estimator = "ice"`) — chunk 6.
 - Full competing risks — chunk 7.
 - Full matching rejection path + tests — chunk 8.
 - NHEFS Ch. 17 replication — chunk 9 (this chunk can smoke-test on a
-  synthetic closed-form DGP; NHEFS replication is acceptance for Track A
+  synthetic closed-form DGP; NHEFS replication is acceptance for the point-treatment path
   end-to-end).
 
 ## Seed sources
@@ -146,5 +146,5 @@ surv_fit(
 - [ ] `air format .` is a no-op.
 - [ ] `Rscript -e 'lintr::lint_package()'` — no new lints.
 - [ ] [FEATURE_COVERAGE_MATRIX.md](FEATURE_COVERAGE_MATRIX.md) updated.
-- [ ] Single commit (or small series) with message `feat(chunk-1): Track A
+- [ ] Single commit (or small series) with message `feat(chunk-1): point-treatment g-computation
       fit skeleton — surv_fit() pooled-logistic hazard on PP data`.

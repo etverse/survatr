@@ -1,4 +1,4 @@
-## Track A IPW (weighted hazard MSM) -- point estimate, structural invariants,
+## point-treatment g-computation IPW (weighted hazard MSM) -- point estimate, structural invariants,
 ## and the IPW-specific rejection surface. Variance is in
 ## `test-ipw-survival-sandwich.R` / `test-ipw-survival-bootstrap.R`.
 

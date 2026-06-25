@@ -370,6 +370,9 @@ cr_truncation_caveat <- function() {
 #' @param ci_method,conf_level,n_boot,boot_ci,parallel,ncpus,seed Variance
 #'   controls, forwarded from `contrast()`.
 #' @param call The `match.call()` of `contrast()` for the result object.
+#' @param cluster_labels `NULL`, or the name-keyed (id -> cluster) vector from
+#'   `validate_cluster()`. When supplied, the CIF / all-cause sandwich is
+#'   cluster-robust and the bootstrap resamples whole clusters.
 #'
 #' @returns A `survatr_result` with `cause`-bearing `estimates` and `contrasts`.
 #' @family competing-risks
@@ -389,7 +392,8 @@ contrast_competing <- function(
   parallel,
   ncpus,
   seed,
-  call
+  call,
+  cluster_labels = NULL
 ) {
   causes <- validate_cause(cause, fit$causes, type)
   ## CIF estimands carry the per-cause dimension; survival / risk are all-cause.
@@ -421,6 +425,7 @@ contrast_competing <- function(
     iv_names <- names(interventions)
     s_by_iv <- survival_curves_by_iv(estimates, iv_names)
     if_list <- NULL
+    cl_aligned <- NULL
     n_ids <- length(unique(fit$pp_data[[fit$id]]))
     if (identical(ci_method, "sandwich")) {
       shared <- prepare_cr_sandwich_shared(fit)
@@ -430,6 +435,7 @@ contrast_competing <- function(
         compute_cr_survival_if_matrix(pieces, times)$IF_mat
       })
       names(if_list) <- iv_names
+      cl_aligned <- cluster_for_ids(cluster_labels, shared$unique_ids)
     }
     return(finalize_quantile(
       fit = fit,
@@ -447,7 +453,9 @@ contrast_competing <- function(
       parallel = parallel,
       ncpus = ncpus,
       seed = seed,
-      call = call
+      call = call,
+      cluster_aligned = cl_aligned,
+      cluster_labels = cluster_labels
     ))
   }
 
@@ -491,7 +499,9 @@ contrast_competing <- function(
       reference = reference,
       causes = causes,
       conf_level = conf_level,
-      shared = shared
+      shared = shared,
+      ## Align the cluster labels onto the CR IF matrix row order.
+      cluster = cluster_for_ids(cluster_labels, shared$unique_ids)
     )
     estimates <- filled$estimates
     contrasts <- filled$contrasts
@@ -506,7 +516,8 @@ contrast_competing <- function(
       parallel = parallel,
       ncpus = ncpus,
       seed = seed,
-      causes = causes
+      causes = causes,
+      cluster_labels = cluster_labels
     )
     filled <- fill_bootstrap_ses(
       estimates = estimates,

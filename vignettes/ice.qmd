@@ -1,9 +1,9 @@
 ---
-title: "Longitudinal survival via ICE (Track B) with survatr"
+title: "Longitudinal survival via ICE hazards with survatr"
 code-fold: show
 code-tools: true
 vignette: >
-  %\VignetteIndexEntry{Longitudinal survival via ICE (Track B) with survatr}
+  %\VignetteIndexEntry{Longitudinal survival via ICE hazards with survatr}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
 bibliography: references.bib
@@ -15,16 +15,17 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 set.seed(2026)
 ```
 
-Track A (`estimator = "gcomp"` / `"ipw"`) handles a **point** treatment fixed at
-baseline. When the treatment varies over time and there is
-**treatment–confounder feedback** — a time-varying covariate that both responds
-to past treatment and drives future treatment and the hazard — a point-treatment
-hazard model is biased, and no single weighted MSM recovers the counterfactual
-curve. survatr's **Track B** (`estimator = "ice"`) solves this with iterated
-conditional expectations (ICE) on the discrete-time hazard [@zivich2024ice].
+Point-treatment g-computation (`estimator = "gcomp"` / `"ipw"`) handles a
+**point** treatment fixed at baseline. When the treatment varies over time and
+there is **treatment–confounder feedback** — a time-varying covariate that both
+responds to past treatment and drives future treatment and the hazard — a
+point-treatment hazard model is biased, and no single weighted MSM recovers the
+counterfactual curve. survatr's **longitudinal ICE-hazard** engine
+(`estimator = "ice"`) solves this with iterated conditional expectations (ICE)
+on the discrete-time hazard [@zivich2024ice].
 
-This vignette explains the ICE backward sweep, the Track-B arguments
-(`confounders_tv`, `history`), and shows the estimator recovering the
+This vignette explains the ICE backward sweep, the longitudinal ICE-hazard
+arguments (`confounders_tv`, `history`), and shows the estimator recovering the
 longitudinal g-formula truth on a feedback DGP that fools the naive curve.
 
 ## Why ICE, not a single hazard model
@@ -105,9 +106,10 @@ dat <- sim_feedback(p = p)
 head(dat, 6)
 ```
 
-## Fitting the Track B ICE model
+## Fitting the longitudinal ICE-hazard model
 
-Pass `estimator = "ice"`. The Track-B arguments split the adjustment set:
+Pass `estimator = "ice"`. The longitudinal ICE-hazard arguments split the
+adjustment set:
 
 - **`confounders`** — *baseline* (time-invariant) covariates, never lagged.
   Here there are none, so `~ 1`.
@@ -155,14 +157,15 @@ res_surv
 ```{r}
 #| fig-width: 7
 #| fig-height: 4
-#| fig-alt: "Track B ICE counterfactual survival under always-treat versus never-treat."
+#| fig-alt: "longitudinal ICE-hazard ICE counterfactual survival under always-treat versus never-treat."
 plot(res_surv, main = "ICE survival: always vs never treat")
 ```
 
 ## ICE corrects feedback bias
 
-The point of Track B is that a **point-treatment** hazard model is biased under
-feedback, while ICE is not. A naive Track A g-computation treats $A$ as if it
+The point of the longitudinal ICE-hazard engine is that a **point-treatment**
+hazard model is biased under feedback, while ICE is not. A naive point-treatment
+g-computation treats $A$ as if it
 were fixed at baseline (it warns that the treatment is time-varying) and adjusts
 for $L$ as an ordinary confounder — which blocks the mediated causal path. Its
 `a1` survival curve diverges from the ICE curve:
@@ -185,12 +188,14 @@ data.table(
 )[] # `[]` forces auto-print of a function-returned data.table
 ```
 
-Only the ICE g-formula curve targets $S^{a=1}(t)$ correctly; the naive Track A
-curve is biased because it conditions on the feedback variable $L$.
+Only the ICE g-formula curve targets $S^{a=1}(t)$ correctly; the naive
+point-treatment curve is biased because it conditions on the feedback variable
+$L$.
 
 ## Risk difference, risk ratio, RMST
 
-All the Track A estimand types are available on a Track B fit. The stacked-EE
+All the point-treatment estimand types are available on a longitudinal
+ICE-hazard fit. The stacked-EE
 sandwich propagates the cross-step influence-function cascade through the
 cumulative-product survival curve.
 
@@ -257,7 +262,8 @@ Only the current-period treatment is intervened; the lag columns carry the
 
 ## Scope and rejections
 
-Track B currently supports a numeric treatment with `static` / `shift` /
+The longitudinal ICE-hazard engine currently supports a numeric treatment with
+`static` / `shift` /
 `dynamic` strategies and sandwich or bootstrap inference. It rejects, with
 classed errors, combinations that need later chunks:
 
@@ -267,8 +273,9 @@ classed errors, combinations that need later chunks:
 | `ipsi()` / stochastic intervention | `survatr_ice_intervention_deferred` |
 | External / IPCW `weights =` | `survatr_ice_external_weights` |
 
-A baseline-constant treatment is allowed under ICE (it just informs that Track A
-is cheaper). Entry (period-1) censoring is handled by standardizing over the
+A baseline-constant treatment is allowed under ICE (it just informs that
+point-treatment g-computation is cheaper). Entry (period-1) censoring is handled
+by standardizing over the
 at-risk-at-baseline population (consistent under MCAR), not by returning an
 all-`NA` curve.
 

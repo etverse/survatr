@@ -189,6 +189,74 @@ quant <- contrast(
 quant$estimates
 ```
 
+## Cluster-robust standard errors
+
+When individuals are nested in clusters that share unobserved drivers of the
+outcome — multi-site studies, households, providers, repeated enrolment — the
+observations are no longer independent and the per-individual sandwich
+*understates* the variance. Pass `cluster = "<column>"` (a person-period column
+that is constant within `id`) and the sandwich becomes cluster-robust: the
+per-individual influence functions are summed within cluster before the
+cross-product, so the independent unit becomes the cluster. The point estimate
+is unchanged, and `cluster = "<id-column>"` reproduces the per-individual
+sandwich exactly (every cluster is a singleton).
+
+The illustration below simulates 40 sites with a shared site-level frailty on
+the hazard, so individuals within a site are positively correlated. The
+cluster-robust risk-difference CI is appropriately wider than the naive one.
+
+```{r}
+#| cache: true
+set.seed(11)
+n_per <- 25L
+n_site <- 40L
+K <- 8L
+u <- rnorm(n_site, sd = 1.4) # site-level frailty
+rows <- list()
+idx <- 0L
+for (g in seq_len(n_site)) {
+  for (j in seq_len(n_per)) {
+    idx <- idx + 1L
+    A <- rbinom(1L, 1L, 0.5)
+    h <- plogis(-2 + seq(0, 0.3, length.out = K) - 0.5 * A + u[g])
+    Y <- rbinom(K, 1L, h)
+    first <- which(Y == 1L)[1L]
+    if (!is.na(first) && first < K) Y[(first + 1L):K] <- 0L
+    rows[[idx]] <- data.frame(id = idx, site = g, t = seq_len(K), A = A, Y = Y)
+  }
+}
+multisite <- do.call(rbind, rows)
+
+fit_ms <- surv_fit(
+  multisite, "Y", "A", ~1, "id", "t",
+  time_formula = ~ factor(t)
+)
+ivs <- list(treated = static(1), control = static(0))
+
+naive <- contrast(
+  fit_ms, ivs,
+  times = c(4, 8), type = "risk_difference", ci_method = "sandwich"
+)
+clustered <- contrast(
+  fit_ms, ivs,
+  times = c(4, 8), type = "risk_difference", ci_method = "sandwich",
+  cluster = "site"
+)
+
+## Same point estimate; the clustered SE / CI is wider.
+data.frame(
+  time          = naive$contrasts$time,
+  rd            = round(naive$contrasts$estimate, 4),
+  se_naive      = round(naive$contrasts$se, 4),
+  se_clustered  = round(clustered$contrasts$se, 4)
+)
+```
+
+The bootstrap honours the same unit of independence — `ci_method =
+"bootstrap"` with `cluster = "site"` resamples whole sites rather than
+individuals. Cluster-robust SEs are available for the gcomp, IPW, IPCW, and
+competing-risks paths; longitudinal ICE-hazard fits are not yet supported.
+
 ## Plot
 
 ```{r}

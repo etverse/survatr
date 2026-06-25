@@ -1,9 +1,9 @@
-# Chunk 29 — Effect modification / `by`-stratification (Track A)
+# Chunk 29 — Effect modification / `by`-stratification (point-treatment g-computation)
 
 > **Status: ⬜ Not started**
 > **Source:** causatr-reuse audit (2026-06-11) — the §4 inheritance table claims
-> survatr inherits causatr's `parse_effect_mod()` (already imported for Track B),
-> but Track A exposes no `by =` surface.
+> survatr inherits causatr's `parse_effect_mod()` (already imported for longitudinal ICE-hazard),
+> but point-treatment g-computation exposes no `by =` surface.
 > **Depends on:** Chunk 2 (survival curve), Chunk 3 (sandwich IF).
 > **Oracle:** subgroup curves must equal the curves from fitting the model on
 > each subgroup separately (when the hazard model is saturated in the modifier);
@@ -14,7 +14,7 @@
 Report subgroup-conditional survival / risk / RMST(/RMTL) curves and their
 contrasts within levels of a baseline effect modifier `V`, e.g.
 `S^a(t | V = v)`. causatr already exposes `parse_effect_mod()` (and survatr
-imports it for Track B), so the missing piece is the Track A surface and the
+imports it for longitudinal ICE-hazard), so the missing piece is the point-treatment g-computation surface and the
 **subgroup-restricted standardization** of the cumulative-product curve plus
 its cross-time IF.
 
@@ -53,7 +53,7 @@ differ — the standardization itself is just a masked average.
 
 ## Behaviour rules (non-negotiable)
 - **Reuse causatr's `parse_effect_mod()`** for parsing the modifier spec — do
-  not re-roll it (it is already imported for Track B).
+  not re-roll it (it is already imported for longitudinal ICE-hazard).
 - **The modifier is baseline and constant within id**; a time-varying modifier
   is out of scope (different estimand).
 - **The standardization is a masked average** on the existing IF — no refit, no
@@ -61,7 +61,7 @@ differ — the standardization itself is just a masked average.
 
 ## Non-goals (deferred)
 - Continuous effect modifiers / smooth interaction surfaces.
-- Track B (ICE) effect modification — Track B already imports
+- longitudinal ICE-hazard effect modification — that path already imports
   `parse_effect_mod()`; a parallel `by` surface there is a later extension.
 
 ## Acceptance checklist

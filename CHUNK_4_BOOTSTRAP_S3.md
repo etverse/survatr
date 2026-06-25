@@ -1,4 +1,4 @@
-# Chunk 4 -- Track A bootstrap + S3 polish
+# Chunk 4 -- point-treatment g-computation bootstrap + S3 polish
 
 > **Status: ✅ done** -- landed in the chunk-4 commit.
 > `devtools::check()`: 0 errors / 0 warnings (all unused-Imports NOTEs gone
@@ -294,5 +294,5 @@ forrest(res_boot, t_ref = 120)              # forest at t* = 120
 - [ ] [FEATURE_COVERAGE_MATRIX.md](FEATURE_COVERAGE_MATRIX.md) updated
       with a "Bootstrap variance" sub-section and S3 rows (`tidy` /
       `plot` / `forrest`).
-- [ ] Single commit with message `feat(chunk-4): Track A bootstrap +
+- [ ] Single commit with message `feat(chunk-4): point-treatment g-computation bootstrap +
       S3 polish -- tidy / plot / forrest`.

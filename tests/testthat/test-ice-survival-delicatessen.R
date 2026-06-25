@@ -1,4 +1,4 @@
-## Track B (ICE-hazard survival) sandwich vs an INDEPENDENT analytic oracle:
+## longitudinal ICE-hazard sandwich vs an INDEPENDENT analytic oracle:
 ## delicatessen (Zivich 2022) stacked M-estimation in Python. Both
 ## implementations run the SAME backward survival-tail ICE estimator on the
 ## same committed person-period fixture, and delicatessen forms the sandwich
@@ -13,7 +13,7 @@
 ## venv) and committed as `fixtures/python/ice_survival_delicatessen.csv`. See
 ## `fixtures/python/README.md` to regenerate.
 
-test_that("Track B ICE sandwich matches the delicatessen M-estimation oracle", {
+test_that("longitudinal ICE-hazard ICE sandwich matches the delicatessen M-estimation oracle", {
   data_fx <- test_path("fixtures", "python", "ice_survival_data.csv")
   ref_fx <- test_path("fixtures", "python", "ice_survival_delicatessen.csv")
   skip_if(!file.exists(ref_fx), "delicatessen reference fixture not generated")

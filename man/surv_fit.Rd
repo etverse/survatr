@@ -40,17 +40,19 @@ multi-period study) must be reshaped with
 \item{outcome}{Character scalar. Column name of the event indicator
 (\code{1} = event at this period, \code{0} = no event). Must be in \code{data}.}
 
-\item{treatment}{Character scalar. Column name of the treatment. For Track A
-the treatment is constant within \code{id}. Under \code{estimator = "ice"} (Track B)
+\item{treatment}{Character scalar. Column name of the treatment. For
+point-treatment g-computation the treatment is constant within \code{id}. Under
+the longitudinal ICE-hazard estimator (\code{estimator = "ice"})
 the treatment may vary within \code{id} and must be \strong{numeric} (binary, or a
 numeric dose entered linearly); factor / categorical (k > 2) treatments are
 rejected with class \code{survatr_ice_treatment_unsupported} (a treatment-design
 formula path ships in a later chunk).}
 
 \item{confounders}{A one-sided formula (e.g. \code{~ L1 + L2}) describing the
-\strong{baseline} (time-invariant) covariate adjustment set. Under
-\code{estimator = "ice"} (Track B), time-varying covariates go in
-\code{confounders_tv} instead; baseline terms here are never lagged.}
+\strong{baseline} (time-invariant) covariate adjustment set. Under the
+longitudinal ICE-hazard estimator (\code{estimator = "ice"}), time-varying
+covariates go in \code{confounders_tv} instead; baseline terms here are never
+lagged.}
 
 \item{id}{Character scalar. Column name of the individual identifier.}
 
@@ -67,8 +69,9 @@ activates the \strong{competing-risks} path: \code{competing} names a multi-valu
 event-type column (\code{0} = no event this period, \verb{1..J} = the cause of the
 event this period), and \code{surv_fit()} fits \code{J} parallel cause-specific
 pooled-logistic hazard models on a shared all-cause risk set. It must name
-the \strong{same} column as \code{outcome}; competing risks are gcomp / Track A only
-in this release (a non-\code{"gcomp"} estimator, fewer than two distinct causes,
+the \strong{same} column as \code{outcome}; competing risks are gcomp /
+point-treatment only in this release (a non-\code{"gcomp"} estimator, fewer than
+two distinct causes,
 or \code{outcome != competing} aborts with \code{survatr_competing_estimator} /
 \code{survatr_competing_misuse}). Cumulative-incidence functions (CIF), CIF
 contrasts, and all-cause survival come from \code{contrast()}. Fine--Gray /
@@ -88,7 +91,7 @@ warning). The variance engine in later chunks reads the family from
 
 \item{estimator}{Character scalar. \code{"gcomp"} (pooled-logistic
 standardization), \code{"ipw"} (weighted marginal hazard MSM with stabilized
-density-ratio weights), or \code{"ice"} (Track B: longitudinal
+density-ratio weights), or \code{"ice"} (longitudinal ICE-hazard:
 iterated-conditional-expectation hazards for a time-varying treatment).
 Matching is a hard reject with class \code{survatr_matching_rejected}
 pointing to \code{survival::coxph(..., weights = , cluster = )}.}
@@ -113,14 +116,17 @@ period, targeting the heaviest late-time tails). \code{NULL} / \code{1} means no
 truncation. All resolved fixed cutoffs are reused by the sandwich.}
 
 \item{confounders_tv}{A one-sided formula of \strong{time-varying} confounders
-for Track B (\code{estimator = "ice"}), lag-expanded at each backward step
+for the longitudinal ICE-hazard estimator (\code{estimator = "ice"}),
+lag-expanded at each backward step
 (e.g. \code{~ L} builds \code{L + lag1_L + ...}). \code{NULL} (the default) means no
-time-varying confounders. Ignored by Track A (\code{gcomp} / \code{ipw}).}
+time-varying confounders. Ignored by point-treatment g-computation
+(\code{gcomp} / \code{ipw}).}
 
-\item{history}{Markov lag order for Track B. \code{Inf} (the default) uses the
+\item{history}{Markov lag order for the longitudinal ICE-hazard estimator.
+\code{Inf} (the default) uses the
 full available history (capped at \code{n_times - 1}); an integer restricts
 the lag structure (e.g. \code{history = 1} for first-order Markov). Ignored by
-Track A.}
+point-treatment g-computation.}
 
 \item{ipcw}{One-sided formula for the \strong{censoring-model covariates} (e.g.
 \code{~ L1 + L2}) or \code{NULL} (the default, no built-in IPCW). When non-\code{NULL},

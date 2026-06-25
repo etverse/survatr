@@ -20,7 +20,8 @@
 #' the hazard model was fit on). **Exception:** `$censoring` uses the full
 #' person-period grid so that the censoring event itself is visible at the
 #' period it occurs; its `n_pp_rows` denominator therefore includes post-event
-#' rows and differs from `$positivity$n_at_risk`. For Track B (ICE) the hazard
+#' rows and differs from `$positivity$n_at_risk`. For the longitudinal
+#' ICE-hazard estimator the hazard
 #' model is fit lazily inside `contrast()`, so the positivity panel reports
 #' the empirical per-period event rate rather than model-predicted hazards.
 #'
@@ -100,9 +101,10 @@ new_survatr_diag <- function(
 
 #' Per-period hazard positivity panel
 #'
-#' Predicts the hazard on the at-risk rows and summarises by period. For Track B
-#' (ICE), the per-step models are fit lazily inside `contrast()`; the empirical
-#' event rate among at-risk individuals is used instead.
+#' Predicts the hazard on the at-risk rows and summarises by period. For the
+#' longitudinal ICE-hazard estimator, the per-step models are fit lazily inside
+#' `contrast()`; the empirical event rate among at-risk individuals is used
+#' instead.
 #'
 #' @param fit A `survatr_fit`.
 #' @param pp Copy of `fit$pp_data`.
@@ -132,7 +134,7 @@ diag_positivity <- function(fit, pp) {
       stats::predict(fit$model, newdata = pp_ar, type = "response")
     )
   } else {
-    ## ICE (Track B): no fitted model yet; use empirical event rate.
+    ## Longitudinal ICE-hazard: no fitted model yet; use empirical event rate.
     h_obs <- as.numeric(pp_ar[[fit$outcome]])
   }
 
@@ -159,7 +161,7 @@ diag_positivity <- function(fit, pp) {
 #' Computes the standardized mean difference (SMD) for binary treatment, or the
 #' treatment–confounder correlation for continuous treatment, at each period
 #' among at-risk individuals. Both `confounders` (baseline) and
-#' `confounders_tv` (Track B time-varying) are included.
+#' `confounders_tv` (longitudinal ICE-hazard time-varying) are included.
 #'
 #' SMD = (mean(L|A=1) - mean(L|A=0)) / pooled SD. For continuous treatment,
 #' a Pearson correlation `cor(A, L)` per time is returned in the `smd` column.
@@ -244,9 +246,9 @@ diag_balance <- function(fit, pp) {
 #' @noRd
 diag_weights <- function(fit) {
   pp <- fit$pp_data
-  ## Under Track A IPW the stabilized weight is constant within id (baseline
-  ## weight broadcast to all PP rows). Extract one value per id via the first
-  ## row of each id in the PP data.
+  ## Under point-treatment IPW the stabilized weight is constant within id
+  ## (baseline weight broadcast to all PP rows). Extract one value per id via
+  ## the first row of each id in the PP data.
   first_idx <- pp[, .I[1L], by = c(fit$id)][[2L]]
   w_ids <- fit$weights[first_idx]
 

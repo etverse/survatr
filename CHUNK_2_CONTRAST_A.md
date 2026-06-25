@@ -1,7 +1,7 @@
-# Chunk 2 -- Track A contrast path (no variance)
+# Chunk 2 -- point-treatment g-computation contrast path (no variance)
 
 > **Status: ✅ done** — landed in `2525707`
-> (`feat(chunk-2): Track A contrast -- survival curves + risk / RMST contrasts`).
+> (`feat(chunk-2): point-treatment g-computation contrast -- survival curves + risk / RMST contrasts`).
 > 147 tests passing (1 skip on the `lmtp::lmtp_tmle` smoke oracle).
 > `devtools::check()`: 0 errors / 0 warnings / 2 NOTEs (env + reserved imports).
 
@@ -11,7 +11,7 @@
 
 ## Goal
 
-Ship the contrast path for Track A. Given a `survatr_fit` (from chunk 1) and
+Ship the contrast path for point-treatment g-computation. Given a `survatr_fit` (from chunk 1) and
 a list of interventions, produce per-intervention **survival curves**, then
 derive risk, risk difference, risk ratio, and RMST contrasts indexed over
 a user-chosen time grid.
@@ -36,7 +36,7 @@ downstream code (print / plot / tidy in chunk 4) reads the same shape.
 | File | Contents |
 |---|---|
 | `R/contrast.R` | **Exported** `contrast()` S3 generic + `contrast.survatr_fit()` method. Accepts `interventions` list, `times` grid, `type` (`"survival"`, `"risk"`, `"risk_difference"`, `"risk_ratio"`, `"rmst"`, `"rmst_difference"`), `reference` for contrasts. |
-| `R/apply_intervention.R` | Internal `apply_intervention_pp()` -- thin wrapper around `causatr:::apply_intervention` to operate on person-period data (broadcast baseline value to every period for point treatments, leave time-varying treatments untouched for future Track B use). Validates that the intervention yields a column of the right type. |
+| `R/apply_intervention.R` | Internal `apply_intervention_pp()` -- thin wrapper around `causatr:::apply_intervention` to operate on person-period data (broadcast baseline value to every period for point treatments, leave time-varying treatments untouched for future longitudinal ICE-hazard use). Validates that the intervention yields a column of the right type. |
 | `R/predict_hazard.R` | Internal `predict_hazard_pp()` -- for a given intervention, build the counterfactual PP data, call `stats::predict(fit$model, newdata, type = "response")` on **every** PP row (not just the at-risk subset), return a vector of length `nrow(pp_data)`. |
 | `R/survival_curve.R` | Internal `compute_survival_curve()` -- cumulative product within id on the predicted hazards, then average across ids at each t in `times`. Returns a `data.table` with columns `intervention | time | s_hat | risk_hat | n`. |
 | `R/rmst.R` | Internal `trapezoidal_rmst()` -- `RMST^a(t*) = int_0^{t*} S^a(u) du` via trapezoidal rule on the user's time grid. Also exposes `rmst_weights()` for reuse by the variance engine in chunk 3. |
@@ -125,7 +125,7 @@ single point.
 - Sandwich variance -- chunk 3.
 - Bootstrap + `plot` / `tidy` / `forrest` polish -- chunk 4.
 - IPW-weighted curves -- chunk 5.
-- Track B curves -- chunk 6.
+- Longitudinal ICE-hazard curves -- chunk 6.
 - CIF under competing risks -- chunk 7.
 
 ## Seed sources
@@ -151,7 +151,7 @@ single point.
       `sandwich` / `numDeriv` / `boot` imports still expected.
 - [ ] `air format .` is a no-op.
 - [ ] [FEATURE_COVERAGE_MATRIX.md](FEATURE_COVERAGE_MATRIX.md) updated: new
-      "Contrast path" sub-section under Track A with one row per contrast
+      "Contrast path" sub-section under point-treatment g-computation with one row per contrast
       `type` (🟢 where the closed-form or oracle pins it; 🟡 where smoke-only).
-- [ ] Single commit with message `feat(chunk-2): Track A contrast -- survival
+- [ ] Single commit with message `feat(chunk-2): point-treatment g-computation contrast -- survival
       curves + risk / RMST contrasts (no variance)`.

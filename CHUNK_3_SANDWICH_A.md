@@ -1,4 +1,4 @@
-# Chunk 3 -- Track A sandwich variance (delta-method cross-time IF)
+# Chunk 3 -- point-treatment g-computation sandwich variance (delta-method cross-time IF)
 
 > **Status: ✅ done** -- landed in the chunk-3 commit.
 > 173 tests passing / 1 skip. `devtools::check()`: 0 errors / 0 warnings /
@@ -142,7 +142,7 @@ result <- contrast(
   more efficiently) compute `J %*% A_inv` once and apply to `psi` via
   a matrix product.
 - **`J_bar^a(t)` is averaged across the target population at time t.**
-  In Track A that's the full n (Ch1 uses `S_i - S_bar` for mean-zero
+  In the point-treatment path that's the full n (Ch1 uses `S_i - S_bar` for mean-zero
   variability). No IPW reweighting in this chunk.
 - **Pointwise bands only in v1.** Simultaneous bands (Hall-Wellner,
   equal-precision) are out of scope.
@@ -164,7 +164,7 @@ result <- contrast(
 - Simultaneous confidence bands -- out of v1 scope.
 - IPW-weighted curves -- chunk 5 (will extend the delta chain to
   weighted averages and density-ratio-weight IFs).
-- Track B ICE variance -- chunk 6 (reuses `causatr:::variance_if_ice()`).
+- Longitudinal ICE-hazard variance -- chunk 6 (reuses `causatr:::variance_if_ice()`).
 - CR variance (stacked EE across cause-specific hazards) -- chunk 7.
 
 ## Seed sources
@@ -194,5 +194,5 @@ result <- contrast(
 - [ ] [FEATURE_COVERAGE_MATRIX.md](FEATURE_COVERAGE_MATRIX.md) updated:
       replace the chunk-2 🟡 placeholder rows for `se` / `ci_*` with 🟢
       rows pinned to the coverage simulation / sandwich-vs-bootstrap tests.
-- [ ] Single commit with message `feat(chunk-3): Track A sandwich variance
+- [ ] Single commit with message `feat(chunk-3): point-treatment g-computation sandwich variance
       -- delta-method cross-time IF aggregation`.

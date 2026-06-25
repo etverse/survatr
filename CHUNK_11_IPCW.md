@@ -11,7 +11,7 @@
 
 Survival is the **motivating** use case for inverse-probability-of-censoring
 weighting (IPCW), not a supported afterthought. When censoring depends on
-measured covariates (and, for Track B, on time-varying history), the
+measured covariates (and, for the longitudinal ICE path, on time-varying history), the
 row-filter `censoring =` semantics of chunks 1–4 are biased. This chunk builds
 a **censoring hazard model** on the person-period grid, forms **per-period
 cumulative** inverse-probability-of-censoring weights, and multiplies them into
@@ -146,7 +146,7 @@ result <- contrast(fit, interventions = list(a1 = causatr::static(1),
   overridden.
 
 ## Non-goals (deferred)
-- **Longitudinal IPCW under Track B** (per-period censoring weights composed
+- **Longitudinal IPCW under the longitudinal ICE path** (per-period censoring weights composed
   with the ICE pseudo-outcome) — composes after Chunk 6; the per-period weight
   machinery here is the prerequisite.
 - **Competing-risks IPCW** (a censoring weight alongside cause-specific

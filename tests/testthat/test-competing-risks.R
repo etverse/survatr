@@ -337,7 +337,7 @@ test_that("external weights + competing aborts", {
 })
 
 test_that("competing risks warns on a within-id time-varying treatment", {
-  ## Competing risks is point-treatment Track A; a treatment that varies within
+  ## Competing risks is point-treatment point-treatment g-computation; a treatment that varies within
   ## id gets the same single-`beta_A` caveat as gcomp.
   pp <- sim_two_cause_constant_hazard(n = 200L, K = 3L, seed = 13L)
   pp[get("t") == 3L, A := 1L - A] # flip A at the last period -> time-varying

@@ -20,16 +20,18 @@
 #'   `causatr::to_person_period()`.
 #' @param outcome Character scalar. Column name of the event indicator
 #'   (`1` = event at this period, `0` = no event). Must be in `data`.
-#' @param treatment Character scalar. Column name of the treatment. For Track A
-#'   the treatment is constant within `id`. Under `estimator = "ice"` (Track B)
+#' @param treatment Character scalar. Column name of the treatment. For
+#'   point-treatment g-computation the treatment is constant within `id`. Under
+#'   the longitudinal ICE-hazard estimator (`estimator = "ice"`)
 #'   the treatment may vary within `id` and must be **numeric** (binary, or a
 #'   numeric dose entered linearly); factor / categorical (k > 2) treatments are
 #'   rejected with class `survatr_ice_treatment_unsupported` (a treatment-design
 #'   formula path ships in a later chunk).
 #' @param confounders A one-sided formula (e.g. `~ L1 + L2`) describing the
-#'   **baseline** (time-invariant) covariate adjustment set. Under
-#'   `estimator = "ice"` (Track B), time-varying covariates go in
-#'   `confounders_tv` instead; baseline terms here are never lagged.
+#'   **baseline** (time-invariant) covariate adjustment set. Under the
+#'   longitudinal ICE-hazard estimator (`estimator = "ice"`), time-varying
+#'   covariates go in `confounders_tv` instead; baseline terms here are never
+#'   lagged.
 #' @param id Character scalar. Column name of the individual identifier.
 #' @param time Character scalar. Column name of the discrete period index
 #'   (integer-valued; sorted within `id`).
@@ -42,8 +44,9 @@
 #'   event-type column (`0` = no event this period, `1..J` = the cause of the
 #'   event this period), and `surv_fit()` fits `J` parallel cause-specific
 #'   pooled-logistic hazard models on a shared all-cause risk set. It must name
-#'   the **same** column as `outcome`; competing risks are gcomp / Track A only
-#'   in this release (a non-`"gcomp"` estimator, fewer than two distinct causes,
+#'   the **same** column as `outcome`; competing risks are gcomp /
+#'   point-treatment only in this release (a non-`"gcomp"` estimator, fewer than
+#'   two distinct causes,
 #'   or `outcome != competing` aborts with `survatr_competing_estimator` /
 #'   `survatr_competing_misuse`). Cumulative-incidence functions (CIF), CIF
 #'   contrasts, and all-cause survival come from `contrast()`. Fine--Gray /
@@ -60,7 +63,7 @@
 #'   `fit$family` to pick the right dispersion.
 #' @param estimator Character scalar. `"gcomp"` (pooled-logistic
 #'   standardization), `"ipw"` (weighted marginal hazard MSM with stabilized
-#'   density-ratio weights), or `"ice"` (Track B: longitudinal
+#'   density-ratio weights), or `"ice"` (longitudinal ICE-hazard:
 #'   iterated-conditional-expectation hazards for a time-varying treatment).
 #'   Matching is a hard reject with class `survatr_matching_rejected`
 #'   pointing to `survival::coxph(..., weights = , cluster = )`.
@@ -81,13 +84,16 @@
 #'   period, targeting the heaviest late-time tails). `NULL` / `1` means no
 #'   truncation. All resolved fixed cutoffs are reused by the sandwich.
 #' @param confounders_tv A one-sided formula of **time-varying** confounders
-#'   for Track B (`estimator = "ice"`), lag-expanded at each backward step
+#'   for the longitudinal ICE-hazard estimator (`estimator = "ice"`),
+#'   lag-expanded at each backward step
 #'   (e.g. `~ L` builds `L + lag1_L + ...`). `NULL` (the default) means no
-#'   time-varying confounders. Ignored by Track A (`gcomp` / `ipw`).
-#' @param history Markov lag order for Track B. `Inf` (the default) uses the
+#'   time-varying confounders. Ignored by point-treatment g-computation
+#'   (`gcomp` / `ipw`).
+#' @param history Markov lag order for the longitudinal ICE-hazard estimator.
+#'   `Inf` (the default) uses the
 #'   full available history (capped at `n_times - 1`); an integer restricts
 #'   the lag structure (e.g. `history = 1` for first-order Markov). Ignored by
-#'   Track A.
+#'   point-treatment g-computation.
 #' @param ipcw One-sided formula for the **censoring-model covariates** (e.g.
 #'   `~ L1 + L2`) or `NULL` (the default, no built-in IPCW). When non-`NULL`,
 #'   survatr fits a per-period censoring hazard on the person-period grid and
@@ -223,8 +229,8 @@ surv_fit <- function(
   ## Competing-risks entry point. `competing = <col>` activates the
   ## cause-specific hazards + CIF path. Two guards fire here (before touching
   ## the data) so the misuse cases keep aborting:
-  ##   - CR is gcomp / Track A only this release (IPW / ICE competing risks are
-  ##     later chunks): a non-gcomp estimator is a structural mismatch.
+  ##   - CR is gcomp / point-treatment only this release (IPW / ICE competing
+  ##     risks are later chunks): a non-gcomp estimator is a structural mismatch.
   ##   - The documented API passes the same multi-valued cause column to both
   ##     `outcome` and `competing`; a mismatch is ambiguous (which column is the
   ##     event?) so we reject rather than guess.
@@ -235,7 +241,8 @@ surv_fit <- function(
         c(
           paste0(
             "Competing-risks (`competing =`) is supported only with ",
-            "`estimator = \"gcomp\"` (Track A) in this release."
+            "`estimator = \"gcomp\"` (point-treatment g-computation) in this ",
+            "release."
           ),
           i = paste0(
             "IPW / ICE competing-risks survival ship in later chunks. Got ",
@@ -293,9 +300,10 @@ surv_fit <- function(
   ## Reject NA in any column that feeds into the hazard-model formula
   ## or the counterfactual prediction. `censoring` is excluded because
   ## NA there carries "uncensored" semantics via `is_uncensored()`.
-  ## Track B (ice) adds the time-varying confounders to the predictor set
-  ## (Track A ignores `confounders_tv`); `time_formula` is a Track-A baseline-
-  ## hazard spec and is not part of the ICE per-step formula.
+  ## Longitudinal ICE-hazard (ice) adds the time-varying confounders to the
+  ## predictor set (point-treatment g-computation ignores `confounders_tv`);
+  ## `time_formula` is a point-treatment baseline-hazard spec and is not part of
+  ## the ICE per-step formula.
   predictor_cols <- unique(c(
     outcome,
     treatment,
@@ -369,7 +377,8 @@ surv_fit <- function(
     )
   }
 
-  ## External / IPCW weights with Track B (ice) need the per-step weight
+  ## External / IPCW weights with the longitudinal ICE-hazard estimator need
+  ## the per-step weight
   ## propagation + censoring-model stacked-EE blocks of the built-in IPCW
   ## path; that ships in a later chunk. Reject upfront rather than fit an
   ## unweighted ICE chain that silently ignores the weights.
@@ -412,14 +421,15 @@ surv_fit <- function(
   ## `cause_models` / `causes` (with `model = NULL`). gcomp fits the
   ## pooled-logistic hazard on the at-risk rows directly; ipw fits a baseline
   ## treatment model, forms stabilized weights, and fits a weighted marginal
-  ## hazard MSM (alpha(t) + A); ice (Track B) fits no model here -- the per-step
+  ## hazard MSM (alpha(t) + A); ice (longitudinal ICE-hazard) fits no model here
+  ## -- the per-step
   ## models are fit lazily per (intervention, horizon) inside contrast() -- and
   ## only assembles the per-step metadata (terms, families, lag order). gcomp /
   ## ipw return `model` / `family_name` / `n_fit`; ipw additionally returns the
   ## treatment models, broadcast weights, and resolved trim cutoff; ice returns
   ## `ice_details` (and `model = NULL`).
   if (is_competing) {
-    ## Competing risks is point-treatment Track A; the same single-`beta_A`
+    ## Competing risks is point-treatment g-computation; the same single-`beta_A`
     ## caveat as gcomp applies to a within-id-varying treatment.
     if (treatment_is_time_varying(data, treatment, id)) {
       rlang::warn(
@@ -465,7 +475,8 @@ surv_fit <- function(
     )
     track <- "B"
   } else {
-    ## Track A gcomp. A treatment that varies within id cannot be represented
+    ## Point-treatment gcomp. A treatment that varies within id cannot be
+    ## represented
     ## by the single `beta_A` of a pooled-logistic hazard MSM; warn
     ## (non-blocking) and point to the ICE estimator. Some users intentionally
     ## model a time-updated A via their own lag terms, so this is a warning, not
@@ -484,7 +495,8 @@ surv_fit <- function(
             id,
             "`, but `estimator = \"",
             estimator,
-            "\"` (Track A) fits a single point-treatment hazard."
+            "\"` (point-treatment g-computation) fits a single ",
+            "point-treatment hazard."
           ),
           i = "Use `estimator = \"ice\"` for a time-varying treatment."
         ),
@@ -593,8 +605,8 @@ surv_fit <- function(
       NULL
     },
     trim = trim,
-    ## Track B (ice) metadata; NULL for Track A so the constructor defaults
-    ## are unchanged.
+    ## Longitudinal ICE-hazard (ice) metadata; NULL for point-treatment
+    ## g-computation so the constructor defaults are unchanged.
     confounders_tv = if (identical(estimator, "ice")) confounders_tv else NULL,
     history = if (identical(estimator, "ice")) history else NULL,
     ice_details = fit$ice_details,

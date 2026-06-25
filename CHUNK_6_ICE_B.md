@@ -1,4 +1,4 @@
-# Chunk 6 — Track B: longitudinal survival via ICE hazards
+# Chunk 6 — Longitudinal ICE-hazard: survival via ICE hazards
 
 > **Status: ✅ Done**
 > **Depends on:** Chunk 3 (sandwich IF), causatr ICE per-step primitives
@@ -50,7 +50,7 @@ failures). survatr therefore reuses causatr's *single-model* IF pieces
 (`ice_if_setup()` for Channel 1, `correct_model()` / `iv_design_matrix()` /
 `coef_clean()` for each step's bread and score) but owns the cross-step cascade
 (`survatr_ice_surv_chain()`), injecting the `(1 - D_k)` factor via per-period
-event indicators. This mirrors the Track A architecture (causatr owns
+event indicators. This mirrors the point-treatment g-computation architecture (causatr owns
 single-model IF primitives; survatr owns the cross-time aggregation). Validated
 to ~1e-5 against an independent `delicatessen` numerical sandwich.
 
@@ -85,7 +85,7 @@ fit <- surv_fit(
   confounders = ~ V1 + V2,            # BASELINE (time-invariant) confounders
   confounders_tv = ~ L1 + L2,         # NEW — time-varying confounders, lag-expanded
   id = "id", time = "t", censoring = "C",
-  estimator = "ice",                  # NEW — Track B
+  estimator = "ice",                  # NEW — longitudinal ICE-hazard
   history = Inf                       # NEW — Markov lag order (default: full history)
 )
 # fit$track == "B"
@@ -94,11 +94,11 @@ result <- contrast(fit, interventions = list(d = causatr::static(1)),
                    ci_method = "sandwich")  # survival-aware stacked-EE ICE sandwich
 ```
 
-**Confounders API.** Track B splits baseline (`confounders`, never lagged) from
+**Confounders API.** The longitudinal ICE path splits baseline (`confounders`, never lagged) from
 time-varying (`confounders_tv`, lag-expanded at each backward step) confounders,
 matching causatr's `fit_ice()`. `history` sets the Markov lag order (`Inf` =
-full history, capped at `n_times - 1`). Both args are Track-B-only and ignored
-by Track A.
+full history, capped at `n_times - 1`). Both args are specific to the longitudinal ICE path and ignored
+by point-treatment g-computation.
 
 ## Behaviour rules (non-negotiable — see hard-rules.md)
 
@@ -131,7 +131,7 @@ by Track A.
 - Forward-simulation g-formula (that is `gfoRmula`'s job — an oracle, not a
   feature here).
 - Longitudinal IPW survival (the IPW analogue) — separate.
-- Competing risks under Track B — composes with Chunk 7 after both land.
+- Competing risks under longitudinal ICE-hazard — composes with Chunk 7 after both land.
 
 ## Dependencies & composition
 - causatr per-step + IF primitives via `causatr:::` — `ice_fit_step()`,

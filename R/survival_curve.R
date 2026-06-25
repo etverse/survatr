@@ -61,7 +61,7 @@ compute_survival_curve <- function(
   pp[, .cf_surv := cumprod(1 - .cf_hazard), by = c(id)]
 
   ## At each requested time t, average S^a_i(t) across ids that have a
-  ## row at time == t. Track A data has a row for every (id, t) by
+  ## row at time == t. Point-treatment data has a row for every (id, t) by
   ## construction of `prepare_pp_data()`, so this average is over all n
   ## individuals; IPW weighting enters in chunk 5.
   time_col <- time

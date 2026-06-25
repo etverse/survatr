@@ -38,6 +38,11 @@
 #' @param times The user time grid.
 #' @param conf_level Scalar in (0, 1).
 #' @param n_ids Number of individuals.
+#' @param cluster `NULL` for the per-individual sandwich (the default), or a
+#'   length-`n_ids` vector of cluster labels aligned to the IF matrix rows
+#'   (from `cluster_for_ids()`). When supplied, every pointwise / RMST /
+#'   log-ratio SE is the cluster-robust variant (within-cluster IF row sum
+#'   before the cross-product); the `n_ids^2` divisor is unchanged.
 #'
 #' @return A list `list(estimates, contrasts)` with SE / CI columns filled.
 #' @noRd
@@ -49,7 +54,8 @@ fill_sandwich_ses <- function(
   reference,
   times,
   conf_level,
-  n_ids
+  n_ids,
+  cluster = NULL
 ) {
   estimates <- data.table::copy(estimates)
   contrasts <- data.table::copy(contrasts)
@@ -97,7 +103,7 @@ fill_sandwich_ses <- function(
     } else {
       IF_se <- IF_mat
     }
-    se_vec <- sqrt(pmax(diag(crossprod(IF_se)) / n_ids^2, 0))
+    se_vec <- clustered_pointwise_se(IF_se, n_ids, cluster)
     estimates[get("intervention") == iv_name, se := se_vec]
     pt_vec <- estimates[get("intervention") == iv_name, get(point_col)]
     estimates[
@@ -131,7 +137,7 @@ fill_sandwich_ses <- function(
     if (identical(contrast_se, "difference")) {
       ## IF on (risk_a1 - risk_a0) = -(IF_S_a1 - IF_S_a0) = IF_S_a0 - IF_S_a1.
       IF_diff <- ref_S_if - a1_S_if
-      se_vec <- sqrt(pmax(diag(crossprod(IF_diff)) / n_ids^2, 0))
+      se_vec <- clustered_pointwise_se(IF_diff, n_ids, cluster)
       est_vec <- contrasts[
         get("contrast") == paste0(a1_name, " vs ", reference),
         estimate
@@ -159,7 +165,7 @@ fill_sandwich_ses <- function(
         bad <- which(ref_risk == 0 | a1_risk == 0)
         IF_log_rr[, bad] <- NA_real_
       }
-      se_log <- sqrt(pmax(diag(crossprod(IF_log_rr)) / n_ids^2, 0))
+      se_log <- clustered_pointwise_se(IF_log_rr, n_ids, cluster)
       rr_vec <- contrasts[
         get("contrast") == paste0(a1_name, " vs ", reference),
         estimate
@@ -187,7 +193,7 @@ fill_sandwich_ses <- function(
       W <- rmst_weights(times)
       IF_diff_S <- ref_S_if - a1_S_if
       IF_diff_RMST <- IF_diff_S %*% t(W) ## n_ids x |t|
-      se_vec <- sqrt(pmax(diag(crossprod(IF_diff_RMST)) / n_ids^2, 0))
+      se_vec <- clustered_pointwise_se(IF_diff_RMST, n_ids, cluster)
       est_vec <- contrasts[
         get("contrast") == paste0(a1_name, " vs ", reference),
         estimate

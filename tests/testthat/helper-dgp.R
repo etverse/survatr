@@ -251,3 +251,219 @@ fixture_small_pp <- function() {
     )
   )
 }
+
+## Multi-site survival DGP with a site-level frailty, for the cluster-robust
+## variance tests. Each of `G` sites draws a frailty `u_g ~ N(0, sigma)` that
+## shifts the discrete-time hazard logit for every individual in the site, so
+## individuals within a site are positively correlated -- the per-individual
+## sandwich then under-covers and the cluster-robust (cluster = site) sandwich
+## restores calibration.
+##
+## - `n_per` individuals in each of `G` sites; K periods (1..K).
+## - Hazard logit h_{i,k} = -2 + alpha_t(k) + beta_A * A_i + u_{site(i)}.
+## - `cluster_trt = FALSE`: A ~ Bernoulli(0.5) per individual (within-site
+##   randomization); the shared frailty largely cancels in the risk DIFFERENCE
+##   but not in the level (survival / risk).
+## - `cluster_trt = TRUE`: A is assigned at the SITE level (cluster-randomized),
+##   so the frailty does NOT cancel in the difference and the contrast SE widens.
+## - First-event truncation + rectangular padding; columns id, site, t, A, Y.
+sim_clustered_survival <- function(
+  n_per = 25L,
+  G = 40L,
+  K = 8L,
+  sigma = 1.4,
+  beta_A = -0.5,
+  cluster_trt = FALSE,
+  seed = 11L
+) {
+  set.seed(seed)
+  u <- stats::rnorm(G, sd = sigma)
+  a_site <- stats::rbinom(G, 1L, 0.5)
+  alpha_t <- seq(0, 0.3, length.out = K)
+  rows <- vector("list", G * n_per)
+  idx <- 0L
+  for (g in seq_len(G)) {
+    for (j in seq_len(n_per)) {
+      idx <- idx + 1L
+      a_i <- if (cluster_trt) a_site[g] else stats::rbinom(1L, 1L, 0.5)
+      h <- stats::plogis(-2 + alpha_t + beta_A * a_i + u[g])
+      Y <- stats::rbinom(K, 1L, h)
+      first <- which(Y == 1L)[1L]
+      if (!is.na(first) && first < K) {
+        Y[(first + 1L):K] <- 0L
+      }
+      rows[[idx]] <- data.table::data.table(
+        id = idx,
+        site = g,
+        t = seq_len(K),
+        A = a_i,
+        Y = Y
+      )
+    }
+  }
+  data.table::rbindlist(rows)
+}
+
+## Confounded multi-site survival DGP for the IPW cluster-robust tests. Adds a
+## baseline confounder `L` that drives BOTH treatment and hazard (so IPW is
+## needed) on top of the site-level frailty `u_g` (so within-site individuals
+## are correlated). Columns id, site, t, A, L, Y.
+sim_clustered_confounded <- function(
+  n_per = 25L,
+  G = 40L,
+  K = 6L,
+  sigma = 1.2,
+  gamma = 0.8,
+  beta_A = -0.5,
+  beta_L = 0.7,
+  seed = 71L
+) {
+  set.seed(seed)
+  u <- stats::rnorm(G, sd = sigma)
+  alpha_t <- seq(0, 0.3, length.out = K)
+  rows <- vector("list", G * n_per)
+  idx <- 0L
+  for (g in seq_len(G)) {
+    for (j in seq_len(n_per)) {
+      idx <- idx + 1L
+      l_i <- stats::rnorm(1L)
+      a_i <- stats::rbinom(1L, 1L, stats::plogis(gamma * l_i))
+      h <- stats::plogis(-2 + alpha_t + beta_A * a_i + beta_L * l_i + u[g])
+      Y <- stats::rbinom(K, 1L, h)
+      first <- which(Y == 1L)[1L]
+      if (!is.na(first) && first < K) {
+        Y[(first + 1L):K] <- 0L
+      }
+      rows[[idx]] <- data.table::data.table(
+        id = idx,
+        site = g,
+        t = seq_len(K),
+        A = a_i,
+        L = l_i,
+        Y = Y
+      )
+    }
+  }
+  data.table::rbindlist(rows)
+}
+
+## Multi-site informative-censoring DGP for the IPCW cluster-robust tests. Site
+## frailty `u_g` on the event hazard (within-site correlation) plus a baseline
+## confounder `L` that drives treatment, the event hazard, AND the censoring
+## hazard (so IPCW is needed). Columns id, site, t, A, L, Y, C.
+sim_clustered_censoring <- function(
+  n_per = 25L,
+  G = 40L,
+  K = 5L,
+  sigma = 1.0,
+  gamma = 0.7,
+  beta_A = -0.5,
+  beta_L = 0.6,
+  cens0 = -2.5,
+  delta_cens = 0.7,
+  seed = 73L
+) {
+  set.seed(seed)
+  u <- stats::rnorm(G, sd = sigma)
+  alpha_t <- seq(0, 0.4, length.out = K)
+  rows <- vector("list", G * n_per)
+  idx <- 0L
+  for (g in seq_len(G)) {
+    for (j in seq_len(n_per)) {
+      idx <- idx + 1L
+      l_i <- stats::rnorm(1L)
+      a_i <- stats::rbinom(1L, 1L, stats::plogis(gamma * l_i))
+      h_y <- stats::plogis(-2.2 + alpha_t + beta_A * a_i + beta_L * l_i + u[g])
+      h_c <- stats::plogis(cens0 + delta_cens * l_i)
+      Y <- integer(K)
+      C <- integer(K)
+      alive <- TRUE
+      for (k in seq_len(K)) {
+        if (!alive) {
+          break
+        }
+        Y[k] <- stats::rbinom(1L, 1L, h_y[k])
+        if (Y[k] == 1L) {
+          alive <- FALSE
+        } else {
+          C[k] <- stats::rbinom(1L, 1L, h_c)
+          if (C[k] == 1L) alive <- FALSE
+        }
+      }
+      rows[[idx]] <- data.table::data.table(
+        id = idx,
+        site = g,
+        t = seq_len(K),
+        A = a_i,
+        L = l_i,
+        Y = Y,
+        C = C
+      )
+    }
+  }
+  data.table::rbindlist(rows)
+}
+
+## Clustered time-varying-treatment ICE DGP for longitudinal ICE-hazard cluster-robust tests.
+## Extends `sim_ice_feedback()` (treatment-confounder feedback, the proper Track
+## B / ICE setting) with a site-level frailty `u_g` on the hazard, so within-site
+## individuals are positively correlated. Treatment is time-varying (A_k depends
+## on L_k and lagged A), so the ICE chain is NOT rank-deficient -- unlike a static
+## treatment, whose lagged copy is collinear with the current value. Fit with
+## `estimator = "ice", confounders_tv = ~L`. Columns id, site, t, L, A, Y.
+sim_clustered_ice <- function(
+  n_per = 40L,
+  G = 20L,
+  K = 4L,
+  sigma = 1.0,
+  seed = 51L
+) {
+  p <- .ice_dgp_params()
+  set.seed(seed)
+  u <- stats::rnorm(G, sd = sigma)
+  rows <- vector("list", G * n_per)
+  idx <- 0L
+  for (g in seq_len(G)) {
+    for (jj in seq_len(n_per)) {
+      idx <- idx + 1L
+      L <- numeric(K)
+      A <- numeric(K)
+      Y <- integer(K)
+      l_prev <- 0
+      a_prev <- p$a_prev0
+      failed_at <- NA_integer_
+      for (k in seq_len(K)) {
+        L[k] <- stats::rnorm(1, p$mu_L * l_prev + p$mu_A * a_prev, 1)
+        A[k] <- stats::rbinom(
+          1,
+          1L,
+          stats::plogis(p$g_L * L[k] + p$g_A * a_prev)
+        )
+        h <- stats::plogis(p$a0 + p$bL * L[k] + p$bA * A[k] + u[g])
+        Y[k] <- stats::rbinom(1, 1L, h)
+        l_prev <- L[k]
+        a_prev <- A[k]
+        if (Y[k] == 1L) {
+          failed_at <- k
+          break
+        }
+      }
+      if (!is.na(failed_at) && failed_at < K) {
+        for (jpad in (failed_at + 1L):K) {
+          L[jpad] <- L[failed_at]
+          A[jpad] <- A[failed_at]
+          Y[jpad] <- 0L
+        }
+      }
+      rows[[idx]] <- data.table::data.table(
+        id = idx,
+        site = g,
+        t = seq_len(K),
+        L = L,
+        A = A,
+        Y = Y
+      )
+    }
+  }
+  data.table::rbindlist(rows)
+}

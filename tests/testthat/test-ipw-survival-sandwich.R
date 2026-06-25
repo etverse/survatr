@@ -1,4 +1,4 @@
-## Track A IPW stacked-EE sandwich. The gold-standard truth for the combined
+## point-treatment g-computation IPW stacked-EE sandwich. The gold-standard truth for the combined
 ## (treatment-model + hazard-MSM) variance is the full two-stage nonparametric
 ## bootstrap, which refits BOTH models per replicate. The stacked sandwich must
 ## match it; the naive "weights-as-known" SE (the hazard-only block) must not.

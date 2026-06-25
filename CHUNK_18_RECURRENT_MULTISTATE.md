@@ -216,7 +216,7 @@ result <- contrast(fit, ..., type = "state_occupancy", state = 2)
 - **Reversible transitions** (recovery, `2 → 1`). Does v1 of this chunk allow
   reversible illness-death, or restrict to progressive (no back-transitions)
   multi-state first?
-- **Time-varying treatment in multi-state** (Track B × multi-state). Almost
+- **Time-varying treatment in multi-state** (longitudinal ICE-hazard × multi-state). Almost
   certainly a separate future chunk; confirm it is deferred, not folded in.
 - **Identifiability / positivity per transition.** Sparse late-time transition
   risk sets are worse than in single-event survival; how aggressively should
@@ -228,7 +228,7 @@ result <- contrast(fit, ..., type = "state_occupancy", state = 2)
   its own modelling story; defer.
 - **Frailty / random-effect recurrence models** — out of scope; recurrence
   correlation is handled by clustered SE (chunk 13), not a frailty term.
-- **Track B (time-varying treatment) × multi-state** — a separate future lift.
+- **Longitudinal ICE-hazard (time-varying treatment) × multi-state** — a separate future lift.
 - **Continuous-time multi-state** (`msm`-style transition-intensity matrices on
   continuous time) — survatr is discrete-time pooled-logistic by contract.
 

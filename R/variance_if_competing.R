@@ -158,7 +158,8 @@ cr_intervention_if_pieces <- function(fit, intervention, shared) {
 #' Returns, for each requested time, the row indices of `t_pp` at that time, and
 #' asserts there is exactly one row per id (`n_ids`). The IF assembly pulls one
 #' row per id at each time and `colMeans` over them; a wrong-length pull would
-#' silently corrupt the variance. Track A (including competing risks) PP is
+#' silently corrupt the variance. Point-treatment (including competing risks) PP
+#' is
 #' rectangular by construction so this never fires today, but the guard mirrors
 #' the single-event check in `compute_survival_if_matrix()` and protects a
 #' future ragged-PP / left-truncation path.
@@ -230,7 +231,8 @@ compute_cif_if_matrix <- function(pieces, cause_j, times) {
   ## Per-time row indices, guarded once. Mirrors the single-event check in
   ## `compute_survival_if_matrix()`: every requested time must have exactly one
   ## row per id, or the `colMeans` / per-time pulls below silently average over
-  ## the wrong row set. Track A (incl. competing risks) PP is rectangular by
+  ## the wrong row set. Point-treatment (incl. competing risks) PP is rectangular
+  ## by
   ## construction so this never fires today, but the guard keeps a future
   ## ragged-PP / left-truncation path from corrupting the variance.
   rows_by_t <- cr_rows_by_time(t_pp, times, n_ids)
@@ -348,6 +350,10 @@ compute_cr_survival_if_matrix <- function(pieces, times) {
 #' @param causes Integer vector of reported causes.
 #' @param conf_level Scalar in (0, 1).
 #' @param shared Output of `prepare_cr_sandwich_shared()`.
+#' @param cluster `NULL` for the per-individual sandwich (the default), or a
+#'   length-`n_ids` vector of cluster labels aligned to `shared$unique_ids`
+#'   (from `cluster_for_ids()`). The within-id cross-cause IF is summed within
+#'   cluster before the cross-product, exactly as in the single-event path.
 #'
 #' @returns A list `list(estimates, contrasts)` with SE / CI columns filled.
 #' @family competing-risks
@@ -362,7 +368,8 @@ fill_sandwich_ses_cr <- function(
   reference,
   causes,
   conf_level,
-  shared
+  shared,
+  cluster = NULL
 ) {
   estimates <- data.table::copy(estimates)
   contrasts <- data.table::copy(contrasts)
@@ -391,7 +398,7 @@ fill_sandwich_ses_cr <- function(
     for (iv in iv_names) {
       ifm <- compute_cr_survival_if_matrix(pieces[[iv]], times)
       if_se <- map_if(ifm$IF_mat)
-      se_vec <- sqrt(pmax(diag(crossprod(if_se)) / n_ids^2, 0))
+      se_vec <- clustered_pointwise_se(if_se, n_ids, cluster)
       tgt <- estimand_field(type, "point_col")
       pt <- estimates[get("intervention") == iv & is.na(get("cause")), get(tgt)]
       estimates[
@@ -424,7 +431,7 @@ fill_sandwich_ses_cr <- function(
     for (j in causes) {
       ifm <- if_by[[iv]][[as.character(j)]]
       if_se <- map_if(ifm$IF_mat)
-      se_vec <- sqrt(pmax(diag(crossprod(if_se)) / n_ids^2, 0))
+      se_vec <- clustered_pointwise_se(if_se, n_ids, cluster)
       pt <- estimates[
         get("intervention") == iv & get("cause") == j,
         get(point_col)
@@ -457,7 +464,7 @@ fill_sandwich_ses_cr <- function(
       sel <- contrasts[, get("contrast") == cn & get("cause") == j]
       if (identical(estimand_field(type, "op"), "difference")) {
         if_diff <- if_a1 - if_ref
-        se_vec <- sqrt(pmax(diag(crossprod(if_diff)) / n_ids^2, 0))
+        se_vec <- clustered_pointwise_se(if_diff, n_ids, cluster)
         est_vec <- contrasts[sel, get("estimate")]
         contrasts[
           sel,
@@ -476,7 +483,7 @@ fill_sandwich_ses_cr <- function(
           bad <- which(f_a1 == 0 | f_ref == 0)
           if_log[, bad] <- NA_real_
         }
-        se_log <- sqrt(pmax(diag(crossprod(if_log)) / n_ids^2, 0))
+        se_log <- clustered_pointwise_se(if_log, n_ids, cluster)
         ratio_vec <- contrasts[sel, get("estimate")]
         contrasts[
           sel,

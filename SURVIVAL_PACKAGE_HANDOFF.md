@@ -46,10 +46,10 @@ scalar estimators that are better served by a focused package.
 
 ### Two tracks + competing risks
 
-1. **Track A — Point survival.** Baseline treatment, time-to-event
+1. **point-treatment g-computation — Point survival.** Baseline treatment, time-to-event
    outcome. Pooled logistic hazard on person-period data. This is the
    Ch. 17 workflow in Hernán & Robins.
-2. **Track B — Longitudinal survival (ICE hazards).** Time-varying
+2. **longitudinal ICE-hazard — Longitudinal survival (ICE hazards).** Time-varying
    treatment, time-to-event outcome. Iterated conditional hazards
    (Zivich et al. 2024 extended to the hazard link): per-step logistic
    fit at the final period, backward iteration with the **survival
@@ -179,7 +179,7 @@ on whether to copy, wrap, or re-derive:
 - `R/causat_survival.R` (in the pre-removal baseline) — pooled
   logistic fit + risk-set construction + weighted fit + T6 family
   choice + T9 internal column strip. **Copy verbatim** into the new
-  package as the starting point for Track A's fit path.
+  package as the starting point for the point-treatment g-computation fit path.
 - `R/utils.R :: is_uncensored()` — `NA | 0 ⇒ TRUE` convention for
   censoring indicators. **Copy.**
 - `R/checks.R :: check_weights()` — external weights validation.
@@ -205,7 +205,7 @@ to look back at causatr's git history. Chunks 7a–7h map to
 recommended implementation milestones; section numbering matches the
 original design doc.
 
-### Track A — Point survival via pooled logistic
+### point-treatment g-computation — Point survival via pooled logistic
 
 #### Outcome model
 
@@ -260,7 +260,7 @@ per-individual IF vectors evaluated at each $t$.
 
 Bootstrap resamples individuals and refits.
 
-### Track B — Longitudinal survival via ICE hazards
+### longitudinal ICE-hazard — Longitudinal survival via ICE hazards
 
 Zivich et al. (2024) iterated conditional expectations extended to the
 hazard link:
@@ -281,7 +281,7 @@ survival tail** replacing the scalar outcome. The forward sensitivity
 recursion in `variance_if_ice()` is **agnostic to what the per-step
 response is**, as long as the per-step model exposes `family$mu.eta`
 and `family$variance` — both `binomial` and `quasibinomial` do. So the
-ICE variance engine reuses directly; survival-Track-B only adds the
+ICE variance engine reuses directly; survival longitudinal-ICE only adds the
 cumulative-product survival-curve shape on top.
 
 #### What survives from causatr's ICE as-is
@@ -363,7 +363,7 @@ causatr's pending phases. Short summary:
   weights multiply into the hazard MSM; stacked EE extends with
   censoring model blocks.
 - **AIPW + survival.** Well-studied (Bai et al. 2013; Zhang &
-  Schaubel 2012). Composes cleanly with Track A:
+  Schaubel 2012). Composes cleanly with point-treatment g-computation:
   $\hat{S}^g_{\mathrm{AIPW}}(t) = (1/n) \sum_i [\hat{S}^g_i(t) + W_i(g) \cdot (\mathbb{1}\{T_i > t, C_i > t\} - \hat{S}^{A_i}_i(t))]$.
 - **Transportability + survival.** Sampling weight broadcast onto
   person-period rows; weighted hazard MSM on study-sample
@@ -379,7 +379,7 @@ causatr's pending phases. Short summary:
   the M-estimation sandwich, so it is a **point-estimate oracle** for
   variance.
 - **`gfoRmula::gformula_survival()`** — forward-simulation
-  g-formula reference for Track B.
+  g-formula reference for longitudinal ICE-hazard.
 - **`survival::survfit()`** — unadjusted Kaplan–Meier for sanity
   checks.
 - **`survival::coxph()`** — continuous-time Cox partial likelihood.
@@ -395,7 +395,7 @@ causatr's pending phases. Short summary:
   treatment.
 - Risk difference: ≈ 0.2% (95% CI: −4.1% to 3.7%) — essentially null.
 
-These are the acceptance targets for the Track A truth-based test on
+These are the acceptance targets for the point-treatment g-computation truth-based test on
 NHEFS.
 
 ## 10. Implementation chunks (proposed)
@@ -407,18 +407,18 @@ status); `CLAUDE.md` carries only a one-line pointer + a done/next summary.
 | # | Status | Chunk doc | Scope | Depends |
 |---|---|---|---|---|
 | 1 | ✅ `6e911d3` | [CHUNK_1_SKELETON.md](CHUNK_1_SKELETON.md) | Package skeleton: DESCRIPTION, NAMESPACE, lint, CI. Copy + adapt `causat_survival()` fit path. Copy `is_uncensored()`, `check_weights()`, `check_dots_na_action()`, reserved-col guard. | — |
-| 2 | ✅ `2525707` | [CHUNK_2_CONTRAST_A.md](CHUNK_2_CONTRAST_A.md) | Track A contrast path: per-individual hazards → survival curve → risk/RMST contrasts, **no variance yet**. Time-indexed `data.table` result shape. | 1 |
-| 3 | ✅ `a3f79cb` | [CHUNK_3_SANDWICH_A.md](CHUNK_3_SANDWICH_A.md) | Track A sandwich variance: delta-method cross-time IF aggregation. Depends on `causatr::prepare_model_if()` / `apply_model_correction()` — import or re-export as `@keywords internal`. | 2 |
-| 4 | ✅ `8a26904` | [CHUNK_4_BOOTSTRAP_S3.md](CHUNK_4_BOOTSTRAP_S3.md) | Track A bootstrap + S3 methods (`print` / `plot` / `tidy` / `forrest` for survival curves). | 2 |
-| 5 | ✅ `e995e7e` | [CHUNK_5_IPW_A.md](CHUNK_5_IPW_A.md) | Track A under IPW (binary; `static` / `dynamic`): baseline stabilized density-ratio weights composed from causatr primitives, **broadcast** onto person-period rows, weighted marginal hazard MSM, two-stage stacked sandwich + dual-refit bootstrap. Extended types / `ipsi()` / transport / time-varying treatment deferred to chunks 19–22. | 2, causatr IPW |
-| 6 | ✅ `5b7dc2e` | [CHUNK_6_ICE_B.md](CHUNK_6_ICE_B.md) | Track B (ICE-hazards): per-step hazard target + survival-tail pseudo-outcome (`Ỹ_k = D_k + (1−D_k)q_{k+1}`); survatr owns the backward loop + cross-step IF cascade with the `(1−D_k)` failure carry-forward, reusing causatr's **single-model** primitives (`ice_fit_step`, `ice_if_setup`, `correct_model`). `confounders_tv` + `history` API. Validated vs forward-sim truth, `delicatessen` sandwich (~1e-5), bootstrap, `lmtp`. | 3, causatr ICE |
-| 7 | ✅ `53bdfd0` | [CHUNK_7_COMPETING_RISKS.md](CHUNK_7_COMPETING_RISKS.md) | Competing risks: parallel cause-specific hazards + CIF contrast + sandwich via stacked EE across cause-specific models. Validated vs closed-form CIF, Aalen–Johansen, `delicatessen` (~1e-4), bootstrap. gcomp / Track A only; Fine–Gray out of scope. | 2, 3 |
+| 2 | ✅ `2525707` | [CHUNK_2_CONTRAST_A.md](CHUNK_2_CONTRAST_A.md) | point-treatment g-computation contrast path: per-individual hazards → survival curve → risk/RMST contrasts, **no variance yet**. Time-indexed `data.table` result shape. | 1 |
+| 3 | ✅ `a3f79cb` | [CHUNK_3_SANDWICH_A.md](CHUNK_3_SANDWICH_A.md) | point-treatment g-computation sandwich variance: delta-method cross-time IF aggregation. Depends on `causatr::prepare_model_if()` / `apply_model_correction()` — import or re-export as `@keywords internal`. | 2 |
+| 4 | ✅ `8a26904` | [CHUNK_4_BOOTSTRAP_S3.md](CHUNK_4_BOOTSTRAP_S3.md) | point-treatment g-computation bootstrap + S3 methods (`print` / `plot` / `tidy` / `forrest` for survival curves). | 2 |
+| 5 | ✅ `e995e7e` | [CHUNK_5_IPW_A.md](CHUNK_5_IPW_A.md) | point-treatment g-computation under IPW (binary; `static` / `dynamic`): baseline stabilized density-ratio weights composed from causatr primitives, **broadcast** onto person-period rows, weighted marginal hazard MSM, two-stage stacked sandwich + dual-refit bootstrap. Extended types / `ipsi()` / transport / time-varying treatment deferred to chunks 19–22. | 2, causatr IPW |
+| 6 | ✅ `5b7dc2e` | [CHUNK_6_ICE_B.md](CHUNK_6_ICE_B.md) | longitudinal ICE-hazard: per-step hazard target + survival-tail pseudo-outcome (`Ỹ_k = D_k + (1−D_k)q_{k+1}`); survatr owns the backward loop + cross-step IF cascade with the `(1−D_k)` failure carry-forward, reusing causatr's **single-model** primitives (`ice_fit_step`, `ice_if_setup`, `correct_model`). `confounders_tv` + `history` API. Validated vs forward-sim truth, `delicatessen` sandwich (~1e-5), bootstrap, `lmtp`. | 3, causatr ICE |
+| 7 | ✅ `53bdfd0` | [CHUNK_7_COMPETING_RISKS.md](CHUNK_7_COMPETING_RISKS.md) | Competing risks: parallel cause-specific hazards + CIF contrast + sandwich via stacked EE across cause-specific models. Validated vs closed-form CIF, Aalen–Johansen, `delicatessen` (~1e-4), bootstrap. gcomp / point-treatment g-computation only; Fine–Gray out of scope. | 2, 3 |
 | 8 | ✅ `d8d8117` | [CHUNK_8_MATCHING_REJECTION.md](CHUNK_8_MATCHING_REJECTION.md) | Full matching rejection surface: `estimator = "matching"/"match"`, `method = "matching"/"match"` in `...`, and `matchit` object as `data`. All routes → `survatr_matching_rejected` + coxph redirect. | — |
-| 9 | ✅ `1f2fdef` | [CHUNK_9_NHEFS_REPLICATION.md](CHUNK_9_NHEFS_REPLICATION.md) | NHEFS Ch. 17 replication test + `survival` vignette. `nhefs_surv` dataset (rectangular 1629 × 120 PP, 318 events); Track A gcomp with the Ch. 17 hazard formula (quadratic time + treatment-by-time interactions); 120-mo survival ≈ 80.7%/80.5%, RD ≈ 0.2% (sandwich CI spans 0). KM sanity via `survival::survfit`. | 2–7 |
+| 9 | ✅ `1f2fdef` | [CHUNK_9_NHEFS_REPLICATION.md](CHUNK_9_NHEFS_REPLICATION.md) | NHEFS Ch. 17 replication test + `survival` vignette. `nhefs_surv` dataset (rectangular 1629 × 120 PP, 318 events); point-treatment g-computation gcomp with the Ch. 17 hazard formula (quadratic time + treatment-by-time interactions); 120-mo survival ≈ 80.7%/80.5%, RD ≈ 0.2% (sandwich CI spans 0). KM sanity via `survival::survfit`. | 2–7 |
 | 10 | ✅ `75bbe1f` | [CHUNK_10_DIAGNOSE.md](CHUNK_10_DIAGNOSE.md) | Survival-aware `diagnose()`: five panels (`positivity`, `balance`, `weights`, `censoring`, `competing`), `survatr_diag` S3 + `print` method. Flags h < 0.001 / h > 0.999; CR identity `Σ F^(j) + S = 1`; IPW weight ESS. | 2, 5, 7 |
 | 11 | ✅ `cdcdbae` | [CHUNK_11_IPCW.md](CHUNK_11_IPCW.md) | Built-in IPCW: per-period cumulative censoring weights → weighted hazard MSM; stacked EE with censoring-model blocks. Per-period trim (fixed thresholds for sandwich); bootstrap refits censoring model; three-block stacked-EE (beta + alpha + gamma). Validated vs lmtp oracle (0.05 tolerance) and bootstrap sandwich agreement (15% tolerance). | 5 |
 | 12 | ✅ `d606f2f` | [CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md](CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md) | Estimand additions: survival quantiles / median, RMTL, per-cause years-of-life-lost (+ all-cause RMST/RMTL on CR fits). Central estimand registry (`R/estimand_registry.R`) for type dispatch. | 2, 3, 7 |
-| 13 | ⬜ | [CHUNK_13_CLUSTER_ROBUST_SE.md](CHUNK_13_CLUSTER_ROBUST_SE.md) | Cluster-robust sandwich: `cluster=` IF aggregation before `crossprod`. **Reuse `causatr:::vcov_from_if(IF, n, cluster=)` for the inner crossprod/cluster aggregation** (audit 2026-06-11, A1/B1) rather than re-rolling it in `fill_sandwich_ses()`. | 3 |
+| 13 | ✅ `a03ed39` | [CHUNK_13_CLUSTER_ROBUST_SE.md](CHUNK_13_CLUSTER_ROBUST_SE.md) | Cluster-robust sandwich: `cluster=` on `contrast()` sums per-individual IF rows within cluster before `crossprod`, **divisor stays `n²`** (the chunk doc's old `G²` was wrong — pinned to `sandwich::vcovCL`). Reuses `causatr:::vcov_from_if(cluster=)` via the shared `clustered_pointwise_se()` helper (audit 2026-06-11, A1/B1). Wired for gcomp / IPW / IPCW / longitudinal ICE-hazard / competing-risks sandwich + quantile + cluster-resampling bootstrap. | 3 |
 | 14 | ⬜ | [CHUNK_14_LEFT_TRUNCATION.md](CHUNK_14_LEFT_TRUNCATION.md) | Left-truncation / delayed entry: delayed risk-set start; relax rectangular-PP. | 1, 2 |
 | 15 | ⬜ | [CHUNK_15_AIPW.md](CHUNK_15_AIPW.md) | Parametric doubly-robust (AIPW) survival; stacked-EE sandwich. ML/TMLE out. | 5, 7, 11 |
 | 16 | ⬜ | [CHUNK_16_SIMULTANEOUS_BANDS.md](CHUNK_16_SIMULTANEOUS_BANDS.md) | Simultaneous / uniform confidence bands via multiplier bootstrap on the IF matrix. | 3 |
@@ -434,9 +434,9 @@ status); `CLAUDE.md` carries only a one-line pointer + a done/next summary.
 | 26 | ⬜ | [CHUNK_26_NUMERIC_VARIANCE_FALLBACK.md](CHUNK_26_NUMERIC_VARIANCE_FALLBACK.md) | Numeric variance fallback (audit 2026-06-11, B2): wire `causatr:::variance_if_numeric()` Tier-1 (`sandwich::estfun`) / Tier-2 (`numDeriv` delta) as the sandwich path for hazard `model_fn`s with no analytic bread (custom families, exotic GAMs). The §4 inheritance table already promised this "inherits"; today a non-GLM/GAM `model_fn` has no sandwich path. | 3 |
 | 27 | ⬜ | [CHUNK_27_IPCW_GCOMP_ICE.md](CHUNK_27_IPCW_GCOMP_ICE.md) | IPCW for gcomp and ICE (audit 2026-06-11): chunk 11 coupled the per-period censoring weights + three-block sandwich to the IPW path only. Extend the running-product IPCW weight and the censoring-model stacked-EE block to the gcomp (chunk 2/3) and ICE (chunk 6) survival paths. | 6, 11 |
 | 28 | ⬜ | [CHUNK_28_COMPETING_RISKS_IPW_ICE.md](CHUNK_28_COMPETING_RISKS_IPW_ICE.md) | Competing risks under IPW / ICE (audit 2026-06-11): chunk 7 fit the J cause-specific hazards under gcomp only. Add the weighted cause-specific hazard MSM (IPW) and the per-cause ICE pseudo-outcome, reusing the chunk-7 shared all-cause risk set and block-diagonal CIF sandwich. | 5, 6, 7 |
-| 29 | ⬜ | [CHUNK_29_EFFECT_MODIFICATION.md](CHUNK_29_EFFECT_MODIFICATION.md) | Effect modification / `by`-stratification for Track A survival (audit 2026-06-11): the §4 inheritance table claims survatr inherits causatr's `parse_effect_mod()` (already imported for Track B), but Track A exposes no `by =` surface. Add subgroup-conditional survival / risk / RMST curves + their cross-time IF. | 2, 3 |
+| 29 | ⬜ | [CHUNK_29_EFFECT_MODIFICATION.md](CHUNK_29_EFFECT_MODIFICATION.md) | Effect modification / `by`-stratification for point-treatment g-computation survival (audit 2026-06-11): the §4 inheritance table claims survatr inherits causatr's `parse_effect_mod()` (already imported for longitudinal ICE-hazard), but point-treatment g-computation exposes no `by =` surface. Add subgroup-conditional survival / risk / RMST curves + their cross-time IF. | 2, 3 |
 
-**Phasing.** v1 = chunks 1–10 (Track A gcomp/IPW/sandwich/bootstrap/S3, Track B
+**Phasing.** v1 = chunks 1–10 (point-treatment g-computation gcomp/IPW/sandwich/bootstrap/S3, longitudinal ICE-hazard
 ICE, competing risks, matching rejection, NHEFS, `diagnose()`). v1.x = chunks
 11–15 (IPCW, quantile/RMTL/YLL estimands, cluster-robust SE, left-truncation,
 parametric AIPW). v2 = chunks 16–18 (simultaneous bands, target-trial/landmark
@@ -474,7 +474,7 @@ product). Three categories of finding:
 - **Genuinely unplanned gaps → new chunks 26–29.** Numeric variance fallback
   (B2, ch 26); IPCW for gcomp / ICE (ch 27, chunk 11 was IPW-only); competing
   risks under IPW / ICE (ch 28, chunk 7 was gcomp-only); effect modification /
-  `by` for Track A (ch 29, claimed "inherits" but unsurfaced). Each is an
+  `by` for point-treatment g-computation (ch 29, claimed "inherits" but unsurfaced). Each is an
   extension of an existing chunk's machinery, not new theory.
 - **Already planned (no action).** Extended-treatment IPW (ch 19), IPSI
   (ch 20), transport / survey weights (ch 21), longitudinal IPW (ch 22),

@@ -1,4 +1,4 @@
-## Track B external point-estimate oracles. Parametric ICE g-computation is
+## longitudinal ICE-hazard external point-estimate oracles. Parametric ICE g-computation is
 ## consistent only when the sequential regressions are correctly specified; the
 ## survival-tail pseudo-outcome is approximated by a logistic-linear model, so a
 ## small (~0.01-0.02) finite-model bias vs the truth is expected (lmtp's TMLE
@@ -6,7 +6,7 @@
 ## variance pin is the delicatessen oracle; the curve-level pin is the
 ## forward-simulation truth (test-ice-survival.R).
 
-test_that("Track B matches lmtp_tmle(survival) for static strategies", {
+test_that("longitudinal ICE-hazard matches lmtp_tmle(survival) for static strategies", {
   skip_if_not_installed("lmtp")
   skip_on_cran()
 
@@ -47,7 +47,7 @@ test_that("Track B matches lmtp_tmle(survival) for static strategies", {
   expect_equal(s0, lm0, tolerance = 0.04)
 })
 
-test_that("Track B matches the forward-sim truth for a dynamic strategy", {
+test_that("longitudinal ICE-hazard matches the forward-sim truth for a dynamic strategy", {
   ## A genuinely longitudinal, non-static strategy: treat iff the current
   ## (time-varying) confounder is positive, A_k = 1{L_k > 0}. Treatment responds
   ## to the evolving covariate, which responds to past treatment -- the
@@ -79,7 +79,7 @@ test_that("Track B matches the forward-sim truth for a dynamic strategy", {
   expect_equal(s_d, truth_d, tolerance = 0.035)
 })
 
-test_that("Track B matches gfoRmula::gformula_survival when available", {
+test_that("longitudinal ICE-hazard matches gfoRmula::gformula_survival when available", {
   skip_if_not_installed("gfoRmula")
   skip_on_cran()
   ## gfoRmula is the forward-simulation reference named in CHUNK_6. When it is

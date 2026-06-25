@@ -1,4 +1,4 @@
-## Track A IPW bootstrap. Each replicate refits BOTH the treatment model and the
+## point-treatment g-computation IPW bootstrap. Each replicate refits BOTH the treatment model and the
 ## weighted hazard MSM (the weights are re-estimated, not carried), so the
 ## bootstrap is a genuine two-stage resample. Reproducibility + populated CIs +
 ## agreement with the sandwich are the wiring checks (the SE-vs-sandwich pin

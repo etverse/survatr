@@ -21,7 +21,7 @@ changes a feature MUST update this file and the corresponding tests.
 reflects **current** state, not planned scope. Planned scope lives in
 `SURVIVAL_PACKAGE_HANDOFF.md` §10 (implementation chunks). -->
 
-## Track A — Point survival, pooled-logistic hazard
+## point-treatment g-computation — Point survival, pooled-logistic hazard
 
 ### Fit path (`surv_fit()`)
 
@@ -38,7 +38,7 @@ reflects **current** state, not planned scope. Planned scope lives in
 | `method = "matching"` / `"match"` in `...` (causatr-style mis-call) | 🔴 | `test-matching-rejection.R` | `survatr_matching_rejected`. Caught before model dispatch. |
 | `data` is a `matchit` object (MatchIt output) | 🔴 | `test-matching-rejection.R` | `survatr_matching_rejected`. Detected before column lookup. |
 | `estimator = "ipw"` (weighted marginal hazard MSM) | 🟢 | `test-ipw-survival.R` | See the IPW section below. |
-| `estimator = "ice"` (longitudinal ICE hazards) | 🟢 | `test-ice-survival.R` | See the Track B section below. `track = "B"`, `model = NULL` (per-step models fit lazily in `contrast()`). |
+| `estimator = "ice"` (longitudinal ICE hazards) | 🟢 | `test-ice-survival.R` | See the longitudinal ICE-hazard section below. `track = "B"`, `model = NULL` (per-step models fit lazily in `contrast()`). |
 | `estimator = <unknown>` | 🔴 | `test-surv_fit.R` | `survatr_bad_estimator`. |
 | `competing = <non-NULL>` | 🔴 | `test-surv_fit.R` | `survatr_competing_misuse`. Cause-specific + CIF path ships in chunk 7. |
 | Missing column name in `data` | 🔴 | `test-prepare_data.R` | `survatr_col_not_found`. |
@@ -57,13 +57,13 @@ reflects **current** state, not planned scope. Planned scope lives in
 | `type = "rmst"` | 🟢 | `test-rmst.R`, `test-contrast.R` | Closed-form trapezoidal integral of `(1-h)^t` matched to 1e-12; curve-only shape verified. |
 | RMST cross-check vs `survRM2::rmst2()` (unadjusted KM) | 🟢 | `test-rmst-survRM2.R` | Constant-hazard DGP (n = 3000, K = 20, h = 0.05, no covariates): per-arm pooled-logistic trapezoidal RMST at t = 20 agrees with KM-based RMST from `survRM2::rmst2()` within 0.05. Validates the RMST scale (pooled-logistic ≈ KM for small h). `skip_if_not_installed("survRM2")`. |
 | `type = "rmst_difference"` | 🟢 | `test-contrast.R` | DGP with no effect: RMST-diff ≈ 0, tolerance 0.1. |
-| `type = "rmtl"` (restricted mean time lost) | 🟢 | `test-estimands-rmtl.R`, `test-gcomp-delicatessen.R` | `RMTL(t) = t - RMST(t)` identity to 1e-12; **direct delicatessen cross-check** (implied oracle `t - RMST_deli` with the identical SE, from the shared gcomp fixture). Wired across gcomp / IPW / IPCW / Track B (shared SE filler); sandwich vs bootstrap SE ratio in (0.7, 1.4). |
+| `type = "rmtl"` (restricted mean time lost) | 🟢 | `test-estimands-rmtl.R`, `test-gcomp-delicatessen.R` | `RMTL(t) = t - RMST(t)` identity to 1e-12; **direct delicatessen cross-check** (implied oracle `t - RMST_deli` with the identical SE, from the shared gcomp fixture). Wired across gcomp / IPW / IPCW / longitudinal ICE-hazard (shared SE filler); sandwich vs bootstrap SE ratio in (0.7, 1.4). |
 | `type = "rmtl_difference"` | 🟢 | `test-estimands-rmtl.R` | Equals `-(rmst_difference)` (point + SE) to 1e-12. |
 | RMTL variance identity `Var(RMTL) = Var(RMST)` | 🟢 | `test-estimands-rmtl.R` | Same trapezoidal quadratic form: the constant `t*` drops out of the delta gradient, so the SE is identical to RMST's to 1e-12. |
 | `type = "quantile"` (survival quantile / median) | 🟢 | `test-estimands-quantile.R` | Constant-hazard closed form: median `= log(2)/λ`, `τ_q = -log(1-q)/λ` matched to ~0.3% at n = 20000 (estimator returns the exact linear-interp crossing of the fitted curve; verified at n up to 1e5). `survival::survfit()` KM-median sanity. Vector `q` supported. **No delicatessen oracle** — the quantile is a non-smooth functional outside delicatessen's smooth M-estimation; validated by the closed form + KM + sandwich-vs-bootstrap instead. |
 | Quantile sandwich (implicit-function delta) vs bootstrap | 🟢 | `test-estimands-quantile.R` | `dτ_q = -dS(τ_q)/S'(τ_q)` via interpolated IF columns; sandwich-vs-bootstrap SE ratio in (0.7, 1.4). |
 | Median difference contrast + single-intervention quantile | 🟢 | `test-estimands-quantile.R` | `estimate = τ(a1) - τ(a0)` to 1e-10; a lone median (one intervention) is accepted (no `survatr_bad_interventions`). |
-| Quantile across estimators (IPW / IPCW / ICE / CR all-cause) | 🟢 | `test-estimands-quantile.R` | Reuses the per-estimator survival IF; wired for gcomp / IPW / IPCW / Track B and all-cause on a competing-risks fit (no cause dimension). |
+| Quantile across estimators (IPW / IPCW / ICE / CR all-cause) | 🟢 | `test-estimands-quantile.R` | Reuses the per-estimator survival IF; wired for gcomp / IPW / IPCW / longitudinal ICE-hazard and all-cause on a competing-risks fit (no cause dimension). |
 | `survatr_quantile_unreached` / `survatr_bad_q` | 🔴 | `test-estimands-quantile.R` | Curve never crosses `1 - q` on the grid; `q` outside `(0, 1)`. |
 | `type = "yll"` (per-cause years of life lost) | 🟢 | `test-estimands-yll.R` | `∫F^(j)` matched to the analytic two-cause CIF integral (`analytic_cr()` × trapezoidal weights) within 5% at n = 6000; carries the `cause` dimension. Competing-risks fit only. Oracle: the CIF building block is delicatessen-pinned (`test-competing-risks-sandwich.R`) and YLL inherits via the `Σⱼ YLL = RMTL` identity + the analytic integral (a direct delicatessen YLL would need the full CIF curve, which the selected-time fixture does not store). |
 | YLL identity `Σⱼ YLL^(j)(t*) = RMTL(t*)` | 🟢 | `test-estimands-yll.R` | Holds to 1e-10 (partition of unity `Σⱼ F^(j) = 1 - S`, integral linear). |
@@ -95,6 +95,24 @@ reflects **current** state, not planned scope. Planned scope lives in
 | gcomp sandwich vs `delicatessen` (independent analytic M-estimation) | 🟢 | `test-gcomp-delicatessen.R` | `S^a(t)`, `RD(t)`, `RR(t)`, `RMST^a(t)`, and `RMST-difference(t)` point + sandwich SE match a Python `delicatessen` stacked-EE oracle to ~1e-3 at t ∈ {2,3,4,5} on a shared confounded fixture (`fixtures/python/ipw_survival_data.csv`, also used by the IPW oracle). Reference: `data-raw/delicatessen_gcomp_survival.py`. Closes the only variance chunk that previously lacked an independent M-estimation cross-check. |
 | `conf_level` in (0, 1) | 🟢 | `test-contrast-rejections.R` | Rejects values outside the open interval with `survatr_bad_conf_level`. |
 | `model_fn = mgcv::gam` (penalized `s(t)` baseline) × sandwich | 🟢 | `test-sandwich-gam.R` | Counterfactual design built on the gam `lpmatrix` basis via `causatr:::iv_design_matrix()` to match the `model$Vp` bread; `predict.gam` 1-D-array output coerced to plain numeric. GAM sandwich SE matches the analytically-anchored GLM sandwich SE within 2% on a constant-hazard DGP, and tracks the bootstrap SE identically to the GLM. `Vp`-as-bread justified for frequentist coverage by Marra & Wood (2012). A gam fit lacking `$Vp` still aborts in `causatr:::bread_inv()`. |
+
+### Cluster-robust sandwich (`contrast(cluster = "<column>")`, chunk 13)
+
+The per-individual IF rows are summed within cluster before `crossprod`; the
+divisor stays `n²` (`V = crossprod(IF_g) / n²`). One shared helper
+(`clustered_pointwise_se()` → `causatr:::vcov_from_if(cluster=)`) serves every
+sandwich path. `cluster = "<id-column>"` reproduces the per-individual SE.
+
+| Surface | Status | Test file | Oracle |
+|---|---|---|---|
+| Aggregation primitive vs `sandwich::vcovCL` | 🟢 | `test-variance-cluster.R` | `clustered_pointwise_se()` matches `vcovCL(type = "HC0", cadjust = FALSE)` to 1e-10 on the sample mean; singleton clusters match `vcovHC(type = "HC0")`. Confirms the `n²` divisor (not `G²`). |
+| `cluster = id` reproduces per-individual SE | 🟢 | `test-variance-cluster.R` | Machine-tolerance (1e-12) match for survival / risk_difference / rmst_difference / quantile (gcomp) and CIF (competing risks). The load-bearing regression invariant. |
+| Clustered SE ≥ per-individual SE (positive within-cluster corr) | 🟢 | `test-variance-cluster.R` | Multi-site frailty DGP: level (risk) SE widens uniformly (~2.3×); contrast SE widens under cluster-level treatment (~3.4×). |
+| Calibration to the cluster-sampling SD | 🟢 | `test-variance-cluster.R` | Skipped on CRAN. Empirical SD of risk@t* over 150 re-draws of the sites: clustered SE within 30%; per-individual SE < 0.85× the truth (under-states). |
+| Cluster-resampling bootstrap | 🟢 | `test-variance-cluster.R` | Skipped on CRAN. Resamples whole sites (B = 400); SE ≈ clustered sandwich within 25%, wider than the per-individual bootstrap. |
+| gcomp / IPW / IPCW / competing-risks / quantile coverage | 🟢 | `test-variance-cluster.R` | All flow through the shared helper (single-event `fill_sandwich_ses()` + CR `fill_sandwich_ses_cr()` + `assemble_quantile_result()`). IPW/IPCW non-singleton meat pinned against the cluster bootstrap. |
+| longitudinal ICE-hazard cluster-robust SE | 🟢 | `test-variance-cluster.R` | IF rows aligned by first-period id; `cluster = id` reproduces the per-individual SE to 1e-10 and the clustered SE matches an independent within-cluster `rowsum`; widens under frailty. Time-varying-treatment (feedback) DGP keeps the ICE chain full-rank. |
+| Validation aborts | 🔴 | `test-variance-cluster.R` | Snapshot-pinned: `survatr_cluster_varies_within_id`, `survatr_cluster_na`, `survatr_cluster_degenerate`, `survatr_bad_cluster`. |
 
 ### Bootstrap variance (`ci_method = "bootstrap"`, resample individuals)
 
@@ -185,9 +203,9 @@ thresholds for the sandwich. Bootstrap refits the censoring model per replicate.
 
 | Surface | Status | Test file | Oracle |
 |---|---|---|---|
-| NHEFS Ch. 17 replication (Track A gcomp, 120-mo survival) | 🟢 | `test-nhefs-replication.R` | H&R 2024 published targets: 120-mo S^a(t) ≈ 80.7% (qsmk=1) / 80.5% (qsmk=0) within ±0.03; RD ≈ 0.2% within ±0.01; sandwich CI spans 0; unadjusted KM in the 75–90% ballpark. Dataset: `nhefs_surv` (1629 × 120 rectangular PP, 318 events). Skipped on CRAN. |
+| NHEFS Ch. 17 replication (point-treatment g-computation gcomp, 120-mo survival) | 🟢 | `test-nhefs-replication.R` | H&R 2024 published targets: 120-mo S^a(t) ≈ 80.7% (qsmk=1) / 80.5% (qsmk=0) within ±0.03; RD ≈ 0.2% within ±0.01; sandwich CI spans 0; unadjusted KM in the 75–90% ballpark. Dataset: `nhefs_surv` (1629 × 120 rectangular PP, 318 events). Skipped on CRAN. |
 
-## Track B — Longitudinal survival (ICE hazards)
+## longitudinal ICE-hazard — Longitudinal survival (ICE hazards)
 
 Time-varying treatment + time-to-event via backward iterated conditional
 expectations on the discrete-time hazard, with a survival-tail pseudo-outcome
@@ -198,21 +216,21 @@ single-model primitives. Confounders split into `confounders` (baseline) +
 
 | Feature combination | Status | Test file | Oracle / notes |
 |---|---|---|---|
-| Track B risk curve `R^d(t)`, static strategies | 🟢 | `test-ice-survival.R` | Forward-simulation Monte-Carlo g-formula truth on a treatment-confounder-feedback DGP (n = 4000, K = 4): `S^a(t)` within 0.02 at every t; protective treatment ⇒ `S^1 > S^0`. |
+| longitudinal ICE-hazard risk curve `R^d(t)`, static strategies | 🟢 | `test-ice-survival.R` | Forward-simulation Monte-Carlo g-formula truth on a treatment-confounder-feedback DGP (n = 4000, K = 4): `S^a(t)` within 0.02 at every t; protective treatment ⇒ `S^1 > S^0`. |
 | Per-step link forcing (binomial at horizon, quasibinomial earlier) | 🟢 | `test-ice-survival.R` | Asserts `models[[K]]$family == "binomial"`, `models[[k<K]] == "quasibinomial"`. |
 | Lag columns carry observed (not intervened) treatment | 🟢 | `test-ice-survival.R` | Under `shift(1)`: current `A` shifted, `lag1_A` unchanged. |
 | Survival-aware stacked-EE sandwich (`ci_method = "sandwich"`) | 🟢 | `test-ice-survival.R`, `test-ice-survival-delicatessen.R` | SEs finite, CIs bracket the point; `risk_difference` / `risk_ratio` / `rmst_difference` contrasts well-formed. |
 | ICE sandwich vs `delicatessen` (independent analytic M-estimation) | 🟢 | `test-ice-survival-delicatessen.R` | `S^1`, `S^0`, `RD` point + sandwich SE match a Python `delicatessen` stacked-EE survival-tail sandwich to ~1e-5 at t ∈ {1,2,3} on a shared fixture. Reference: `data-raw/delicatessen_ice_survival.py`; both read `fixtures/python/ice_survival_data.csv`. Pins the `(1−D_k)` failure carry-forward. |
 | ICE sandwich ≈ empirical bootstrap | 🟢 | `test-ice-survival.R` | Per-time sandwich vs bootstrap SE within 20% (n = 1200, 400 reps). Guards against regressing to causatr's verbatim chain (which over-covers, growing in t). |
-| Bootstrap variance (per-replicate ICE refit) | 🟢 | `test-ice-survival.R` | `bootstrap_survival()` refits Track B per replicate (lags rebuilt, `confounders_tv` / `history` threaded). |
+| Bootstrap variance (per-replicate ICE refit) | 🟢 | `test-ice-survival.R` | `bootstrap_survival()` refits longitudinal ICE-hazard per replicate (lags rebuilt, `confounders_tv` / `history` threaded). |
 | External point-estimate oracle: `lmtp::lmtp_tmle(survival)` | 🟢 | `test-ice-survival-oracle.R` | Static strategies: lmtp and ICE both within 0.03 of the forward-sim truth (`skip_if_not_installed`). |
 | External oracle: `gfoRmula::gformula_survival()` | 🟢 | `test-ice-survival-oracle.R` | Cross-check when installed; `skip_if_not_installed` + defensive `tryCatch` (API-sensitive). nsimul = 100 000; `expect_equal` tolerance 0.04 (known ~0.02–0.04 gfoRmula under-estimation vs ICE and analytic truth). Directional pin: ICE ≥ gfoRmula − 0.01. |
-| `estimator = "ice"` with constant-within-id treatment | 🟢 | `test-ice-survival.R` | Informs `survatr_ice_static_treatment` (Track A cheaper) but proceeds. |
-| Time-varying treatment under Track A (gcomp/ipw) | 🟢 | `test-ice-survival.R` | Warns `survatr_tv_treatment_track_a`, points to `estimator = "ice"`. |
-| Non-numeric (factor / categorical k>2) treatment under Track B | 🔴 | `test-ice-survival.R` | `survatr_ice_treatment_unsupported`. Numeric (binary / linear dose) only; treatment-design-formula path → later chunk. |
-| (MCAR) entry (period-1) censoring under Track B | 🟢 | `test-ice-survival.R` | Standardises over the at-risk-at-baseline population; curve + sandwich finite, matches forward-sim truth, `n` = effective count. |
+| `estimator = "ice"` with constant-within-id treatment | 🟢 | `test-ice-survival.R` | Informs `survatr_ice_static_treatment` (point-treatment g-computation cheaper) but proceeds. |
+| Time-varying treatment under point-treatment g-computation (gcomp/ipw) | 🟢 | `test-ice-survival.R` | Warns `survatr_tv_treatment_track_a`, points to `estimator = "ice"`. |
+| Non-numeric (factor / categorical k>2) treatment under longitudinal ICE-hazard | 🔴 | `test-ice-survival.R` | `survatr_ice_treatment_unsupported`. Numeric (binary / linear dose) only; treatment-design-formula path → later chunk. |
+| (MCAR) entry (period-1) censoring under longitudinal ICE-hazard | 🟢 | `test-ice-survival.R` | Standardises over the at-risk-at-baseline population; curve + sandwich finite, matches forward-sim truth, `n` = effective count. |
 | External `weights` + `estimator = "ice"` | 🔴 | `test-ice-survival.R` | `survatr_ice_external_weights` (weighted / IPCW longitudinal → later chunk). |
-| `ipsi()` / stochastic interventions under Track B | 🔴 | `test-ice-survival.R` | `survatr_ice_intervention_deferred` (weight-path / Monte-Carlo → later chunks). |
+| `ipsi()` / stochastic interventions under longitudinal ICE-hazard | 🔴 | `test-ice-survival.R` | `survatr_ice_intervention_deferred` (weight-path / Monte-Carlo → later chunks). |
 | causatr ICE primitive contract pins | 🟢 | `test-causatr-integration.R` | Signatures of `ice_fit_step`, `ice_predict_step`, `ice_build_formula`, `ice_apply_intervention_long`, `create_lag_vars`, `ice_if_setup`, `correct_model`, `new_causatr_fit`, etc. |
 
 ## Competing risks (cause-specific hazards + CIF)
@@ -221,7 +239,7 @@ single-model primitives. Confounders split into `confounders` (baseline) +
 pooled-logistic hazards on a **shared all-cause risk set** (other causes
 censored at their event time), then `contrast()` builds per-cause cumulative
 incidence `F^(j),a(t) = Σ_{k≤t} S^a(k−1) ĥ^(j),a(k)` and all-cause survival
-`S^a(t) = ∏(1 − Σ_j ĥ^(j))`. gcomp / Track A only this chunk. Cause-specific
+`S^a(t) = ∏(1 − Σ_j ĥ^(j))`. gcomp / point-treatment g-computation only this chunk. Cause-specific
 hazards only — Fine–Gray / subdistribution is out of scope (documented).
 
 | Surface | Status | Test file | Oracle |
@@ -240,7 +258,7 @@ hazards only — Fine–Gray / subdistribution is out of scope (documented).
 | CR × `mgcv::gam` baseline hazard | 🟢 | `test-competing-risks-sandwich.R` | lpmatrix-basis per cause; sandwich SE finite / positive on `s(t, k = 4)`. |
 | Cause-aware `print` / `tidy` / `plot` / `forrest` | 🟢 | `test-competing-risks-s3.R` | `cause` column threaded; `print` shows the truncation-by-death caveat for difference / ratio; `tidy` keeps `cause` (NA for all-cause); `plot` / `forrest` render per (group, cause); single-event shapes unchanged. |
 | Truncation-by-death caveat | 🟢 | `test-competing-risks.R` (via `suppressMessages`) | One-time `rlang::inform()` + `print` note + vignette. |
-| CR × `estimator = "ipw"` / `"ice"` | 🔴 | `test-competing-risks.R` | `survatr_competing_estimator` (gcomp / Track A only; IPW / ICE CR → later chunks). |
+| CR × `estimator = "ipw"` / `"ice"` | 🔴 | `test-competing-risks.R` | `survatr_competing_estimator` (gcomp / point-treatment g-computation only; IPW / ICE CR → later chunks). |
 | `competing != outcome`, or `< 2` distinct causes | 🔴 | `test-competing-risks.R` | `survatr_competing_misuse`. |
 | Non-integer / negative / NA / all-zero cause column | 🔴 | `test-competing-risks.R` | `survatr_bad_competing`. |
 | CIF estimand on a single-event fit; single-event contrast on a CR fit | 🔴 | `test-competing-risks.R` | `survatr_competing_type`. |
@@ -248,12 +266,12 @@ hazards only — Fine–Gray / subdistribution is out of scope (documented).
 | External `weights` + `competing =` | 🔴 | (guarded in `surv_fit()`) | `survatr_competing_weights` (weighted / IPCW competing risks → later chunk). |
 | Fine–Gray / subdistribution hazards | — | — | Out of scope (cause-specific only); documented in roxygen + vignette. |
 | Per-cause years-of-life-lost (`type = "yll"`) | 🟢 | `test-estimands-yll.R` | Shipped in chunk 12: `∫F^(j)`, the `Σⱼ YLL = RMTL` identity, CIF-IF-through-trapezoidal sandwich. Per-cause RMST remains out of scope. |
-| Competing risks under Track B | — | — | Out of scope this chunk (composes after chunks 6 + 7). |
+| Competing risks under longitudinal ICE-hazard | — | — | Out of scope this chunk (composes after chunks 6 + 7). |
 
 ## `diagnose()` — survival-aware diagnostics (Chunk 10)
 
 `diagnose.survatr_fit()` returns a `survatr_diag` with five panels, all operating on
-the at-risk rows from `build_risk_set()`. For Track B (ICE), the positivity panel
+the at-risk rows from `build_risk_set()`. For longitudinal ICE-hazard, the positivity panel
 uses the empirical event rate (no fitted model at `surv_fit()` time).
 
 | Surface | Status | Test file | Oracle |

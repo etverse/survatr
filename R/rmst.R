@@ -6,7 +6,8 @@
 #'
 #' @details
 #' Restricted mean survival time at t* is `RMST(t*) = int_0^{t*} S(u) du`.
-#' For Track A on discrete periods we approximate with the trapezoidal rule
+#' For point-treatment g-computation on discrete periods we approximate with the
+#' trapezoidal rule
 #' on `times`, prepending `t_0 = 0` with `S(0) = 1` so the integral starts
 #' at the origin:
 #'

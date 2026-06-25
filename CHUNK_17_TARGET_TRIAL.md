@@ -46,8 +46,8 @@ immortal-time bias is treatment status that is **determined by post-baseline
 survival** — operationally, the check flags when:
 
 - the treatment column varies **within** an id **after** the first at-risk
-  period in a Track-A (point-treatment) fit (treatment should be fixed at
-  baseline for Track A — a post-baseline change is the immortal-time smell);
+  period in a point-treatment g-computation fit (treatment should be fixed at
+  baseline for the point-treatment path — a post-baseline change is the immortal-time smell);
 - treated ids have a **structural gap** between time zero and first observed
   event/censor that untreated ids lack (a survivorship requirement built into
   the exposure definition);
@@ -80,7 +80,7 @@ that fixes it.
   thread it into the restricted-PP construction.
 - `R/diagnose.R` (chunk 10) — add the **time-zero-alignment** panel:
   per-arm structural-gap summary, within-id post-baseline treatment-change flag
-  (Track A), immortal-person-time share; non-fatal flags with a remedy pointer.
+  (point-treatment), immortal-person-time share; non-fatal flags with a remedy pointer.
 - `R/print.R` — render the alignment panel in `print.survatr_diag`.
 - `vignettes/` — `target-trial.qmd` (the pedagogical vignette).
 

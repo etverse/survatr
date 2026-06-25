@@ -28,7 +28,7 @@ Project-specific rules that override / extend the etverse-wide rules at
 |---|---|
 | **Track** | A (point treatment + pooled-logistic hazard), B (longitudinal ICE-hazards) |
 | **Estimator** | gcomp (pooled-logistic), ipw (weighted hazard MSM), ice (hazard pseudo-outcome), aipw (parametric doubly-robust; ML/TMLE out). **Matching: hard-abort.** |
-| **Treatment timing** | point (Track A), longitudinal (Track B) |
+| **Treatment timing** | point (point-treatment g-computation), longitudinal (longitudinal ICE-hazard) |
 | **Treatment type** | binary, continuous, categorical (k>2), count (Poisson/NB, IPW only), multivariate (via causatr inheritance) |
 | **Outcome family** | binomial hazard (first-step / indicator), quasibinomial (pseudo-outcome / weighted fits) |
 | **Model class** | GLM (pooled logistic), GAM (via `mgcv::gam` with `s(t)` for baseline hazard) |
@@ -46,7 +46,7 @@ Project-specific rules that override / extend the etverse-wide rules at
 ### Architecture invariants — DO NOT flag these as bugs without a numerical reproducer
 
 - **Pooled-logistic hazard on person-period rows** is the outcome model for
-  all of Track A. `logit h(t | A, L) = alpha(t) + beta_A A + beta_L L`. The
+  all of point-treatment g-computation. `logit h(t | A, L) = alpha(t) + beta_A A + beta_L L`. The
   risk set drops rows at/after first event per id and rows at/after first
   censor per id. Don't substitute a Cox partial likelihood — discrete-time
   hazard is the contract.
@@ -70,7 +70,7 @@ Project-specific rules that override / extend the etverse-wide rules at
 - **Fine-Gray / subdistribution hazards are out of scope.** Competing risks
   use cause-specific hazards + CIF decomposition only. Document the choice
   explicitly — do not add Fine-Gray as a "missing feature".
-- **Track B (longitudinal) per-step link forcing.** Step K: binomial (0/1
+- **Longitudinal ICE-hazard per-step link forcing.** Step K: binomial (0/1
   hazard indicator). Steps k < K: quasibinomial (survival-tail
   pseudo-outcome in [0, 1]). Swapping these is a subtle bug — the IF engine
   needs `$mu.eta` and `$variance`, both families provide them, but the
@@ -90,7 +90,7 @@ Project-specific rules that override / extend the etverse-wide rules at
   `survatr_bad_na_action`). Only `na.omit` and `na.fail` are accepted.
   Inherited rationale from causatr: residuals padding vs `model.matrix`
   dropping causes silent IF corruption.
-- **`censoring =` is a row filter, not IPCW.** For Track A without IPCW, the
+- **`censoring =` is a row filter, not IPCW.** For point-treatment g-computation without IPCW, the
   hazard model is fit on uncensored rows; `contrast()` predicts over all
   individuals via the cumulative product. Built-in IPCW (per-period
   cumulative weights on the person-period grid) is a separate path and is
@@ -110,7 +110,7 @@ Do NOT flag these as bugs. Each has a classed-error boundary check
 and a regression test:
 
 - **NA in predictor columns is rejected upfront** (`survatr_na_in_predictors`).
-  Track A's contrast path predicts on every PP row; NA would either
+  the point-treatment g-computation contrast path predicts on every PP row; NA would either
   silently propagate through `cumprod` or be dropped by `glm`'s
   `na.omit` (our permitted default), misaligning `prep$X_fit` with
   `fit_idx`. NA in the `censoring` column retains "uncensored"
@@ -221,7 +221,7 @@ Do NOT flag these as bugs. Each has a regression test.
   (positivity), guarded before `fit_treatment_model()` so causatr's family
   auto-detection cannot misclassify a degenerate binary column as "gaussian".
 
-### Established invariants from 2026-06-03 Track B (ICE survival, chunk 6)
+### Established invariants from 2026-06-03 longitudinal ICE-hazard
 
 Do NOT flag these as bugs. Each has a regression test.
 
@@ -256,12 +256,12 @@ Do NOT flag these as bugs. Each has a regression test.
   treatment only** (`causatr:::ice_apply_intervention_long()`). The static
   counterfactual is recovered by the backward composition, not by setting lags.
   Do not recompute lags from the intervened treatment.
-- **Track B confounders split: `confounders` (baseline, never lagged) +
+- **longitudinal ICE-hazard confounders split: `confounders` (baseline, never lagged) +
   `confounders_tv` (lag-expanded).** `history` is the Markov order (`Inf` =
-  full). Both Track-B-only; `time_formula` is NOT part of the ICE per-step
+  full). Both longitudinal-ICE-only; `time_formula` is NOT part of the ICE per-step
   formula. The minimal `causatr_fit` for the IF is hand-built via
   `causatr:::new_causatr_fit()`, never `fit_ice()`.
-- **Track B standardises over the AT-RISK-AT-BASELINE population; the means use
+- **longitudinal ICE-hazard standardises over the AT-RISK-AT-BASELINE population; the means use
   `na.rm` and the IF `target` is the at-risk-at-baseline mask.** Individuals
   censored at entry (period 1) are never in the period-1 risk set, so they carry
   `NA` in `pseudo_final`. They drop from the ICE standardisation (consistent
@@ -271,13 +271,13 @@ Do NOT flag these as bugs. Each has a regression test.
   to drop the `na.rm` or set `target = rep(TRUE, n)` (that re-introduces the
   all-`NA`-curve bug, Issue #1 of the 2026-06-03 review) and do NOT rescale by
   `n_target` (double-counts the `n/n_target` factor already in the IF).
-- **Track B v1 rejects external/IPCW weights (`survatr_ice_external_weights`)
+- **longitudinal ICE-hazard v1 rejects external/IPCW weights (`survatr_ice_external_weights`)
   and `ipsi()` / stochastic interventions
   (`survatr_ice_intervention_deferred`).** A constant-within-id treatment under
   `estimator="ice"` informs (`survatr_ice_static_treatment`) but proceeds; a
-  time-varying treatment under Track A warns
+  time-varying treatment under point-treatment g-computation warns
   (`survatr_tv_treatment_track_a`). These are deliberate scoping, not bugs.
-- **Track B requires a NUMERIC treatment** (binary, or a numeric dose modelled
+- **longitudinal ICE-hazard requires a NUMERIC treatment** (binary, or a numeric dose modelled
   linearly). Factor / categorical (k > 2) treatments are rejected with
   `survatr_ice_treatment_unsupported` (the intervention sets a numeric value,
   which collides with a factor column; a `treatment_form` design path ships
@@ -318,7 +318,7 @@ Do NOT flag these as bugs. Each has a regression test.
   `fixtures/python/cr_survival_data.csv`; `test-competing-risks-sandwich.R`
   pins per-cause `F^(j),a(t)`, all-cause `S^a(t)`, and `RD^(j)(t)` (point + SE).
   Do not change the IF chain without re-running these pins.
-- **gcomp / Track A only; documented rejections.** CR × ipw/ice →
+- **gcomp / point-treatment g-computation only; documented rejections.** CR × ipw/ice →
   `survatr_competing_estimator`; `outcome ≠ competing` or `< 2` causes →
   `survatr_competing_misuse`; bad cause column → `survatr_bad_competing`; CIF
   estimand on a single-event fit (or single-event contrast on a CR fit) →
@@ -331,7 +331,7 @@ Do NOT flag these as bugs. Each has a regression test.
   "clean up" the output — numbers must never be emitted silently.
 - **The CR IF per-time pulls are guarded by `cr_rows_by_time()`** (one row per id
   per requested time, else `survatr_if_failed`), mirroring the single-event
-  `compute_survival_if_matrix()` check. It is unreachable on Track A (rectangular
+  `compute_survival_if_matrix()` check. It is unreachable on point-treatment g-computation (rectangular
   PP) so it is NOT dead code to delete — it is the boundary a future ragged-PP /
   left-truncation chunk must keep. (2026-06-08 critical review, Issue #1.)
 
@@ -419,6 +419,64 @@ Do NOT flag these as bugs. Each has a regression test.
   `cause = NA` column survives `add_rmst_to_estimates`'s `setcolorder` (trailing
   columns retained), so the `is.na(cause)` filter holds. Per-cause RMST and CR
   `*_difference` contrasts stay out of scope.
+
+### Established invariants from 2026-06-24 cluster-robust SE (chunk 13)
+
+Do NOT flag these as bugs. Each has a regression test.
+
+- **The cluster-robust divisor is `n²` (number of INDIVIDUALS), NOT `G²`.**
+  `contrast(cluster = <col>)` sums each individual's IF row into its cluster's
+  row, then `crossprod(rowsum(IF, cluster)) / n²`. The estimator is the
+  person-level average `(1/n) Σ_i IF_i`, so its variance is `(1/n²)
+  Var(Σ_i IF_i)` and clustering only changes the *meat* (between-cluster outer
+  products replace between-individual ones). This matches `sandwich::vcovCL(type
+  = "HC0", cadjust = FALSE)` to 1e-10 (`test-variance-cluster.R`) and is the
+  divisor `causatr:::vcov_from_if()` already uses. The chunk-13 design doc's
+  original `G²` was WRONG (over-inflates by `(n/G)²`, factor 64 in the n=150
+  check); the doc has been corrected. Do NOT "fix" the divisor to `G²`.
+- **`cluster = id` reproduces the per-individual SE to machine tolerance** (1e-12
+  for survival / risk_difference / rmst_difference / quantile / CIF). Singleton
+  clusters give `G = n` and `rowsum` is the identity. This is the load-bearing
+  regression invariant — if it breaks, the cluster aggregation is wrong.
+- **One shared helper does the reduction everywhere.**
+  `clustered_pointwise_se(if_mat, n_ids, cluster)` wraps
+  `causatr:::vcov_from_if(asplit(if_mat, 2), n_ids, NULL, cluster)` and is called
+  by `fill_sandwich_ses()` (gcomp / IPW / IPCW), `fill_sandwich_ses_cr()`
+  (competing risks), and `assemble_quantile_result()` (the scalar `n×1` quantile
+  IF). With `cluster = NULL` it is exactly the previous inline
+  `sqrt(diag(crossprod(IF)) / n_ids²)`. Do NOT re-inline the reduction.
+- **Cluster labels are resolved ONCE (name-keyed) then reindexed per path.**
+  `validate_cluster()` returns a named (id → label) character vector;
+  `cluster_for_ids(labels, unique_ids)` aligns it onto each path's IF row order
+  by id NAME (not position), because the single-event / CR / quantile paths
+  derive `unique_ids` separately. A missing id aborts `survatr_if_failed`.
+- **The contrast SE need not widen even when the level SE does.** With treatment
+  randomized WITHIN cluster, a shared cluster effect cancels in the *difference*
+  IF (`IF_S_a0 − IF_S_a1`), so the difference SE may be ≈ or slightly below the
+  per-individual SE — correct. Widening on the difference requires cluster-level
+  treatment (the frailty does not cancel). The level (survival / risk) SE always
+  widens under positive within-cluster correlation. Do not flag a non-widening
+  difference SE as a bug.
+- **The bootstrap resamples whole clusters when `cluster` is set.**
+  `bootstrap_survival()` generalizes its resampling unit from id to cluster
+  (`unit_to_ids` maps a cluster to all its member ids); a re-drawn cluster gets a
+  brand-new set of bootstrap-local ids via the running counter. Cluster bootstrap
+  SE ≈ clustered sandwich SE and is wider than the per-individual bootstrap.
+- **longitudinal ICE-hazard + cluster is SUPPORTED.** `contrast_track_b()` aligns the
+  name-keyed cluster labels onto the ICE IF matrix's FIRST-PERIOD id order
+  (`cluster_for_ids()` on `base$data_lag` at `details$time_points[1]`), then
+  routes through the same `fill_sandwich_ses()` / `bootstrap_survival()`.
+  Entry-censored ids carry a near-zero IF row and sum into their cluster like any
+  other — the at-risk-at-baseline standardisation affects the IF values, not the
+  row set. Verified by `cluster = id` reproduction (1e-10) and an independent
+  within-cluster `rowsum`. Tests MUST use a time-varying-treatment (feedback) DGP
+  (`sim_clustered_ice()`); a static treatment makes the ICE chain rank-deficient
+  (lag collinear with the current value), independent of clustering — that
+  rank-deficiency warning is a DGP artifact, not a cluster bug.
+- **Validation aborts:** `survatr_cluster_varies_within_id` (label not constant
+  within id), `survatr_cluster_na` (NA in the column), `survatr_cluster_degenerate`
+  (`G < 2`), `survatr_bad_cluster` (not a single existing column name). All
+  snapshot-pinned.
 
 ### Implementation conventions
 

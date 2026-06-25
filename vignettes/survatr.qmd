@@ -200,8 +200,9 @@ Interventions are constructed via `causatr`:
 | `causatr::dynamic(rule)` | Apply a user-defined rule | `dynamic(\(d, a) ifelse(d$L > 0, 1, 0))` |
 
 The `dynamic()` rule and IPW (`estimator = "ipw"`) are demonstrated in
-`vignette("ipw")`; longitudinal time-varying treatments via Track B ICE
-(`estimator = "ice"`) are covered in `vignette("ice")`. IPW-style
+`vignette("ipw")`; longitudinal time-varying treatments via the
+longitudinal ICE-hazard engine (`estimator = "ice"`) are covered in
+`vignette("ice")`. IPW-style
 stochastic (`ipsi()`) interventions ship in a later chunk.
 
 ## Inference methods
@@ -300,13 +301,13 @@ so downstream code can pattern-match on class rather than English:
 
 ## Learning more
 
-This vignette covered Track A g-computation. Two further estimators are
-implemented and have dedicated vignettes:
+This vignette covered point-treatment g-computation. Two further estimators
+are implemented and have dedicated vignettes:
 
-- **Track A under IPW** (`vignette("ipw")`) — stabilized density-ratio
+- **Point-treatment IPW** (`vignette("ipw")`) — stabilized density-ratio
   weights broadcast onto person-period rows, fitting a weighted marginal
   hazard MSM.
-- **Track B (ICE hazards)** (`vignette("ice")`) — longitudinal survival
+- **Longitudinal ICE-hazard** (`vignette("ice")`) — longitudinal survival
   for a time-varying treatment via iterated conditional expectations
   [@zivich2024ice], with the hazard indicator at the final period and
   a survival-tail pseudo-outcome at earlier periods.

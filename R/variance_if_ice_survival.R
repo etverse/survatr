@@ -1,8 +1,8 @@
-#' Build a minimal `causatr_fit` for the Track B ICE sandwich
+#' Build a minimal `causatr_fit` for the longitudinal ICE-hazard ICE sandwich
 #'
 #' @description
 #' Hand-construct the smallest `causatr_fit` (type `"longitudinal"`) that the
-#' Track B influence-function assembler needs, **without** calling
+#' longitudinal ICE-hazard influence-function assembler needs, **without** calling
 #' `causatr::fit_ice()` (which would resolve a pseudo family and run causatr's
 #' plain, non-survival `ice_iterate()`). The IF machinery only reads a small
 #' set of fields off `fit` (`$data`, `$id`, `$time`, `$treatment`,
@@ -78,7 +78,7 @@ build_event_by_step <- function(data, time_points, id_col, time_col, outcome) {
 #'
 #' @description
 #' The survatr replacement for `causatr:::variance_if_ice_chain()` in the
-#' Track B (survival) setting. It mirrors causatr's forward sensitivity
+#' longitudinal ICE-hazard (survival) setting. It mirrors causatr's forward sensitivity
 #' cascade -- per step it builds the cross-step gradient `g_k`, calls
 #' `causatr:::correct_model()` to get the model-`k` correction and the updated
 #' per-individual sensitivity `d_k` -- but injects the survival failure
@@ -102,7 +102,7 @@ build_event_by_step <- function(data, time_points, id_col, time_col, outcome) {
 #' `event_by_step`. Everything else -- the bread, the score (`r_score` read off
 #' each fitted GLM), the block-triangular back-substitution -- is causatr's,
 #' reused through `correct_model()`. Stochastic interventions are rejected for
-#' Track B v1, so the Monte-Carlo branches of causatr's chain are omitted here.
+#' longitudinal ICE-hazard v1, so the Monte-Carlo branches of causatr's chain are omitted here.
 #'
 #' @param ctx Context list from `causatr:::ice_if_setup()`.
 #' @param models_by_step Per-step fitted GLMs (from the `ice_result`).
@@ -213,7 +213,7 @@ survatr_ice_surv_chain <- function(
   IF_acc
 }
 
-#' Per-individual IF for one Track B intervention / horizon
+#' Per-individual IF for one longitudinal ICE-hazard intervention / horizon
 #'
 #' @description
 #' Channel 1 (sampling term on the baseline survival-tail pseudo-outcome) via
@@ -246,7 +246,7 @@ survatr_ice_surv_if_one <- function(
     )
 }
 
-#' Per-individual IF matrix for the Track B survival curve
+#' Per-individual IF matrix for the longitudinal ICE-hazard survival curve
 #'
 #' @description
 #' Bridge the per-horizon `ice_result`s (from `compute_ice_survival_curve()`)
@@ -262,7 +262,7 @@ survatr_ice_surv_if_one <- function(
 #' @param min_fit Minimal `causatr_fit` from `build_min_causatr_fit_b()`.
 #' @param ice_results Per-horizon list of `ice_result`s.
 #' @param times User horizon grid (column count / order).
-#' @param target Logical vector over first-period individuals (Track B v1: all
+#' @param target Logical vector over first-period individuals (longitudinal ICE-hazard v1: all
 #'   `TRUE`).
 #' @param event_by_step Per-step id-keyed `D_k` from `build_event_by_step()`.
 #'

@@ -1,5 +1,25 @@
 # survatr (development version)
 
+## Chunk 13: cluster-robust sandwich variance
+
+**`contrast(cluster = "<column>")` — cluster-robust standard errors.** Pass a
+person-period column that labels the independent sampling unit (site, household,
+provider, repeated enrolment) and the sandwich variance becomes robust to
+within-cluster correlation. The per-individual influence function is already the
+variance currency, so clustering is a single aggregation step: sum each
+individual's IF row into its cluster's row before the cross-product, keeping the
+`n^2` divisor (`V = crossprod(IF_g) / n^2`, matching `sandwich::vcovCL(type =
+"HC0", cadjust = FALSE)`). The point estimate is unchanged. The reduction is the
+shared `causatr:::vcov_from_if()` primitive (causatr-reuse audit), so the
+per-individual and clustered paths share one tested implementation.
+
+`cluster = "<id-column>"` reproduces the per-individual sandwich exactly
+(singleton clusters), the load-bearing regression invariant. Available across
+gcomp, IPW, IPCW, longitudinal ICE-hazard, competing-risks (CIF + all-cause),
+and the survival quantile; the bootstrap resamples whole clusters when `cluster`
+is set. Validation aborts: `survatr_cluster_varies_within_id`, `survatr_cluster_na`,
+`survatr_cluster_degenerate`, `survatr_bad_cluster`.
+
 ## Chunk 12: years of life lost (YLL) + all-cause RMST/RMTL on CR fits
 
 **`contrast(type = "yll")` — per-cause years of life lost.** On a
@@ -32,7 +52,7 @@ result is **`q`-indexed** rather than time-indexed (`estimates`:
 `intervention | q | tau_hat | se | ci_*`). A median *difference* contrast is
 built automatically when there are two interventions; a single intervention is
 accepted (a lone median is a valid request). Available across gcomp, IPW, IPCW,
-Track B (ICE), and competing risks (all-cause survival quantile). Aborts:
+longitudinal ICE-hazard, and competing risks (all-cause survival quantile). Aborts:
 `survatr_quantile_unreached` (curve never crosses `1 - q` on the grid),
 `survatr_bad_q` (`q` outside `(0, 1)`).
 
@@ -53,7 +73,7 @@ of the survival curve chunks 2/3 already compute, so it reuses the existing
 is `t* - RMST`, and the sandwich SE is the **identical** RMST trapezoidal
 quadratic form (the constant restriction time has zero gradient, so
 `Var(RMTL) = Var(RMST)`). Available wherever RMST is — gcomp, IPW, IPCW, and
-Track B (ICE) — via the shared SE filler, plus bootstrap, `tidy()`, and
+the longitudinal ICE path — via the shared SE filler, plus bootstrap, `tidy()`, and
 `plot()`. The `rmtl_difference` contrast is the negative of `rmst_difference`.
 
 ## 2026-06-09 — Critical review: diagnose + matching-rejection fixes
@@ -105,7 +125,7 @@ and snapshot-pinning the error message for each.
 ## 2026-06-09 — P3 oracle hardening: gfoRmula 🟡→🟢, survRM2 RMST sanity
 
 **gfoRmula oracle hardened (🟡→🟢, `test-ice-survival-oracle.R`).** The
-`gfoRmula::gformula_survival()` cross-check for Track B ICE survival was
+`gfoRmula::gformula_survival()` cross-check for longitudinal ICE-hazard survival was
 previously a loose `expect_lt(max(abs(...)), 0.05)` with `nsimul = 30 000`,
 flagged 🟡 due to Monte Carlo noise. `nsimul` is raised to 100 000 (reducing MC
 noise to < 0.001 per estimate) and the assertion is tightened to an absolute
@@ -150,12 +170,12 @@ emitted once per session, and covered in the vignette). Fine--Gray /
 subdistribution hazards are out of scope (cause-specific only). IPW / ICE
 competing risks, and per-cause RMST / years-of-life-lost, ship in later chunks.
 
-## 2026-06-03 — Track B: longitudinal survival via ICE hazards (`estimator = "ice"`)
+## 2026-06-03 — Longitudinal ICE-hazard: longitudinal survival (`estimator = "ice"`)
 
 `surv_fit(estimator = "ice")` adds longitudinal causal survival estimation for
 a time-varying treatment via backward iterated conditional expectations on the
 discrete-time hazard, with a survival-tail pseudo-outcome
-`Ỹ_k = D_k + (1 − D_k) q_{k+1}`. New Track-B arguments split baseline
+`Ỹ_k = D_k + (1 − D_k) q_{k+1}`. New longitudinal-ICE arguments split baseline
 confounders (`confounders`, never lagged) from time-varying ones
 (`confounders_tv`, lag-expanded) and set the Markov lag order (`history`). The
 curve, contrasts (risk / RR / RD / RMST), and the stacked-EE sandwich reuse the
@@ -181,7 +201,7 @@ means "SE of the reported estimand" and matches the bootstrap; the CI is
 still log-based (strictly positive, not `se`-symmetric). Surfaced by the IPW
 work but pre-existing in the gcomp sandwich.
 
-## 2026-06-02 — IPW weighted hazard MSM (Track A, `estimator = "ipw"`)
+## 2026-06-02 — IPW weighted hazard MSM (point-treatment, `estimator = "ipw"`)
 
 `surv_fit(estimator = "ipw")` adds inverse-probability weighting as a
 second, methodologically-distinct estimator of the counterfactual survival
@@ -328,7 +348,7 @@ pattern `^\.claude$` only matched the literal path and let R CMD build
 recurse into dangling `.claude/skills/` symlinks on CI. Widened to
 `^\.claude(/|$)`. Fix `915d5eb`.
 
-## 2026-04-22 — Track A bootstrap + S3 polish
+## 2026-04-22 — Point-treatment g-computation bootstrap + S3 polish
 
 Ship `ci_method = "bootstrap"` in `contrast.survatr_fit()` and the S3
 method surface that turns a `survatr_result` into a plot, a tidy long
@@ -390,7 +410,7 @@ Testing: 30+ new tests across `test-bootstrap-survival.R`,
 bootstrap-vs-sandwich cross-check (skipped on CRAN) pins B = 500 at
 n = 1500 to within 30% of the sandwich SE.
 
-## 2026-04-22 — Track A sandwich variance
+## 2026-04-22 — Point-treatment g-computation sandwich variance
 
 Ship `ci_method = "sandwich"` in `contrast.survatr_fit()` — delta-method
 cross-time influence function aggregation on the cumulative-product
@@ -434,10 +454,10 @@ Full suite: 173 passing / 0 failing / 1 skip.
 `devtools::check()`: 0 errors / 0 warnings / 2 NOTEs (env timestamp +
 unused `Imports: boot` reserved for chunk 4).
 
-## 2026-04-22 — Track A contrast path (no variance)
+## 2026-04-22 — Point-treatment g-computation contrast path (no variance)
 
 Ship `contrast.survatr_fit()` -- the curve-shaped entry point for
-Track A. Given a `survatr_fit` and a named list of `causatr` interventions,
+point-treatment g-computation. Given a `survatr_fit` and a named list of `causatr` interventions,
 build the counterfactual person-period data under each intervention,
 predict per-row hazards, cumulate within individual to `S^a_i(t)`, and
 average across individuals to `S^a(t) = (1/n) sum_i S^a_i(t)`. Derive
@@ -469,7 +489,7 @@ and on toy-DGP fit failures. Closed-form oracle: `S(t) = (1 - h)^t`
 agrees with `contrast(type = "survival")` within 0.03 absolute at
 n = 5000; trapezoidal RMST matches hand-expanded sum to 1e-12.
 
-## 2026-04-22 — Track A fit skeleton
+## 2026-04-22 — Point-treatment g-computation fit skeleton
 
 First working entry point: `surv_fit()` fits the pooled-logistic
 discrete-time hazard model `logit h(t | A, L) = alpha(t) + beta_A A + beta_L L`
