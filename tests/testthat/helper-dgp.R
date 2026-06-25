@@ -403,3 +403,67 @@ sim_clustered_censoring <- function(
   }
   data.table::rbindlist(rows)
 }
+
+## Clustered time-varying-treatment ICE DGP for Track B cluster-robust tests.
+## Extends `sim_ice_feedback()` (treatment-confounder feedback, the proper Track
+## B / ICE setting) with a site-level frailty `u_g` on the hazard, so within-site
+## individuals are positively correlated. Treatment is time-varying (A_k depends
+## on L_k and lagged A), so the ICE chain is NOT rank-deficient -- unlike a static
+## treatment, whose lagged copy is collinear with the current value. Fit with
+## `estimator = "ice", confounders_tv = ~L`. Columns id, site, t, L, A, Y.
+sim_clustered_ice <- function(
+  n_per = 40L,
+  G = 20L,
+  K = 4L,
+  sigma = 1.0,
+  seed = 51L
+) {
+  p <- .ice_dgp_params()
+  set.seed(seed)
+  u <- stats::rnorm(G, sd = sigma)
+  rows <- vector("list", G * n_per)
+  idx <- 0L
+  for (g in seq_len(G)) {
+    for (jj in seq_len(n_per)) {
+      idx <- idx + 1L
+      L <- numeric(K)
+      A <- numeric(K)
+      Y <- integer(K)
+      l_prev <- 0
+      a_prev <- p$a_prev0
+      failed_at <- NA_integer_
+      for (k in seq_len(K)) {
+        L[k] <- stats::rnorm(1, p$mu_L * l_prev + p$mu_A * a_prev, 1)
+        A[k] <- stats::rbinom(
+          1,
+          1L,
+          stats::plogis(p$g_L * L[k] + p$g_A * a_prev)
+        )
+        h <- stats::plogis(p$a0 + p$bL * L[k] + p$bA * A[k] + u[g])
+        Y[k] <- stats::rbinom(1, 1L, h)
+        l_prev <- L[k]
+        a_prev <- A[k]
+        if (Y[k] == 1L) {
+          failed_at <- k
+          break
+        }
+      }
+      if (!is.na(failed_at) && failed_at < K) {
+        for (jpad in (failed_at + 1L):K) {
+          L[jpad] <- L[failed_at]
+          A[jpad] <- A[failed_at]
+          Y[jpad] <- 0L
+        }
+      }
+      rows[[idx]] <- data.table::data.table(
+        id = idx,
+        site = g,
+        t = seq_len(K),
+        L = L,
+        A = A,
+        Y = Y
+      )
+    }
+  }
+  data.table::rbindlist(rows)
+}

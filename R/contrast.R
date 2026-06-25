@@ -118,8 +118,8 @@ contrast <- function(fit, ...) {
 #'   variance is cluster-robust (the per-individual influence functions are
 #'   summed within cluster before the cross-product) and the bootstrap resamples
 #'   whole clusters. `cluster = "<id-column>"` reproduces the per-individual
-#'   sandwich exactly (singleton clusters). Not yet supported for Track B (ICE)
-#'   fits, which abort with `survatr_cluster_track_b_deferred`.
+#'   sandwich exactly (singleton clusters). Supported for gcomp, IPW, IPCW,
+#'   Track B (ICE), and competing-risks fits.
 #' @param ... Unused; reserved for future chunks.
 #'
 #' @return A `survatr_result` list with `estimates`, `contrasts`,
@@ -322,25 +322,6 @@ contrast.survatr_fit <- function(
   ## The estimand shape, contrast assembly, RMST integral, and CI fillers are
   ## all reused -- only the curve + influence-function construction differ.
   if (identical(fit$track, "B")) {
-    ## Cluster-robust variance for Track B needs the at-risk-at-baseline IF row
-    ## alignment (entry-censored ids carry NA and are dropped from the ICE
-    ## standardisation), which is verified separately from the single-event /
-    ## competing-risks IF spine. Reject upfront rather than silently ignoring
-    ## the `cluster` argument; the bootstrap would otherwise quietly resample
-    ## individuals on a Track B fit even when a cluster was requested.
-    if (!is.null(cluster_labels)) {
-      rlang::abort(
-        c(
-          "`cluster` is not yet supported for Track B (ICE) survival fits.",
-          i = paste0(
-            "Cluster-robust variance currently covers gcomp / IPW / IPCW / ",
-            "competing-risks fits. Refit with a Track A estimator, or omit ",
-            "`cluster`."
-          )
-        ),
-        class = "survatr_cluster_track_b_deferred"
-      )
-    }
     return(contrast_track_b(
       fit = fit,
       interventions = interventions,
@@ -355,6 +336,7 @@ contrast.survatr_fit <- function(
       parallel = parallel,
       ncpus = ncpus,
       seed = seed,
+      cluster_labels = cluster_labels,
       call = match.call()
     ))
   }

@@ -462,11 +462,17 @@ Do NOT flag these as bugs. Each has a regression test.
   (`unit_to_ids` maps a cluster to all its member ids); a re-drawn cluster gets a
   brand-new set of bootstrap-local ids via the running counter. Cluster bootstrap
   SE ≈ clustered sandwich SE and is wider than the per-individual bootstrap.
-- **Track B (ICE) + cluster is REJECTED** (`survatr_cluster_track_b_deferred`),
-  by design for chunk 13. Its at-risk-at-baseline IF row alignment (entry-
-  censored ids carry `NA` and drop from the ICE standardisation) needs separate
-  verification. The chunk-13 "composes transparently" list (5/7/11/12) excluded
-  Track B (6) deliberately. This is scoping, not a bug.
+- **Track B (ICE) + cluster is SUPPORTED.** `contrast_track_b()` aligns the
+  name-keyed cluster labels onto the ICE IF matrix's FIRST-PERIOD id order
+  (`cluster_for_ids()` on `base$data_lag` at `details$time_points[1]`), then
+  routes through the same `fill_sandwich_ses()` / `bootstrap_survival()`.
+  Entry-censored ids carry a near-zero IF row and sum into their cluster like any
+  other — the at-risk-at-baseline standardisation affects the IF values, not the
+  row set. Verified by `cluster = id` reproduction (1e-10) and an independent
+  within-cluster `rowsum`. Tests MUST use a time-varying-treatment (feedback) DGP
+  (`sim_clustered_ice()`); a static treatment makes the ICE chain rank-deficient
+  (lag collinear with the current value), independent of clustering — that
+  rank-deficiency warning is a DGP artifact, not a cluster bug.
 - **Validation aborts:** `survatr_cluster_varies_within_id` (label not constant
   within id), `survatr_cluster_na` (NA in the column), `survatr_cluster_degenerate`
   (`G < 2`), `survatr_bad_cluster` (not a single existing column name). All

@@ -1,8 +1,8 @@
 # Chunk 13 — Cluster-robust sandwich variance
 
 > **Status: ✅ Done** (`a03ed39`; `cluster =` on `contrast()`; gcomp / IPW / IPCW /
-> competing-risks sandwich + quantile + cluster-resampling bootstrap; Track B
-> deferred). Validated against `sandwich::vcovCL` and an empirical
+> Track B (ICE) / competing-risks sandwich + quantile + cluster-resampling
+> bootstrap). Validated against `sandwich::vcovCL` and an empirical
 > cluster-sampling-SD oracle.
 > **Depends on:** Chunk 3 (sandwich IF: the `n × |t-grid|` per-individual IF
 > matrix).
@@ -169,15 +169,18 @@ Cluster-robust SE is wired wherever the variance flows through the
 (`clustered_pointwise_se()` → `causatr:::vcov_from_if()`):
 
 - **gcomp / IPW / IPCW** (single-event `fill_sandwich_ses()`),
+- **Track B (ICE)** (`contrast_track_b()` → `fill_sandwich_ses()`, IF rows
+  aligned by first-period id),
 - **competing risks** (`fill_sandwich_ses_cr()` — CIF + all-cause),
 - **survival quantile** (`assemble_quantile_result()`),
 - **bootstrap** (resample whole clusters) for all of the above.
 
-**Track B (ICE) is deferred** (`survatr_cluster_track_b_deferred`): its
-at-risk-at-baseline IF row alignment with entry-censored `NA` ids needs its own
-verification. The chunk doc's "composes transparently" list (5/7/11/12) already
-excluded Track B (6). A follow-up can lift the rejection once the row order is
-pinned.
+Track B alignment is verified the same way as the other paths: `cluster = id`
+reproduces the per-individual SE to machine tolerance, and the clustered SE
+matches an independent within-cluster `rowsum` of the ICE IF matrix exactly. The
+time-varying-treatment (feedback) DGP keeps the ICE chain full-rank; a static
+treatment is collinear with its own lag and is a poor ICE setting regardless of
+clustering.
 
 ## Acceptance checklist
 - [x] `cluster = id` reproduces the per-individual SE to machine tolerance

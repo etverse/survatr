@@ -110,8 +110,8 @@ sandwich path. `cluster = "<id-column>"` reproduces the per-individual SE.
 | Clustered SE ≥ per-individual SE (positive within-cluster corr) | 🟢 | `test-variance-cluster.R` | Multi-site frailty DGP: level (risk) SE widens uniformly (~2.3×); contrast SE widens under cluster-level treatment (~3.4×). |
 | Calibration to the cluster-sampling SD | 🟢 | `test-variance-cluster.R` | Skipped on CRAN. Empirical SD of risk@t* over 150 re-draws of the sites: clustered SE within 30%; per-individual SE < 0.85× the truth (under-states). |
 | Cluster-resampling bootstrap | 🟢 | `test-variance-cluster.R` | Skipped on CRAN. Resamples whole sites (B = 400); SE ≈ clustered sandwich within 25%, wider than the per-individual bootstrap. |
-| gcomp / IPW / IPCW / competing-risks / quantile coverage | 🟢 | `test-variance-cluster.R` | All flow through the shared helper (single-event `fill_sandwich_ses()` + CR `fill_sandwich_ses_cr()` + `assemble_quantile_result()`). |
-| Track B (ICE) deferral | 🔴 | `test-variance-cluster.R` | `survatr_cluster_track_b_deferred` — the at-risk-at-baseline IF row alignment needs separate verification. |
+| gcomp / IPW / IPCW / competing-risks / quantile coverage | 🟢 | `test-variance-cluster.R` | All flow through the shared helper (single-event `fill_sandwich_ses()` + CR `fill_sandwich_ses_cr()` + `assemble_quantile_result()`). IPW/IPCW non-singleton meat pinned against the cluster bootstrap. |
+| Track B (ICE) cluster-robust SE | 🟢 | `test-variance-cluster.R` | IF rows aligned by first-period id; `cluster = id` reproduces the per-individual SE to 1e-10 and the clustered SE matches an independent within-cluster `rowsum`; widens under frailty. Time-varying-treatment (feedback) DGP keeps the ICE chain full-rank. |
 | Validation aborts | 🔴 | `test-variance-cluster.R` | Snapshot-pinned: `survatr_cluster_varies_within_id`, `survatr_cluster_na`, `survatr_cluster_degenerate`, `survatr_bad_cluster`. |
 
 ### Bootstrap variance (`ci_method = "bootstrap"`, resample individuals)

@@ -14,11 +14,10 @@ shared `causatr:::vcov_from_if()` primitive (causatr-reuse audit), so the
 per-individual and clustered paths share one tested implementation.
 
 `cluster = "<id-column>"` reproduces the per-individual sandwich exactly
-(singleton clusters), the load-bearing regression invariant. Available for
-gcomp, IPW, IPCW, competing-risks (CIF + all-cause), and the survival quantile;
-the bootstrap resamples whole clusters when `cluster` is set. Not yet supported
-for Track B (ICE) fits (`survatr_cluster_track_b_deferred`). Validation aborts:
-`survatr_cluster_varies_within_id`, `survatr_cluster_na`,
+(singleton clusters), the load-bearing regression invariant. Available across
+gcomp, IPW, IPCW, Track B (ICE), competing-risks (CIF + all-cause), and the
+survival quantile; the bootstrap resamples whole clusters when `cluster` is set.
+Validation aborts: `survatr_cluster_varies_within_id`, `survatr_cluster_na`,
 `survatr_cluster_degenerate`, `survatr_bad_cluster`.
 
 ## Chunk 12: years of life lost (YLL) + all-cause RMST/RMTL on CR fits

@@ -460,6 +460,11 @@ notes" for the style).
   contrast IF carries within-cluster correlation:** with treatment randomized
   within cluster a shared cluster effect cancels in the *difference* IF, so the
   difference SE need not widen even though the level SE does — not a bug.
-  **Track B (ICE) is deferred** (`survatr_cluster_track_b_deferred`): its
-  at-risk-at-baseline IF row alignment (entry-censored ids carry `NA`) needs
-  separate verification before the rejection is lifted.
+  **Track B (ICE) is supported too:** `contrast_track_b()` aligns the cluster
+  labels onto the ICE IF matrix's first-period id order (`cluster_for_ids()` on
+  `base$data_lag` at the first time point) and routes through the same
+  `fill_sandwich_ses()`; entry-censored ids carry a near-zero IF row and sum
+  into their cluster like any other. Verified by `cluster = id` reproduction and
+  an independent within-cluster `rowsum`. Use a time-varying-treatment DGP — a
+  static treatment makes the ICE chain rank-deficient (lag collinear with the
+  current value), independent of clustering.

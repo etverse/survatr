@@ -8,7 +8,8 @@
 ##   3. calibration on a multi-site frailty DGP (naive under-covers, clustered
 ##      restores the cluster-sampling SD) + clustered SE >= per-individual SE;
 ##   4. cluster-resampling bootstrap agreement with the clustered sandwich;
-##   5. the validation aborts and the Track B deferral.
+##   5. coverage across gcomp / IPW / IPCW / Track B (ICE) / competing risks;
+##   6. the validation aborts.
 
 ## ---- 1. aggregation primitive vs sandwich::vcovCL -------------------------
 
@@ -300,9 +301,11 @@ test_that("bootstrap resamples clusters and matches the clustered sandwich", {
 
 ## ---- 5. deferrals and validation aborts -------------------------------------
 
-test_that("cluster is rejected for Track B (ICE) fits", {
-  pp <- sim_clustered_survival(n_per = 15L, G = 20L, K = 5L, seed = 51L)
-  fit_b <- surv_fit(
+test_that("Track B (ICE): cluster = id reproduces the per-individual SE", {
+  ## Time-varying-treatment ICE DGP (feedback) so the chain is not rank-
+  ## deficient; the IF rows are in first-period id order, aligned by name.
+  pp <- sim_clustered_ice(n_per = 50L, G = 20L, K = 4L, seed = 51L)
+  fit <- surv_fit(
     pp,
     "Y",
     "A",
@@ -310,20 +313,58 @@ test_that("cluster is rejected for Track B (ICE) fits", {
     "id",
     "t",
     time_formula = ~ factor(t),
-    estimator = "ice"
+    estimator = "ice",
+    confounders_tv = ~L
   )
   ivs <- list(a1 = causatr::static(1), a0 = causatr::static(0))
-  expect_error(
-    contrast(
-      fit_b,
+  for (ty in c("survival", "risk_difference", "rmst_difference")) {
+    none <- contrast(fit, ivs, times = 1:4, type = ty, ci_method = "sandwich")
+    idcl <- contrast(
+      fit,
       ivs,
-      times = 1:5,
-      type = "risk_difference",
+      times = 1:4,
+      type = ty,
       ci_method = "sandwich",
-      cluster = "site"
-    ),
-    class = "survatr_cluster_track_b_deferred"
+      cluster = "id"
+    )
+    expect_equal(none$estimates$se, idcl$estimates$se, tolerance = 1e-10)
+    if (nrow(none$contrasts) > 0L) {
+      expect_equal(none$contrasts$se, idcl$contrasts$se, tolerance = 1e-10)
+    }
+  }
+})
+
+test_that("Track B (ICE): clustered SE >= per-individual SE under frailty", {
+  pp <- sim_clustered_ice(n_per = 50L, G = 25L, K = 4L, sigma = 1.1, seed = 52L)
+  fit <- surv_fit(
+    pp,
+    "Y",
+    "A",
+    ~1,
+    "id",
+    "t",
+    time_formula = ~ factor(t),
+    estimator = "ice",
+    confounders_tv = ~L
   )
+  ivs <- list(a1 = causatr::static(1), a0 = causatr::static(0))
+  none <- contrast(
+    fit,
+    ivs,
+    times = 1:4,
+    type = "risk",
+    ci_method = "sandwich"
+  )$estimates[get("intervention") == "a1"]$se
+  site <- contrast(
+    fit,
+    ivs,
+    times = 1:4,
+    type = "risk",
+    ci_method = "sandwich",
+    cluster = "site"
+  )$estimates[get("intervention") == "a1"]$se
+  expect_true(all(site >= none - 1e-9))
+  expect_true(mean(site / none) > 1.1)
 })
 
 test_that("cluster validation aborts fire with classed errors", {

@@ -138,6 +138,10 @@ treatment_is_time_varying <- function(data, treatment, id) {
 #' @inheritParams contrast.survatr_fit
 #' @param call The `match.call()` captured in `contrast.survatr_fit()` for the
 #'   result's `call` slot.
+#' @param cluster_labels `NULL`, or the name-keyed (id -> cluster) vector from
+#'   `validate_cluster()`. When supplied, the sandwich is cluster-robust (the
+#'   ICE IF rows are summed within cluster, aligned by first-period id) and the
+#'   bootstrap resamples whole clusters.
 #'
 #' @return A `survatr_result`.
 #' @noRd
@@ -155,7 +159,8 @@ contrast_track_b <- function(
   parallel,
   ncpus,
   seed,
-  call
+  call,
+  cluster_labels = NULL
 ) {
   ## Track B v1 supports only deterministic plug-in interventions (`static`,
   ## `shift`, `scale_by`, `threshold`, `dynamic`). Two families are rejected
@@ -197,6 +202,18 @@ contrast_track_b <- function(
   ## Lags + risk set, once (intervention-agnostic).
   base <- prepare_track_b_base(fit, details)
   n_ids <- length(unique(as.character(base$data_lag[[fit$id]])))
+
+  ## Cluster-robust variance: the ICE IF matrix has one row per FIRST-PERIOD id
+  ## (the order `build_ice_if_list()` / `ice_if_setup()` use via the `target`
+  ## mask over first-period rows), so align the name-keyed cluster labels onto
+  ## that order. Entry-censored ids still carry a (near-zero) IF row and sum
+  ## into their cluster like any other -- at-risk-at-baseline standardisation
+  ## affects the IF values, not the row set. NULL keeps the per-individual SE.
+  first_t <- details$time_points[1]
+  first_period_ids <- base$data_lag[[fit$id]][
+    base$data_lag[[fit$time]] == first_t
+  ]
+  cl_aligned <- cluster_for_ids(cluster_labels, first_period_ids)
 
   ## Per-intervention survival curves (+ stashed per-horizon ice_results for
   ## the sandwich bridge).
@@ -242,7 +259,9 @@ contrast_track_b <- function(
       parallel = parallel,
       ncpus = ncpus,
       seed = seed,
-      call = call
+      call = call,
+      cluster_aligned = cl_aligned,
+      cluster_labels = cluster_labels
     ))
   }
 
@@ -275,7 +294,8 @@ contrast_track_b <- function(
       reference = reference,
       times = times,
       conf_level = conf_level,
-      n_ids = n_ids
+      n_ids = n_ids,
+      cluster = cl_aligned
     )
     estimates <- filled$estimates
     contrasts <- filled$contrasts
@@ -293,7 +313,8 @@ contrast_track_b <- function(
       n_boot = n_boot,
       parallel = parallel,
       ncpus = ncpus,
-      seed = seed
+      seed = seed,
+      cluster_labels = cluster_labels
     )
     filled <- fill_bootstrap_ses(
       estimates = estimates,
