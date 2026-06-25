@@ -59,15 +59,33 @@ lmtp_ipcw_survival_oracle <- function(
     times,
     function(tau) {
       fit_lmtp <- tryCatch(
-        lmtp::lmtp_tmle(
-          data = wide_df,
-          trt = "A",
-          outcome = paste0("Y_", seq_len(tau)),
-          baseline = confounder,
-          cens = paste0("C_", seq_len(tau)),
-          shift = function(data, trt) rep(value, nrow(data)),
-          outcome_type = "survival",
-          folds = 1L
+        ## lmtp's internal glm.fit separates on this saturated informative-
+        ## censoring DGP, emitting "fitted probabilities numerically 0 or 1
+        ## occurred". That is benign noise from the external oracle, not a
+        ## survatr condition, so muffle only that specific message (per-pattern,
+        ## never a blanket suppressWarnings).
+        withCallingHandlers(
+          lmtp::lmtp_tmle(
+            data = wide_df,
+            trt = "A",
+            outcome = paste0("Y_", seq_len(tau)),
+            baseline = confounder,
+            cens = paste0("C_", seq_len(tau)),
+            shift = function(data, trt) rep(value, nrow(data)),
+            outcome_type = "survival",
+            folds = 1L
+          ),
+          warning = function(w) {
+            if (
+              grepl(
+                "fitted probabilities numerically 0 or 1",
+                conditionMessage(w),
+                fixed = TRUE
+              )
+            ) {
+              invokeRestart("muffleWarning")
+            }
+          }
         ),
         error = function(e) NULL
       )
