@@ -17,6 +17,16 @@ expectations (Zivich et al. 2024) extended to the **hazard link**. Reuse
 causatr's ICE engine wholesale; add only the survival-aware per-step target,
 per-step link forcing, and the cumulative-product survival-curve shape.
 
+### Why ICE, not forward simulation
+
+Hernán & Robins Ch. 21 describes two longitudinal g-formula approaches.
+Forward simulation (`gfoRmula`-style) needs models for every time-varying
+covariate + outcome and bootstrap-only inference. ICE models the outcome only
+at each time, iterates backward with a pseudo-outcome, and admits a stacked
+estimating-equation sandwich. Here the pseudo-outcome is the **survival tail**
+under the intervention; the per-step link is binomial at K, quasibinomial at
+k < K.
+
 ## The math: ICE backward iteration on the hazard
 
 ```
