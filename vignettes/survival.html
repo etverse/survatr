@@ -665,7 +665,7 @@ window.Quarto = {
 <span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2    8 0.0754    0.031       0.0309</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<p>The bootstrap honours the same unit of independence — <code>ci_method = "bootstrap"</code> with <code>cluster = "site"</code> resamples whole sites rather than individuals. Cluster-robust SEs are available for the gcomp, IPW, IPCW, and competing-risks paths; longitudinal ICE-hazard fits are not yet supported.</p>
+<p>The bootstrap honours the same unit of independence — <code>ci_method = "bootstrap"</code> with <code>cluster = "site"</code> resamples whole sites rather than individuals. Cluster-robust SEs are available for the gcomp, IPW, IPCW, competing-risks and longitudinal ICE-hazard paths.</p>
 </section>
 <section id="plot" class="level2">
 <h2 class="anchored" data-anchor-id="plot">Plot</h2>
@@ -693,7 +693,7 @@ D’Agostino, Ralph B., Mei-Ling Lee, Albert J. Belanger, L. Adrienne Cupples, K
 Hernán, Miguel A., and James M. Robins. 2025. <em>Causal Inference: What If</em>. Chapman &amp; Hall/CRC. <a href="https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/">https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/</a>.
 </div>
 <div id="ref-huntingtonklein2021causaldata" class="csl-entry" role="listitem">
-Huntington-Klein, Nick. 2021. <em>Causaldata: Example Data Sets for Causal Inference Textbooks</em>. <a href="https://CRAN.R-project.org/package=causaldata">https://CRAN.R-project.org/package=causaldata</a>.
+Huntington-Klein, Nick. 2021. <em>Causaldata: Example Data Sets for Causal Inference Textbooks</em>. <a href="https://doi.org/10.32614/CRAN.package.causaldata">https://doi.org/10.32614/CRAN.package.causaldata</a>.
 </div>
 </div>
 
@@ -1484,22 +1484,19 @@ Huntington-Klein, Nick. 2021. <em>Causaldata: Example Data Sets for Causal Infer
 <span id="cb10-270"><a href="#cb10-270" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb10-271"><a href="#cb10-271" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb10-272"><a href="#cb10-272" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-273"><a href="#cb10-273" aria-hidden="true" tabindex="-1"></a>The bootstrap honours the same unit of independence — `ci_method =</span>
-<span id="cb10-274"><a href="#cb10-274" aria-hidden="true" tabindex="-1"></a>"bootstrap"<span class="in">` with `</span>cluster = "site"` resamples whole sites rather than</span>
-<span id="cb10-275"><a href="#cb10-275" aria-hidden="true" tabindex="-1"></a>individuals. Cluster-robust SEs are available for the gcomp, IPW, IPCW, and</span>
-<span id="cb10-276"><a href="#cb10-276" aria-hidden="true" tabindex="-1"></a>competing-risks paths; longitudinal ICE-hazard fits are not yet supported.</span>
-<span id="cb10-277"><a href="#cb10-277" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-278"><a href="#cb10-278" aria-hidden="true" tabindex="-1"></a><span class="fu">## Plot</span></span>
-<span id="cb10-279"><a href="#cb10-279" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-282"><a href="#cb10-282" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb10-283"><a href="#cb10-283" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-alt: "Standardised survival curves under smoking cessation and no cessation."</span></span>
-<span id="cb10-284"><a href="#cb10-284" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(res)</span>
-<span id="cb10-285"><a href="#cb10-285" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb10-286"><a href="#cb10-286" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-287"><a href="#cb10-287" aria-hidden="true" tabindex="-1"></a><span class="fu">## References</span></span>
-<span id="cb10-288"><a href="#cb10-288" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-289"><a href="#cb10-289" aria-hidden="true" tabindex="-1"></a>::: {#refs}</span>
-<span id="cb10-290"><a href="#cb10-290" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb10-273"><a href="#cb10-273" aria-hidden="true" tabindex="-1"></a>The bootstrap honours the same unit of independence — <span class="in">`ci_method = "bootstrap"`</span> with <span class="in">`cluster = "site"`</span> resamples whole sites rather than individuals. Cluster-robust SEs are available for the gcomp, IPW, IPCW, competing-risks and longitudinal ICE-hazard paths.</span>
+<span id="cb10-274"><a href="#cb10-274" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-275"><a href="#cb10-275" aria-hidden="true" tabindex="-1"></a><span class="fu">## Plot</span></span>
+<span id="cb10-276"><a href="#cb10-276" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-279"><a href="#cb10-279" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb10-280"><a href="#cb10-280" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-alt: "Standardised survival curves under smoking cessation and no cessation."</span></span>
+<span id="cb10-281"><a href="#cb10-281" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(res)</span>
+<span id="cb10-282"><a href="#cb10-282" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb10-283"><a href="#cb10-283" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-284"><a href="#cb10-284" aria-hidden="true" tabindex="-1"></a><span class="fu">## References</span></span>
+<span id="cb10-285"><a href="#cb10-285" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-286"><a href="#cb10-286" aria-hidden="true" tabindex="-1"></a>::: {#refs}</span>
+<span id="cb10-287"><a href="#cb10-287" aria-hidden="true" tabindex="-1"></a>:::</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

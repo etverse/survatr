@@ -345,8 +345,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="unnumbered anchored" data-anchor-id="survival-curve-contrasts-on-a-fitted-hazard-model">Survival-curve contrasts on a fitted hazard model</h2>
 <section id="description" class="level3">
 <h3 class="anchored" data-anchor-id="description">Description</h3>
-<p>Given a <code>survatr_fit</code> (chunk 1) and a named list of interventions, build the counterfactual person-period data under each intervention, predict the per-row hazard, cumulate within individual to get <code>S^a_i(t)</code>, and average across individuals to get the population survival curve <code style="white-space: pre;">S^a(t) = (1/n) sum_i S^a_i(t)</code>. Derive risk / risk-difference / risk-ratio / RMST / RMST-difference contrasts from there.</p>
-<p><strong>No variance in this chunk.</strong> All <code>se</code> / <code style="white-space: pre;">ci_*</code> columns come back as <code>NA_real_</code>; sandwich variance ships with chunk 3 (delta-method cross-time IF aggregation) and bootstrap with chunk 4.</p>
+<p>Given a <code>survatr_fit</code> and a named list of interventions, build the counterfactual person-period data under each intervention, predict the per-row hazard, cumulate within individual to get <code>S^a_i(t)</code>, and average across individuals to get the population survival curve <code style="white-space: pre;">S^a(t) = (1/n) sum_i S^a_i(t)</code>. Derive risk / risk-difference / risk-ratio / RMST / RMST-difference contrasts from there.</p>
+<p>With the default <code>ci_method = “none”</code> the <code>se</code> / <code style="white-space: pre;">ci_*</code> columns are <code>NA_real_</code>; <code>“sandwich”</code> and <code>“bootstrap”</code> fill them.</p>
 </section>
 <section id="usage" class="level3">
 <h3 class="anchored" data-anchor-id="usage">Usage</h3>
@@ -499,7 +499,7 @@ Integer scalar or <code>NULL</code>. When non-null, <code>set.seed(seed)</code> 
 <code id="...">…</code>
 </td>
 <td>
-Unused; reserved for future chunks.
+Unused.
 </td>
 </tr>
 </tbody></table>

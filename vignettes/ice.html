@@ -690,7 +690,7 @@ window.Quarto = {
 </section>
 <section id="scope-and-rejections" class="level2">
 <h2 class="anchored" data-anchor-id="scope-and-rejections">Scope and rejections</h2>
-<p>The longitudinal ICE-hazard engine currently supports a numeric treatment with <code>static</code> / <code>shift</code> / <code>dynamic</code> strategies and sandwich or bootstrap inference. It rejects, with classed errors, combinations that need later chunks:</p>
+<p>The longitudinal ICE-hazard engine supports a numeric treatment with <code>static</code> / <code>shift</code> / <code>dynamic</code> strategies and sandwich or bootstrap inference. It rejects these combinations with classed errors:</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 50%">
@@ -1527,27 +1527,24 @@ Zivich, Paul N., Rachael K. Ross, Bonnie E. Shook-Sa, Stephen R. Cole, and Jessi
 <span id="cb9-280"><a href="#cb9-280" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-281"><a href="#cb9-281" aria-hidden="true" tabindex="-1"></a><span class="fu">## Scope and rejections</span></span>
 <span id="cb9-282"><a href="#cb9-282" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-283"><a href="#cb9-283" aria-hidden="true" tabindex="-1"></a>The longitudinal ICE-hazard engine currently supports a numeric treatment with</span>
-<span id="cb9-284"><a href="#cb9-284" aria-hidden="true" tabindex="-1"></a><span class="in">`static`</span> / <span class="in">`shift`</span> /</span>
-<span id="cb9-285"><a href="#cb9-285" aria-hidden="true" tabindex="-1"></a><span class="in">`dynamic`</span> strategies and sandwich or bootstrap inference. It rejects, with</span>
-<span id="cb9-286"><a href="#cb9-286" aria-hidden="true" tabindex="-1"></a>classed errors, combinations that need later chunks:</span>
-<span id="cb9-287"><a href="#cb9-287" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-288"><a href="#cb9-288" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Trigger <span class="pp">|</span> Error class <span class="pp">|</span></span>
-<span id="cb9-289"><a href="#cb9-289" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
-<span id="cb9-290"><a href="#cb9-290" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Non-numeric (factor / categorical) treatment <span class="pp">|</span> <span class="in">`survatr_ice_treatment_unsupported`</span> <span class="pp">|</span></span>
-<span id="cb9-291"><a href="#cb9-291" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`ipsi()`</span> / stochastic intervention <span class="pp">|</span> <span class="in">`survatr_ice_intervention_deferred`</span> <span class="pp">|</span></span>
-<span id="cb9-292"><a href="#cb9-292" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> External / IPCW <span class="in">`weights =`</span> <span class="pp">|</span> <span class="in">`survatr_ice_external_weights`</span> <span class="pp">|</span></span>
-<span id="cb9-293"><a href="#cb9-293" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-294"><a href="#cb9-294" aria-hidden="true" tabindex="-1"></a>A baseline-constant treatment is allowed under ICE (it just informs that</span>
-<span id="cb9-295"><a href="#cb9-295" aria-hidden="true" tabindex="-1"></a>point-treatment g-computation is cheaper). Entry (period-1) censoring is handled</span>
-<span id="cb9-296"><a href="#cb9-296" aria-hidden="true" tabindex="-1"></a>by standardizing over the</span>
-<span id="cb9-297"><a href="#cb9-297" aria-hidden="true" tabindex="-1"></a>at-risk-at-baseline population (consistent under MCAR), not by returning an</span>
-<span id="cb9-298"><a href="#cb9-298" aria-hidden="true" tabindex="-1"></a>all-<span class="in">`NA`</span> curve.</span>
-<span id="cb9-299"><a href="#cb9-299" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-300"><a href="#cb9-300" aria-hidden="true" tabindex="-1"></a><span class="fu">## References</span></span>
-<span id="cb9-301"><a href="#cb9-301" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-302"><a href="#cb9-302" aria-hidden="true" tabindex="-1"></a>::: {#refs}</span>
-<span id="cb9-303"><a href="#cb9-303" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb9-283"><a href="#cb9-283" aria-hidden="true" tabindex="-1"></a>The longitudinal ICE-hazard engine supports a numeric treatment with <span class="in">`static`</span> / <span class="in">`shift`</span> / <span class="in">`dynamic`</span> strategies and sandwich or bootstrap inference. It rejects these combinations with classed errors:</span>
+<span id="cb9-284"><a href="#cb9-284" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-285"><a href="#cb9-285" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Trigger <span class="pp">|</span> Error class <span class="pp">|</span></span>
+<span id="cb9-286"><a href="#cb9-286" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
+<span id="cb9-287"><a href="#cb9-287" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Non-numeric (factor / categorical) treatment <span class="pp">|</span> <span class="in">`survatr_ice_treatment_unsupported`</span> <span class="pp">|</span></span>
+<span id="cb9-288"><a href="#cb9-288" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`ipsi()`</span> / stochastic intervention <span class="pp">|</span> <span class="in">`survatr_ice_intervention_deferred`</span> <span class="pp">|</span></span>
+<span id="cb9-289"><a href="#cb9-289" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> External / IPCW <span class="in">`weights =`</span> <span class="pp">|</span> <span class="in">`survatr_ice_external_weights`</span> <span class="pp">|</span></span>
+<span id="cb9-290"><a href="#cb9-290" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-291"><a href="#cb9-291" aria-hidden="true" tabindex="-1"></a>A baseline-constant treatment is allowed under ICE (it just informs that</span>
+<span id="cb9-292"><a href="#cb9-292" aria-hidden="true" tabindex="-1"></a>point-treatment g-computation is cheaper). Entry (period-1) censoring is handled</span>
+<span id="cb9-293"><a href="#cb9-293" aria-hidden="true" tabindex="-1"></a>by standardizing over the</span>
+<span id="cb9-294"><a href="#cb9-294" aria-hidden="true" tabindex="-1"></a>at-risk-at-baseline population (consistent under MCAR), not by returning an</span>
+<span id="cb9-295"><a href="#cb9-295" aria-hidden="true" tabindex="-1"></a>all-<span class="in">`NA`</span> curve.</span>
+<span id="cb9-296"><a href="#cb9-296" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-297"><a href="#cb9-297" aria-hidden="true" tabindex="-1"></a><span class="fu">## References</span></span>
+<span id="cb9-298"><a href="#cb9-298" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-299"><a href="#cb9-299" aria-hidden="true" tabindex="-1"></a>::: {#refs}</span>
+<span id="cb9-300"><a href="#cb9-300" aria-hidden="true" tabindex="-1"></a>:::</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
