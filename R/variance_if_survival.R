@@ -6,8 +6,15 @@
 #' sandwich-variance path to form `crossprod(IF) / n_ids^2`.
 #'
 #' @details
-#' Implements the delta-method cross-time IF chain described in
-#' `CHUNK_3_SANDWICH_A.md`:
+#' Implements the delta-method cross-time IF chain. With hazards
+#' \eqn{h^a_{i,k} = \mathrm{expit}(X^{a\prime}_{i,k}\beta)} and individual
+#' survival \eqn{S^a_i(t) = \prod_{k \le t}(1 - h^a_{i,k})}, the derivative
+#' along the product is
+#' \deqn{\partial S^a_i(t) / \partial\beta = -S^a_i(t) \sum_{k \le t}
+#'   \frac{\mu_\eta(\eta^a_{i,k})}{1 - h^a_{i,k}} X^a_{i,k},}
+#' since \eqn{\partial \log S^a_i(t) / \partial\beta} is the sum of
+#' \eqn{\partial \log(1 - h^a_{i,k}) / \partial\beta} over periods. Averaging
+#' over individuals gives `J_bar(t)`, and the influence function is
 #'
 #' ```
 #' IF_i(t) = (S_i(t) - S_bar(t))                                  ## Ch1
@@ -28,12 +35,16 @@
 #' For the binomial / quasibinomial logit link this simplifies to
 #' `s_{i,k} = h_{i,k}` (the `(1 - h)` in the denominator cancels the
 #' `h(1 - h)` in `mu_eta`), but the code uses the general formula so a
-#' future chunk that swaps in a non-logit link does not need to revisit the
-#' derivation.
+#' non-logit link needs no new derivation. Rows outside the fit-row mask
+#' contribute no score, so their Ch2 term is zero. Under a quasibinomial
+#' family the dispersion enters through the working weights that
+#' `causatr:::prepare_model_if()` reads, so nothing here changes.
+#'
+#' The cross-time covariance is `crossprod(IF) / n_ids^2`, an
+#' `|times| x |times|` matrix.
 #'
 #' Source: cumulative-product survival standardization in Hernán & Robins
-#' (2025), *Causal Inference: What If*, Ch. 17; the cross-time delta chain
-#' is derived in `CHUNK_3_SANDWICH_A.md`.
+#' (2025), *Causal Inference: What If*, Ch. 17.
 #'
 #' @param fit A `survatr_fit`.
 #' @param intervention A single `causatr_intervention`.
@@ -146,9 +157,9 @@ compute_survival_if_matrix <- function(
 
   for (j in seq_len(n_t)) {
     rows_j <- which(t_pp == times[j])
-    ## Guard against PP data that drops rows at certain times per id (Track
-    ## A data is rectangular by construction but a defensive length check
-    ## keeps a later chunk that allows ragged PP safe).
+    ## Guard against PP data that drops rows at certain times per id
+    ## (point-treatment data is rectangular by construction, but a defensive
+    ## length check keeps ragged PP data safe).
     if (length(rows_j) != n_ids) {
       rlang::abort(
         paste0(
@@ -180,7 +191,7 @@ compute_survival_if_matrix <- function(
   ## `rowsum(..., reorder = FALSE)` keeps rows in the order of first
   ## occurrence in `id_fit_f`'s levels. We requested levels = unique_ids
   ## above so the result's row order matches `unique_ids` exactly. Ids
-  ## with no fit rows (should be impossible under the chunk-1 risk-set
+  ## with no fit rows (should be impossible under the `build_risk_set()` risk-set
   ## rules but defend anyway) get a zero row.
   psi_per_id_raw <- rowsum(weighted_X, id_fit_f, reorder = FALSE)
   psi_per_id <- matrix(0, n_ids, p)

@@ -373,8 +373,8 @@ prepare_ipcw_correction <- function(
   } else {
     # nocov start
     ## Unstabilized path: numerator = 1 everywhere. Reachable when the public
-    ## API exposes stabilize_ipcw = FALSE (not yet in v1); preserved for
-    ## forward-compatibility with the compute_ipcw_running_weights contract.
+    ## API exposes stabilize_ipcw = FALSE (it does not today); kept so the
+    ## compute_ipcw_running_weights contract covers both branches.
     numer_factor_all <- rep(1, nrow(pp_work))
     # nocov end
   }
@@ -428,7 +428,7 @@ prepare_ipcw_correction <- function(
 #' @description
 #' Given the intervention-specific population derivative `J_bar_mat` and the
 #' pre-built IPCW correction pieces, return the `n_ids x |times|` correction
-#' matrix to **add** to the chunk-3 + IPW-treatment IF matrix. The correction
+#' matrix to **add** to the hazard + IPW-treatment IF matrix. The correction
 #' propagates the censoring-model score through the cross-derivative and the
 #' cross-time delta chain, exactly mirroring `compute_treatment_correction()`
 #' for the treatment block.

@@ -45,8 +45,8 @@ point-treatment g-computation the treatment is constant within \code{id}. Under
 the longitudinal ICE-hazard estimator (\code{estimator = "ice"})
 the treatment may vary within \code{id} and must be \strong{numeric} (binary, or a
 numeric dose entered linearly); factor / categorical (k > 2) treatments are
-rejected with class \code{survatr_ice_treatment_unsupported} (a treatment-design
-formula path ships in a later chunk).}
+rejected with class \code{survatr_ice_treatment_unsupported} (there is no
+treatment-design formula path).}
 
 \item{confounders}{A one-sided formula (e.g. \code{~ L1 + L2}) describing the
 \strong{baseline} (time-invariant) covariate adjustment set. Under the
@@ -70,7 +70,7 @@ event-type column (\code{0} = no event this period, \verb{1..J} = the cause of t
 event this period), and \code{surv_fit()} fits \code{J} parallel cause-specific
 pooled-logistic hazard models on a shared all-cause risk set. It must name
 the \strong{same} column as \code{outcome}; competing risks are gcomp /
-point-treatment only in this release (a non-\code{"gcomp"} estimator, fewer than
+point-treatment only (a non-\code{"gcomp"} estimator, fewer than
 two distinct causes,
 or \code{outcome != competing} aborts with \code{survatr_competing_estimator} /
 \code{survatr_competing_misuse}). Cumulative-incidence functions (CIF), CIF
@@ -86,7 +86,7 @@ on the time variable). Pass \code{~ factor(time)} for period dummies or
 \code{nrow(data)}. When supplied, the hazard model is fit with
 \code{stats::quasibinomial()} rather than \code{stats::binomial()} (same score
 equations, free dispersion -- drops the "non-integer #successes"
-warning). The variance engine in later chunks reads the family from
+warning). The sandwich variance reads the family from
 \code{fit$family} to pick the right dispersion.}
 
 \item{estimator}{Character scalar. \code{"gcomp"} (pooled-logistic
@@ -185,9 +185,9 @@ fit
 \seealso{
 \code{causatr::to_person_period()} for reshaping wide data.
 
-Other survatr_fit functions: 
-\code{\link{diagnose}()},
-\code{\link{print.survatr_diag}()},
-\code{\link{print.survatr_fit}()}
+Other survatr_fit functions:
+\code{\link[=diagnose]{diagnose()}},
+\code{\link[=print.survatr_diag]{print.survatr_diag()}},
+\code{\link[=print.survatr_fit]{print.survatr_fit()}}
 }
 \concept{survatr_fit functions}

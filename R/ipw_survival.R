@@ -32,9 +32,8 @@
 #' observed-treatment stabilized weight, so there is no causatr function to
 #' reuse for the composition itself.
 #'
-#' This chunk supports **binary** treatment only; continuous / categorical /
-#' count propensities are a dedicated future path and abort here with
-#' `survatr_ipw_treatment_unsupported`.
+#' Only a **binary** treatment is supported; continuous / categorical /
+#' count propensities abort here with `survatr_ipw_treatment_unsupported`.
 #'
 #' @param data Full person-period `data.table` (validated, sorted by
 #'   `(id, time)`, includes the `.survatr_*` bookkeeping columns).
@@ -144,9 +143,9 @@ fit_ipw_survival <- function(
     model_fn = propensity_model_fn
   )
 
-  ## Binary-only gate for this chunk. Continuous (gaussian) / categorical /
-  ## count propensities need pushforward / multinomial weight forms and their
-  ## own oracles; they ship in a dedicated extended-types path.
+  ## Binary-only gate. Continuous (gaussian) / categorical / count
+  ## propensities need pushforward / multinomial weight forms and their own
+  ## oracles, which are not implemented.
   if (!identical(full_tm$family, "bernoulli")) {
     rlang::abort(
       c(
@@ -159,7 +158,7 @@ fit_ipw_survival <- function(
         ),
         i = paste0(
           "Continuous / categorical / count treatment IPW for survival ",
-          "ships in a dedicated extended-types path."
+          "is not implemented."
         )
       ),
       class = "survatr_ipw_treatment_unsupported"
@@ -347,8 +346,8 @@ fit_ipw_survival_ipcw <- function(
           "\"."
         ),
         i = paste0(
-          "Continuous / categorical / count treatment IPW ships in a ",
-          "dedicated extended-types path."
+          "Continuous / categorical / count treatment IPW ",
+          "is not implemented."
         )
       ),
       class = "survatr_ipw_treatment_unsupported"

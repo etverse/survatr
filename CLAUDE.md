@@ -47,9 +47,9 @@ Rscript -e 'devtools::load_all(quiet = TRUE); testthat::test_file("tests/testtha
 
 Slow tests call `skip_on_cran()`; set `NOT_CRAN=true` to run them. Python oracle scripts are in `data-raw/` and write to `tests/testthat/fixtures/python/`.
 
-## Planning files
+## Planned work
 
-`SURVIVAL_PACKAGE_HANDOFF.md` holds the scope, the reasons for a separate package and the oracle list; `CHUNK_*.md` hold the design of each feature; `FEATURE_COVERAGE_MATRIX.md` records which combinations are tested.
+Planned work and known bugs are GitHub issues (`gh issue list`, `gh issue view <n>`), grouped in `ROADMAP.md`; the reason behind shipped code is in the roxygen of the function it explains. `FEATURE_COVERAGE_MATRIX.md` records which combinations are tested.
 
 ## Dependencies
 

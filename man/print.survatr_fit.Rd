@@ -16,10 +16,10 @@ The fit object, invisibly.
 }
 \description{
 Minimal banner summary for the fit object returned by \code{surv_fit()}.
-Reports the track, estimator, outcome / treatment / id / time columns,
+Reports the estimator, outcome / treatment / id / time columns,
 number of individuals, number of person-period rows used to fit, and the
-time grid span. A richer print (coef table, time-spline degrees of
-freedom) ships with the contrast / S3 polish in a later chunk.
+time grid span. It does not print the coefficient table or the time-spline
+degrees of freedom.
 }
 \examples{
 set.seed(1)
@@ -35,9 +35,9 @@ fit <- surv_fit(pp, "Y", "A", ~1, "id", "t", time_formula = ~ factor(t))
 print(fit)
 }
 \seealso{
-Other survatr_fit functions: 
-\code{\link{diagnose}()},
-\code{\link{print.survatr_diag}()},
-\code{\link{surv_fit}()}
+Other survatr_fit functions:
+\code{\link[=diagnose]{diagnose()}},
+\code{\link[=print.survatr_diag]{print.survatr_diag()}},
+\code{\link[=surv_fit]{surv_fit()}}
 }
 \concept{survatr_fit functions}

@@ -1,7 +1,7 @@
 #' Fill sandwich variance into a `survatr_result`
 #'
 #' @description
-#' Take the chunk-2 `estimates` / `contrasts` tables plus the
+#' Take the point-estimate `estimates` / `contrasts` tables plus the
 #' per-intervention IF matrices, aggregate them into pointwise SEs and Wald
 #' CIs at `conf_level`, and replace the `NA_real_` placeholder columns.
 #'
@@ -20,17 +20,24 @@
 #' - `risk_difference`: contrast IF = `IF_ref - IF_a1`; cross-product / n^2.
 #' - `rmst_difference`: contrast IF = `(IF_ref - IF_a1) %*% t(W)`; diagonal
 #'   of its cross-product is the pointwise RMST-difference variance.
-#' - `risk_ratio`: log-RR IF built pointwise per time; CI computed on the
+#' - `risk_ratio`: by the delta method,
+#'   `IF_RR(t) = IF_risk1(t) / risk0(t) - risk1(t) * IF_risk0(t) / risk0(t)^2`,
+#'   built pointwise per time on the log scale; the CI is computed on the
 #'   log scale and exponentiated so the reported `ci_lower` / `ci_upper`
 #'   are always strictly positive.
 #'
+#' The RMST difference variance, `w_j' (V1 + V0 - 2 C10) w_j`, carries the
+#' cross-intervention covariance `C10` because both curves are standardised
+#' over the same individuals; building the contrast IF row by row before the
+#' cross-product includes it automatically.
+#'
 #' Source: M-estimation sandwich aggregation of the cumulative-product
 #' survival IF, grounded in Hernán & Robins (2025), *Causal Inference: What
-#' If*, Ch. 17; the cross-time delta derivation lives in
-#' `CHUNK_3_SANDWICH_A.md`.
+#' If*, Ch. 17; the cross-time delta derivation is in the details of
+#' `compute_survival_if_matrix()`.
 #'
-#' @param estimates Per-intervention estimates `data.table` from chunk 2.
-#' @param contrasts Contrast `data.table` from chunk 2.
+#' @param estimates Per-intervention point-estimate `data.table`.
+#' @param contrasts Contrast `data.table`.
 #' @param if_list Named list of `compute_survival_if_matrix()` outputs, one
 #'   per intervention (names match `estimates$intervention`).
 #' @param type Contrast type.

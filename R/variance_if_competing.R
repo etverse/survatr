@@ -64,7 +64,7 @@ prepare_cr_sandwich_shared <- function(fit) {
 #'
 #' The per-cause sensitivity is `s^(j')_l = mu_eta^(j')_l / (1 - H_l)` with the
 #' **all-cause** denominator `1 - H` (`H = sum_j h^(j)`); unlike the
-#' single-event case (chunk 3) the `(1 - h)` does not cancel `mu_eta = h(1 - h)`
+#' single-event case (`variance_if_survival.R`) the `(1 - h)` does not cancel `mu_eta = h(1 - h)`
 #' because the survival uses the summed hazard. `cumSX^(j')` is the within-id
 #' cumulative `sum_{l<=k} s^(j')_l X_l`; `cumSX_lag^(j') = cumSX^(j') - SX^(j')`
 #' is the same summed only up to `k-1` (needed by the CIF derivative, which
@@ -133,7 +133,7 @@ cr_intervention_if_pieces <- function(fit, intervention, shared) {
     rownames(psi) <- as.character(unique_ids)
     psi[rownames(psi_raw), ] <- psi_raw
     ## IF on beta: beta_hat - beta ~ (1/n_ids) sum_i (-n_ids B_inv psi_i), so
-    ## the per-individual IF carries the n_ids factor (see chunk 3).
+    ## the per-individual IF carries the n_ids factor, as in `variance_if_survival.R`.
     IF_beta[[jc]] <- n_ids * psi %*% prep$B_inv
   }
 
@@ -280,7 +280,7 @@ compute_cif_if_matrix <- function(pieces, cause_j, times) {
 #' Per-individual IF matrix for all-cause survival `S^a(t)` (competing risks)
 #'
 #' All-cause survival from the summed cause-specific hazards. The chain is the
-#' chunk-3 single-event form generalised to multiple causes:
+#' single-event form of `variance_if_survival.R` generalised to multiple causes:
 #' `d S_i(t)/d beta_{j'} = -S_i(t) cumSX^(j')_i(t)`, so
 #' `J_bar_S^(j')(t) = -mean_i [ S_i(t) cumSX^(j')_i(t) ]`. Reduces to the
 #' single-event survival IF when `J = 1`.

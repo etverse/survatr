@@ -1,5 +1,5 @@
 ## RMTL (restricted mean time lost) is a smooth functional of the survival
-## curve already produced by chunks 2/3: RMTL(t) = t - RMST(t). The tests pin
+## curve that `contrast()` already produces: RMTL(t) = t - RMST(t). The tests pin
 ## the two defining identities -- the point identity `RMTL = t - RMST` and the
 ## variance identity `Var(RMTL) = Var(RMST)` (the constant t drops out of the
 ## delta gradient) -- so RMTL inherits the RMST oracle pins (survRM2,

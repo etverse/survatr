@@ -1,13 +1,13 @@
-## Chunk 8: full matching rejection surface.
+## Full matching rejection surface.
 ## survatr hard-rejects matching + survival on all entry routes:
-##   1. estimator = "matching" or "match"       (Chunk 1 + Chunk 8)
-##   2. method = "matching" / "match" in ...    (Chunk 8)
-##   3. a `matchit` object passed as `data`     (Chunk 8, MatchIt-guarded)
+##   1. estimator = "matching" or "match"
+##   2. method = "matching" / "match" in ...
+##   3. a `matchit` object passed as `data` (MatchIt-guarded)
 ##
 ## The correct tool for matched cohorts is survival::coxph with
 ## weights = match_weights and cluster = subclass directly on MatchIt
 ## output. survatr's pooled-logistic hazard on person-period data is
-## structurally incompatible with matching weights (see hard-rules.md).
+## structurally incompatible with matching weights (see `.claude/rules/inputs.md`).
 
 test_that("rejects estimator = 'matching' with classed error and redirect", {
   dt <- fixture_small_pp()

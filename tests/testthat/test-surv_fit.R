@@ -80,8 +80,8 @@ test_that("surv_fit rejects matching estimator with pointer error", {
 
 test_that("surv_fit rejects unknown estimators (gcomp/ipw/ice supported)", {
   dt <- fixture_small_pp()
-  # `ipw` ships in chunk 5 (test-ipw-survival.R) and `ice` (longitudinal ICE-hazard) in chunk 6
-  # (test-ice-survival.R); both are valid. Any unknown estimator is rejected.
+  # `ipw` (test-ipw-survival.R) and `ice` (longitudinal ICE-hazard,
+  # test-ice-survival.R) are valid. Any unknown estimator is rejected.
   expect_error(
     surv_fit(dt, "Y", "A", ~L, "id", "t", estimator = "bogus"),
     class = "survatr_bad_estimator"

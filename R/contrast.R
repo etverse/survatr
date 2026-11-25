@@ -45,16 +45,15 @@ contrast <- function(fit, ...) {
 #' Survival-curve contrasts on a fitted hazard model
 #'
 #' @description
-#' Given a `survatr_fit` (chunk 1) and a named list of interventions, build
+#' Given a `survatr_fit` and a named list of interventions, build
 #' the counterfactual person-period data under each intervention, predict
 #' the per-row hazard, cumulate within individual to get `S^a_i(t)`, and
 #' average across individuals to get the population survival curve
 #' `S^a(t) = (1/n) sum_i S^a_i(t)`. Derive risk / risk-difference /
 #' risk-ratio / RMST / RMST-difference contrasts from there.
 #'
-#' **No variance in this chunk.** All `se` / `ci_*` columns come back as
-#' `NA_real_`; sandwich variance ships with chunk 3 (delta-method cross-time
-#' IF aggregation) and bootstrap with chunk 4.
+#' With the default `ci_method = "none"` the `se` / `ci_*` columns are
+#' `NA_real_`; `"sandwich"` and `"bootstrap"` fill them.
 #'
 #' @param fit A `survatr_fit`.
 #' @param interventions A named list of `causatr_intervention` objects
@@ -120,7 +119,7 @@ contrast <- function(fit, ...) {
 #'   whole clusters. `cluster = "<id-column>"` reproduces the per-individual
 #'   sandwich exactly (singleton clusters). Supported for gcomp, IPW, IPCW,
 #'   longitudinal ICE-hazard, and competing-risks fits.
-#' @param ... Unused; reserved for future chunks.
+#' @param ... Unused.
 #'
 #' @return A `survatr_result` list with `estimates`, `contrasts`,
 #'   `time_grid`, `type`, `reference`, `ci_method`, and `call` components.
@@ -239,8 +238,8 @@ contrast.survatr_fit <- function(
   ## IPSI (`causatr::ipsi()`) is an IPW-only intervention that reweights the
   ## propensity (Kennedy 2019) rather than plugging a fixed treatment value into
   ## the MSM, so it does not fit the static / dynamic plug-in path the survival
-  ## curve is built on. Its weight-path survival estimand ships in a dedicated
-  ## chunk; reject it here with a clear, classed message rather than letting the
+  ## curve is built on. Its weight-path survival estimand is not implemented;
+  ## reject it here with a clear, classed message rather than letting the
   ## generic `apply_intervention()` abort surface.
   if (identical(fit$estimator, "ipw")) {
     iv_types <- vapply(
@@ -254,7 +253,7 @@ contrast.survatr_fit <- function(
           "`ipsi()` is not yet supported for IPW survival.",
           i = paste0(
             "Incremental propensity-score interventions use a weight-path ",
-            "estimand (not an MSM plug-in) and ship in a dedicated chunk."
+            "estimand (not an MSM plug-in), which is not implemented."
           )
         ),
         class = "survatr_ipw_ipsi_deferred"

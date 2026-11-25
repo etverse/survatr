@@ -199,11 +199,7 @@ Interventions are constructed via `causatr`:
 | `causatr::threshold(lower, upper)` | Clamp treatment within bounds | `threshold(0, 20)` |
 | `causatr::dynamic(rule)` | Apply a user-defined rule | `dynamic(\(d, a) ifelse(d$L > 0, 1, 0))` |
 
-The `dynamic()` rule and IPW (`estimator = "ipw"`) are demonstrated in
-`vignette("ipw")`; longitudinal time-varying treatments via the
-longitudinal ICE-hazard engine (`estimator = "ice"`) are covered in
-`vignette("ice")`. IPW-style
-stochastic (`ipsi()`) interventions ship in a later chunk.
+The `dynamic()` rule and IPW (`estimator = "ipw"`) are demonstrated in `vignette("ipw")`; longitudinal time-varying treatments via the longitudinal ICE-hazard engine (`estimator = "ice"`) are covered in `vignette("ice")`. The IPW-style `ipsi()` intervention is rejected under `estimator = "ipw"` and `estimator = "ice"`.
 
 ## Inference methods
 
@@ -297,7 +293,7 @@ so downstream code can pattern-match on class rather than English:
 | `survatr_bad_n_boot` / `survatr_bad_boot_ci` / `survatr_bad_parallel` | Bootstrap argument misuse |
 | `survatr_matching_rejected` | `estimator = "matching"` (use `survival::coxph(..., weights, cluster)` instead) |
 | `survatr_bad_na_action` | `na.action = na.exclude` (silently corrupts sandwich variance) |
-| `survatr_competing_misuse` | Non-`NULL` `competing` argument (cause-specific path ships later) |
+| `survatr_competing_misuse` | `competing` names a column other than `outcome`, or the cause column has fewer than two distinct causes |
 
 ## Learning more
 
@@ -312,14 +308,7 @@ are implemented and have dedicated vignettes:
   [@zivich2024ice], with the hazard indicator at the final period and
   a survival-tail pseudo-outcome at earlier periods.
 
-survatr's full scope is laid out in `SURVIVAL_PACKAGE_HANDOFF.md`. v1 is now
-complete (chunks 1–10). v1.x will add:
-
-- **IPCW** — per-period cumulative censoring weights wired into the hazard MSM.
-- **Extended estimands** — survival quantiles / median, RMTL, per-cause
-  years-of-life-lost.
-- **Cluster-robust sandwich** — `cluster=` IF aggregation.
-- **Left-truncation / delayed entry.**
+survatr also supports competing risks (`competing =`), IPCW (`ipcw =`), survival quantiles, restricted mean time lost, years of life lost and cluster-robust intervals (`cluster =`); planned work is in the package's `ROADMAP.md` and in the GitHub issues at <https://github.com/etverse/survatr/issues>.
 
 ## References
 

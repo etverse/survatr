@@ -29,7 +29,7 @@ test_that("survival curve converges to (1 - h)^t on a constant-hazard DGP", {
   expect_lt(max(abs(curve$s_hat - (1 - h)^times)), 0.03)
   expect_lt(max(abs(curve$risk_hat - (1 - (1 - h)^times))), 0.03)
   expect_equal(curve$intervention, rep("a0", length(times)))
-  ## SE columns are placeholders at chunk 2.
+  ## SE columns are placeholders (`NA`) until `contrast()` fills them.
   expect_true(all(is.na(curve$se)))
 })
 

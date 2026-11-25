@@ -104,9 +104,7 @@ head(pp)
 
 ## Fitting
 
-Pass the multi-valued column to **both** `outcome` and `competing` (they name the
-same column). Competing risks is a point-treatment g-computation estimator in
-this release.
+Pass the multi-valued column to **both** `outcome` and `competing` (they name the same column). Competing risks is a point-treatment g-computation estimator.
 
 ```{r}
 fit <- surv_fit(
@@ -233,17 +231,14 @@ all-cause survival alongside them.
 
 - **Cause-specific hazards only.** Fine–Gray / subdistribution hazards (a
   different estimand and data structure) are out of scope.
-- **Point-treatment g-computation only this release.** `estimator = "ipw"` or
-  `"ice"` with `competing = ` aborts (`survatr_competing_estimator`);
-  longitudinal and IPW competing risks ship in later chunks.
+- **Point-treatment g-computation only.** `estimator = "ipw"` or `"ice"` with `competing = ` aborts (`survatr_competing_estimator`); longitudinal and IPW competing risks are not implemented.
 - **`competing` must name the same column as `outcome`**, with at least two
   distinct positive causes (else `survatr_competing_misuse`), and hold
   non-negative integer cause codes (else `survatr_bad_competing`).
 - **Estimand / fit must match:** a CIF estimand needs a competing-risks fit and
   a single-event contrast (e.g. `rmst_difference`) is not defined for one
   (`survatr_competing_type`).
-- **Per-cause RMST / years-of-life-lost** (the integral of the CIF) is deferred
-  to a later estimands chunk.
+- **Per-cause RMST** is out of scope. Per-cause years of life lost, the integral of the CIF, is `type = "yll"`.
 
 ## References
 

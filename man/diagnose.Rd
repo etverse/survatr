@@ -62,9 +62,9 @@ print(dx)
 \seealso{
 \code{\link[=surv_fit]{surv_fit()}}, \code{\link[=contrast]{contrast()}}
 
-Other survatr_fit functions: 
-\code{\link{print.survatr_diag}()},
-\code{\link{print.survatr_fit}()},
-\code{\link{surv_fit}()}
+Other survatr_fit functions:
+\code{\link[=print.survatr_diag]{print.survatr_diag()}},
+\code{\link[=print.survatr_fit]{print.survatr_fit()}},
+\code{\link[=surv_fit]{surv_fit()}}
 }
 \concept{survatr_fit functions}

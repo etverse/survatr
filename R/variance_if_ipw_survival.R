@@ -20,7 +20,7 @@
 #' IF_beta_i = B_bb^{-1} ( psi_beta_i - A_ba B_aa^{-1} psi_alpha_i )
 #' ```
 #'
-#' The first term is the chunk-3 "hazard-only" IF; the second is the
+#' The first term is the "hazard-only" IF of `variance_if_survival.R`; the second is the
 #' treatment-model correction, **subtracted**. This routine builds `A_ba`
 #' (= `A_beta_alpha`) by numerically differentiating the mean hazard-MSM score
 #' with respect to `alpha` -- exactly the `phi_bar` / `numDeriv::jacobian`
@@ -29,8 +29,8 @@
 #' `alpha`; `mu_eta`, the working residual, and the variance are at `beta_hat`.
 #'
 #' This block holds because the stabilized weights are **intervention-free** (a
-#' single per-id weight at the observed treatment). A future chunk whose weights
-#' depend on a quantity that itself depends on `beta` would make the
+#' single per-id weight at the observed treatment). Weights that
+#' depended on a quantity that itself depends on `beta` would make the
 #' off-diagonal `A_ab` non-zero and break the lower-triangularity.
 #'
 #' @param fit A `survatr_fit` with `estimator == "ipw"` (carries
@@ -119,7 +119,7 @@ prepare_ipw_correction <- function(fit, prep, fit_idx, id_vec, pp_work) {
   ## Treatment-model bread + score, scaled by the number of UNITS (= ids), not
   ## the PP row count. `n_total = n_ids` is what makes causatr's
   ## `apply_model_correction()` emit the correction at the same n_ids scaling as
-  ## the chunk-3 hazard block, so `crossprod(IF) / n_ids^2` is consistent.
+  ## the hazard-only block, so `crossprod(IF) / n_ids^2` is consistent.
   n_ids <- length(full_tm$fit_rows)
   prep_trt <- causatr:::prepare_model_if(
     model = full_tm$model,
@@ -135,7 +135,7 @@ prepare_ipw_correction <- function(fit, prep, fit_idx, id_vec, pp_work) {
 #' @description
 #' Given the intervention-specific population derivative `J_bar_mat` of the
 #' survival curve with respect to the hazard-MSM coefficients, return the
-#' `n_ids x |times|` correction matrix to **add** to the chunk-3 hazard-only IF
+#' `n_ids x |times|` correction matrix to **add** to the hazard-only IF
 #' matrix. The correction carries the minus sign of the stacked-EE formula and a
 #' single factor of `n_ids` (supplied by `apply_model_correction()`'s
 #' `n_total = n_ids`).

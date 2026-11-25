@@ -1,4 +1,4 @@
-## Cluster-robust sandwich variance (chunk 13).
+## Cluster-robust sandwich variance.
 ##
 ## The per-individual influence function is the variance currency in survatr;
 ## clustering is one aggregation step (sum the IF rows within cluster before the

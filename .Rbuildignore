@@ -11,8 +11,7 @@
 ^docs$
 ^altdoc$
 ^CLAUDE\.md$
-^SURVIVAL_PACKAGE_HANDOFF\.md$
-^CHUNK_.*\.md$
+^ROADMAP\.md$
 ^Makefile$
 ^\.claude$
 ^\.worktreeinclude$

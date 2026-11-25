@@ -6,7 +6,7 @@
 \alias{survatr-package}
 \title{survatr: Causal Survival Analysis for Methodological Triangulation}
 \description{
-\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+\if{html}{\figure{logo.svg}{options: style='float: right' alt='logo' width='120'}}
 
 Causal survival analysis via pooled-logistic hazard g-computation, inverse probability weighting, and iterated conditional expectation (ICE) on person-period data. Extends the causatr engine to time-to-event outcomes with delta-method sandwich variance on cumulative-product survival curves, risk difference / risk ratio / RMST contrasts, competing-risks cause-specific hazards, and empirical bootstrap. Part of the etverse ecosystem.
 }
@@ -21,6 +21,11 @@ Useful links:
 }
 \author{
 \strong{Maintainer}: Lorenzo Fabbri \email{lorenzo.fabbri92sm@gmail.com} (\href{https://orcid.org/0000-0003-3031-322X}{ORCID})
+
+Authors:
+\itemize{
+  \item Lorenzo Fabbri \email{lorenzo.fabbri92sm@gmail.com} (\href{https://orcid.org/0000-0003-3031-322X}{ORCID})
+}
 
 }
 \keyword{internal}

@@ -2,10 +2,10 @@
 #'
 #' @description
 #' Minimal banner summary for the fit object returned by `surv_fit()`.
-#' Reports the track, estimator, outcome / treatment / id / time columns,
+#' Reports the estimator, outcome / treatment / id / time columns,
 #' number of individuals, number of person-period rows used to fit, and the
-#' time grid span. A richer print (coef table, time-spline degrees of
-#' freedom) ships with the contrast / S3 polish in a later chunk.
+#' time grid span. It does not print the coefficient table or the time-spline
+#' degrees of freedom.
 #'
 #' @param x A `survatr_fit`.
 #' @param ... Unused.
@@ -75,8 +75,8 @@ print.survatr_fit <- function(x, ...) {
 #'
 #' @description
 #' Minimal banner + head of the result's `contrasts` (or `estimates` for
-#' curve-only `type`s). A polished print + `plot` / `tidy` / `forrest`
-#' surface ships with the S3 polish in a later chunk.
+#' curve-only `type`s). Use `plot()`, `tidy()` and `forrest()` for
+#' graphics and tidy output.
 #'
 #' @param x A `survatr_result`.
 #' @param n Maximum number of rows from the contrasts / estimates table to

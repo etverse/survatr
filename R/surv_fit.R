@@ -25,8 +25,8 @@
 #'   the longitudinal ICE-hazard estimator (`estimator = "ice"`)
 #'   the treatment may vary within `id` and must be **numeric** (binary, or a
 #'   numeric dose entered linearly); factor / categorical (k > 2) treatments are
-#'   rejected with class `survatr_ice_treatment_unsupported` (a treatment-design
-#'   formula path ships in a later chunk).
+#'   rejected with class `survatr_ice_treatment_unsupported` (there is no
+#'   treatment-design formula path).
 #' @param confounders A one-sided formula (e.g. `~ L1 + L2`) describing the
 #'   **baseline** (time-invariant) covariate adjustment set. Under the
 #'   longitudinal ICE-hazard estimator (`estimator = "ice"`), time-varying
@@ -45,7 +45,7 @@
 #'   event this period), and `surv_fit()` fits `J` parallel cause-specific
 #'   pooled-logistic hazard models on a shared all-cause risk set. It must name
 #'   the **same** column as `outcome`; competing risks are gcomp /
-#'   point-treatment only in this release (a non-`"gcomp"` estimator, fewer than
+#'   point-treatment only (a non-`"gcomp"` estimator, fewer than
 #'   two distinct causes,
 #'   or `outcome != competing` aborts with `survatr_competing_estimator` /
 #'   `survatr_competing_misuse`). Cumulative-incidence functions (CIF), CIF
@@ -59,7 +59,7 @@
 #'   `nrow(data)`. When supplied, the hazard model is fit with
 #'   `stats::quasibinomial()` rather than `stats::binomial()` (same score
 #'   equations, free dispersion -- drops the "non-integer #successes"
-#'   warning). The variance engine in later chunks reads the family from
+#'   warning). The sandwich variance reads the family from
 #'   `fit$family` to pick the right dispersion.
 #' @param estimator Character scalar. `"gcomp"` (pooled-logistic
 #'   standardization), `"ipw"` (weighted marginal hazard MSM with stabilized
@@ -176,12 +176,11 @@ surv_fit <- function(
     )
   }
 
-  ## Estimator gating. Matching is structurally invalid for survival (see
-  ## hard-rules.md) and gets its own classed error. A `method = "matching"`
-  ## mis-call (causatr-style API confusion) is also caught here. "ipw" and
-  ## "ice" land on a separate classed error so downstream chunks can
-  ## pattern-match when they wire them up. Anything else falls through to a
-  ## generic bad-estimator error.
+  ## Estimator gating. Matching is structurally incompatible with a pooled-
+  ## logistic hazard on person-period data (see `.claude/rules/inputs.md`) and
+  ## gets its own classed error. A `method = "matching"` mis-call (causatr-style API
+  ## confusion) is also caught here. Anything else that is not a supported
+  ## estimator falls through to a generic bad-estimator error.
   if (identical(estimator, "matching") || identical(estimator, "match")) {
     rlang::abort(
       c(
@@ -229,8 +228,8 @@ surv_fit <- function(
   ## Competing-risks entry point. `competing = <col>` activates the
   ## cause-specific hazards + CIF path. Two guards fire here (before touching
   ## the data) so the misuse cases keep aborting:
-  ##   - CR is gcomp / point-treatment only this release (IPW / ICE competing
-  ##     risks are later chunks): a non-gcomp estimator is a structural mismatch.
+  ##   - CR is gcomp / point-treatment only (IPW / ICE competing risks are not
+  ##     implemented): a non-gcomp estimator is a structural mismatch.
   ##   - The documented API passes the same multi-valued cause column to both
   ##     `outcome` and `competing`; a mismatch is ambiguous (which column is the
   ##     event?) so we reject rather than guess.
@@ -241,11 +240,10 @@ surv_fit <- function(
         c(
           paste0(
             "Competing-risks (`competing =`) is supported only with ",
-            "`estimator = \"gcomp\"` (point-treatment g-computation) in this ",
-            "release."
+            "`estimator = \"gcomp\"` (point-treatment g-computation)."
           ),
           i = paste0(
-            "IPW / ICE competing-risks survival ship in later chunks. Got ",
+            "IPW / ICE competing-risks survival is not implemented. Got ",
             "`estimator = \"",
             estimator,
             "\"`."
@@ -278,7 +276,7 @@ surv_fit <- function(
         c(
           "External `weights` are not yet supported with `competing =`.",
           i = paste0(
-            "Weighted / IPCW competing-risks survival ships in a later chunk."
+            "Weighted / IPCW competing-risks survival is not implemented."
           )
         ),
         class = "survatr_competing_weights"
@@ -370,7 +368,7 @@ surv_fit <- function(
         "External `weights` are not yet supported with `estimator = \"ipw\"`.",
         i = paste0(
           "Composing survey / external design weights with the stabilized ",
-          "IPW weights (target-population transport) ships in a later chunk."
+          "IPW weights (target-population transport) is not implemented."
         )
       ),
       class = "survatr_ipw_external_weights"
@@ -380,7 +378,7 @@ surv_fit <- function(
   ## External / IPCW weights with the longitudinal ICE-hazard estimator need
   ## the per-step weight
   ## propagation + censoring-model stacked-EE blocks of the built-in IPCW
-  ## path; that ships in a later chunk. Reject upfront rather than fit an
+  ## path; that is not implemented. Reject upfront rather than fit an
   ## unweighted ICE chain that silently ignores the weights.
   if (identical(estimator, "ice") && !is.null(weights)) {
     rlang::abort(
@@ -388,7 +386,7 @@ surv_fit <- function(
         "External `weights` are not yet supported with `estimator = \"ice\"`.",
         i = paste0(
           "Weighted / IPCW longitudinal survival (per-step weight ",
-          "propagation) ships in a later chunk."
+          "propagation) is not implemented."
         )
       ),
       class = "survatr_ice_external_weights"
@@ -442,7 +440,7 @@ surv_fit <- function(
             "`, but competing-risks fits point-treatment cause-specific ",
             "hazards (a single `beta_A` per cause)."
           ),
-          i = "Time-varying-treatment competing risks ship in a later chunk."
+          i = "Time-varying-treatment competing risks are not implemented."
         ),
         class = "survatr_tv_treatment_track_a"
       )

@@ -82,7 +82,7 @@ test_that("longitudinal ICE-hazard matches the forward-sim truth for a dynamic s
 test_that("longitudinal ICE-hazard matches gfoRmula::gformula_survival when available", {
   skip_if_not_installed("gfoRmula")
   skip_on_cran()
-  ## gfoRmula is the forward-simulation reference named in CHUNK_6. When it is
+  ## gfoRmula is the forward-simulation reference for ICE. When it is
   ## installed we cross-check the static-strategy risk curve; otherwise this
   ## skips and the forward-sim MC truth (test-ice-survival.R) is the anchor.
   dat <- sim_ice_feedback(n = 2000L, K = 3L, seed = 31L)
