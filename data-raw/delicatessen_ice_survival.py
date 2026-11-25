@@ -1,5 +1,5 @@
 """
-Generate Track B (ICE-hazard survival) reference values via delicatessen
+Generate longitudinal ICE-hazard survival reference values via delicatessen
 stacked M-estimation, as an INDEPENDENT cross-check of survatr's analytic
 survival influence-function sandwich.
 

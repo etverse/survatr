@@ -34,9 +34,9 @@ fit <- surv_fit(pp, "Y", "A", ~L, "id", "t", time_formula = ~1)
 print(diagnose(fit))
 }
 \seealso{
-Other survatr_fit functions: 
-\code{\link{diagnose}()},
-\code{\link{print.survatr_fit}()},
-\code{\link{surv_fit}()}
+Other survatr_fit functions:
+\code{\link[=diagnose]{diagnose()}},
+\code{\link[=print.survatr_fit]{print.survatr_fit()}},
+\code{\link[=surv_fit]{surv_fit()}}
 }
 \concept{survatr_fit functions}

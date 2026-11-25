@@ -25,8 +25,10 @@
 #' Aborts with `survatr_quantile_unreached` when the curve never reaches `1 - q`
 #' on the grid (the grid does not extend far enough to identify the quantile).
 #'
-#' Source: implicit-function differentiation of the survival quantile; see
-#' `CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md`.
+#' Source: implicit-function differentiation of the survival quantile,
+#' `IF_tau = -IF_S(tau) / slope`. Where the curve is nearly flat at `tau` the
+#' slope is poorly estimated and the sandwich SE unstable; use
+#' `ci_method = "bootstrap"` there.
 #'
 #' @param times Numeric grid, sorted ascending, first value `> 0`.
 #' @param s_hat Numeric survival estimates at each `times` entry (monotone
@@ -373,7 +375,7 @@ finalize_quantile <- function(
 #'
 #' @description
 #' Pull the `s_hat` vector (ordered by `time`) for each intervention out of the
-#' chunk-2 time-indexed `estimates` table, as the input `assemble_quantile_
+#' time-indexed `estimates` table, as the input `assemble_quantile_
 #' result()` needs. Longitudinal ICE-hazard and competing-risks all-cause curves
 #' use the same
 #' `s_hat` column name, so this helper is path-agnostic.
@@ -415,8 +417,8 @@ survival_curves_by_iv <- function(estimates, iv_names) {
 #' out of the gradient (`d RMTL(t*) = -d RMST(t*)`), so `Var(RMTL) = Var(RMST)`.
 #'
 #' Source: RMTL as the complement of the restricted mean survival time;
-#' see Andersen (2013) on the pseudo-observation decomposition and
-#' `CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md`.
+#' see Andersen (2013) on the pseudo-observation decomposition. It inherits
+#' the integration grid of `trapezoidal_rmst()`, a known bug in the issues.
 #'
 #' @param estimates A `data.table` from `compute_survival_curve()` stacked
 #'   across interventions.
@@ -461,8 +463,8 @@ add_rmtl_to_estimates <- function(estimates, times) {
 #' over causes this satisfies the identity `sum_j YLL^(j)(t*) = RMTL(t*)`, since
 #' `sum_j F^(j) = 1 - S` (partition of unity) and the integral is linear.
 #'
-#' Source: per-cause years of life lost as the CIF integral; see Andersen (2013)
-#' and `CHUNK_12_ESTIMANDS_QUANTILE_RMTL.md`.
+#' Source: per-cause years of life lost as the CIF integral; see Andersen
+#' (2013).
 #'
 #' @param estimates A `data.table` from `compute_cif_curves()` (columns
 #'   `intervention | cause | time | cif_hat | se | ci_* | n`).

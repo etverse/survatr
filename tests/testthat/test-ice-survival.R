@@ -90,7 +90,7 @@ test_that("a naive (unadjusted) curve is biased but ICE is not", {
 })
 
 test_that("per-step link forcing: binomial at horizon, quasibinomial earlier", {
-  ## Load-bearing invariant (hard-rules.md). Inspect a horizon-4 backward pass.
+  ## Load-bearing invariant (`.claude/rules/ice.md`). Inspect a horizon-4 backward pass.
   dat <- sim_ice_feedback(n = 300L, K = 4L, seed = 7L)
   fit <- surv_fit(
     dat,

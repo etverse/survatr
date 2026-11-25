@@ -14,20 +14,26 @@ export(forrest)
 export(surv_fit)
 export(tidy)
 importFrom(boot,boot)
-importFrom(data.table,":=")
-importFrom(data.table,.I)
-importFrom(data.table,.N)
-importFrom(data.table,.SD)
-importFrom(data.table,as.data.table)
-importFrom(data.table,copy)
-importFrom(data.table,data.table)
-importFrom(data.table,is.data.table)
-importFrom(data.table,setkeyv)
-importFrom(data.table,shift)
+importFrom(data.table,
+  ":=",
+  .I,
+  .N,
+  .SD,
+  as.data.table,
+  copy,
+  data.table,
+  is.data.table,
+  setkeyv,
+  shift
+)
 importFrom(generics,tidy)
 importFrom(numDeriv,jacobian)
-importFrom(rlang,abort)
-importFrom(rlang,inform)
-importFrom(rlang,warn)
-importFrom(sandwich,bread)
-importFrom(sandwich,estfun)
+importFrom(rlang,
+  abort,
+  inform,
+  warn
+)
+importFrom(sandwich,
+  bread,
+  estfun
+)

@@ -171,18 +171,18 @@ check_ipcw <- function(
   }
   ## IPCW is only supported with `estimator = "ipw"`: the censoring weight
   ## multiplies the treatment weight in the weighted MSM. Other estimators
-  ## need a different integration path (deferred).
+  ## need a different integration path (not implemented).
   if (!identical(estimator, "ipw")) {
     rlang::abort(
       c(
         paste0(
           "Built-in IPCW (`ipcw =`) is only supported with ",
-          "`estimator = \"ipw\"` in this release."
+          "`estimator = \"ipw\"`."
         ),
         i = paste0(
           "IPCW for `estimator = \"gcomp\"` and the longitudinal ICE-hazard ",
-          "estimator (`estimator = \"ice\"`) ship ",
-          "in later chunks. Got `estimator = \"",
+          "estimator (`estimator = \"ice\"`) is not implemented. ",
+          "Got `estimator = \"",
           estimator,
           "\"`."
         )

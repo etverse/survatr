@@ -262,10 +262,7 @@ Only the current-period treatment is intervened; the lag columns carry the
 
 ## Scope and rejections
 
-The longitudinal ICE-hazard engine currently supports a numeric treatment with
-`static` / `shift` /
-`dynamic` strategies and sandwich or bootstrap inference. It rejects, with
-classed errors, combinations that need later chunks:
+The longitudinal ICE-hazard engine supports a numeric treatment with `static` / `shift` / `dynamic` strategies and sandwich or bootstrap inference. It rejects these combinations with classed errors:
 
 | Trigger | Error class |
 |---|---|

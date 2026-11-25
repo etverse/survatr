@@ -45,7 +45,7 @@ build_contrasts <- function(estimates, type, reference, interventions) {
 
   ## Per-type estimand column. Select only the needed columns from each
   ## side of the merge so we do not suffix-duplicate every metadata
-  ## column (`n`, placeholder `se` / `ci_*`, etc.). Chunks 5+ may add
+  ## column (`n`, placeholder `se` / `ci_*`, etc.). Other estimators add
   ## per-intervention columns we don't want accidentally pulled into
   ## the `.ref` / `.a1` cartesian product.
   estimand_col <- estimand_field(type, "point_col")

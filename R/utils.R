@@ -24,8 +24,8 @@ SURVATR_INTERNAL_COLS <- c(
 #' @param treatment,outcome,confounders,id,time,censoring Column names / formula
 #'   passed through from the user call.
 #' @param time_grid Sorted unique time points present in `pp_data[[time]]`.
-#' @param track Character scalar: `"A"` (point survival) or `"B"` (longitudinal
-#'   ICE hazards). Currently only `"A"` ships.
+#' @param track Character scalar: `"A"` (point-treatment hazard fits: `gcomp`,
+#'   `ipw`) or `"B"` (longitudinal ICE hazards).
 #' @param estimator Character scalar: `"gcomp"`, `"ipw"`, or `"ice"`.
 #' @param family Character scalar: `"binomial"` (unweighted) or
 #'   `"quasibinomial"` (weighted) -- the family actually used for the GLM fit.
@@ -189,8 +189,7 @@ new_survatr_fit <- function(
 #' @param time_grid Numeric vector (the `times` input, sorted unique).
 #' @param type Contrast type.
 #' @param reference Reference intervention name, or `NULL`.
-#' @param ci_method `"none"` through chunk 2; `"sandwich"` / `"bootstrap"`
-#'   from chunk 3 / 4.
+#' @param ci_method `"none"`, `"sandwich"` or `"bootstrap"`.
 #' @param call The original `match.call()` of `contrast.survatr_fit()`.
 #'
 #' @return A list of class `survatr_result`.

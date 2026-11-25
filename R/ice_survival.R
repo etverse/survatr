@@ -43,8 +43,8 @@ fit_ice_survival <- function(
   ## choice). A factor / character treatment is NOT supported here: the
   ## intervention sets a numeric counterfactual value, which collides with a
   ## factor column (a cryptic data.table error), and nominal categories need a
-  ## `treatment_form = ~ factor(A)` design that longitudinal ICE-hazard does not yet thread.
-  ## Reject with a classed error pointing at the future extended-types chunk.
+  ## `treatment_form = ~ factor(A)` design that longitudinal ICE-hazard does not thread.
+  ## Reject with a classed error.
   if (!is.numeric(data[[treatment]])) {
     rlang::abort(
       c(
@@ -56,7 +56,7 @@ fit_ice_survival <- function(
         ),
         i = paste0(
           "Categorical (k > 2) treatments via `factor()` / a treatment design ",
-          "formula ship in a later chunk; recode to a numeric column for now."
+          "formula are not supported; recode to a numeric column."
         )
       ),
       class = "survatr_ice_treatment_unsupported"
@@ -162,14 +162,14 @@ contrast_track_b <- function(
   call,
   cluster_labels = NULL
 ) {
-  ## longitudinal ICE-hazard v1 supports only deterministic plug-in interventions (`static`,
+  ## longitudinal ICE-hazard supports only deterministic plug-in interventions (`static`,
   ## `shift`, `scale_by`, `threshold`, `dynamic`). Two families are rejected
   ## upfront:
   ##   - `ipsi()` reweights the propensity (weight-path estimand, IPW-only);
   ##     there is no counterfactual treatment to plug into the ICE recursion.
   ##   - Stochastic interventions need Monte-Carlo averaging at the cumulative-
   ##     product level (Jensen-safe) and an MC sensitivity chain.
-  ## Both ship in later chunks; reject here rather than (for stochastic)
+  ## Neither is implemented; reject here rather than (for stochastic)
   ## silently return a single random draw or (for ipsi) surface causatr's
   ## generic g-computation abort.
   iv_types <- vapply(
@@ -191,7 +191,7 @@ contrast_track_b <- function(
         ),
         i = paste0(
           "Incremental-propensity (`ipsi()`) and stochastic / Monte-Carlo ",
-          "survival interventions ship in later chunks."
+          "survival interventions are not implemented."
         )
       ),
       class = "survatr_ice_intervention_deferred"
@@ -443,7 +443,7 @@ ice_surv_pseudo <- function(d_k, q_next) {
 #' `survatr_fit` and reused by `contrast()` and the bootstrap.
 #'
 #' The per-step **link forcing** lives here and is load-bearing
-#' (`.claude/hard-rules.md`): `family_outcome = binomial()` for the horizon
+#' (`.claude/rules/ice.md`): `family_outcome = binomial()` for the horizon
 #' (final) step where the response is the 0/1 event indicator, and
 #' `family_pseudo = quasibinomial()` for earlier steps where the survival-tail
 #' pseudo-outcome is a fitted probability in `[0, 1]` (the fractional-logit
@@ -457,7 +457,7 @@ ice_surv_pseudo <- function(d_k, q_next) {
 #'   `n_times - 1`).
 #' @param model_fn Per-step fitting function (e.g. `stats::glm`).
 #' @param dots User `...` captured at `surv_fit()` time, replayed per step.
-#' @param weights External weight vector or `NULL` (longitudinal ICE-hazard v1: always `NULL`).
+#' @param weights External weight vector or `NULL` (longitudinal ICE-hazard: always `NULL`).
 #'
 #' @return A named list of ICE survival details (see body) with the same field
 #'   names `causatr:::ice_iterate()` / `variance_if_ice_one()` read off a
@@ -567,7 +567,7 @@ prepare_track_b_base <- function(fit, details) {
   ## and -- crucially for the variance reuse -- the at-risk `fit_ids` that
   ## make causatr's forward sensitivity chain valid for the survival-tail
   ## pseudo-outcome (the `(1 - D_k)` factor is absorbed by restricting to
-  ## the at-risk set; see `.claude/hard-rules.md`).
+  ## the at-risk set; see `.claude/rules/ice.md`).
   fit_rows <- build_risk_set(
     data = data_lag,
     outcome = fit$outcome,
@@ -611,7 +611,7 @@ prepare_track_b_base <- function(fit, details) {
 #'    pseudo-outcome `Ỹ_k = ice_surv_pseudo(D_k, q_next)` among at-risk-at-`k`
 #'    rows, fit it (quasibinomial), and predict the counterfactual `q_{i,k}`.
 #'    Survived-but-unpredictable rows (`q_next` is `NA`, e.g. censored at the
-#'    next period with no IPCW -- deferred to chunk 11) are dropped from the
+#'    next period; ICE has no IPCW) are dropped from the
 #'    fit.
 #' 3. After the sweep, `pseudo` at the first period equals the individual
 #'    counterfactual `Ỹ_{0,i}(τ) = 1 - Ŝ^d_{0:τ,i}`; its mean is `R^d(τ)`.
@@ -719,7 +719,7 @@ run_ice_survival_horizon <- function(
       details$treatment_terms
     )
 
-    ## External weights (longitudinal ICE-hazard v1: always NULL) subset to the kept fit rows.
+    ## External weights (longitudinal ICE-hazard: always NULL) subset to the kept fit rows.
     w_k <- if (!is.null(external_weights)) {
       external_weights[which(fit_mask)][keep]
     } else {

@@ -52,8 +52,8 @@ validate_interventions <- function(interventions, call = rlang::caller_env()) {
 #'
 #' Must be a numeric vector, no NAs, all values in `fit$time_grid`. Sorts
 #' ascending and drops duplicates. Extrapolation beyond the observed time
-#' grid is rejected -- chunk 2 does not handle it. Later chunks may relax
-#' this to a warning with a dedicated classed signal.
+#' grid is rejected (`survatr_time_extrapolation`): the hazard model is
+#' fitted only on the observed periods.
 #'
 #' @param times User-supplied time grid.
 #' @param fit_grid `fit$time_grid` (sorted unique observed times).
@@ -91,7 +91,7 @@ validate_times <- function(times, fit_grid, call = rlang::caller_env()) {
           "."
         ),
         i = paste0(
-          "survatr chunk 2 does not extrapolate beyond observed periods. ",
+          "survatr does not extrapolate beyond the observed periods. ",
           "Pass only values in `fit$time_grid` = [",
           min(fit_grid),
           ", ",

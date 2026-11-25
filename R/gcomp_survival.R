@@ -13,7 +13,7 @@
 #'   glm!" warning without changing the coefficient estimates.
 #'
 #' Swapping these families silently changes the reported SEs (dispersion
-#' scaling) -- the variance engine in later chunks needs to know which family
+#' scaling) -- the sandwich variance needs to know which family
 #' was used, so the choice is recorded on the returned list as `family_name`.
 #'
 #' @param data Full person-period `data.table` (after risk-set construction;

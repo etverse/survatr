@@ -1,5 +1,5 @@
-## The survival quantile is a smooth functional of the curve chunks 2/3
-## already compute: tau_q = inf{t : S(t) <= 1 - q}. On a constant-hazard DGP
+## The survival quantile is a smooth functional of the survival curve
+## that `contrast()` already computes: tau_q = inf{t : S(t) <= 1 - q}. On a constant-hazard DGP
 ## the discrete survival is S(t) = (1 - h)^t, so the q-quantile has the closed
 ## form tau_q = -log(1 - q) / (-log(1 - h)) (median = log(2) / (-log(1 - h))).
 ## The estimator returns the linear-interpolation crossing of the FITTED curve,

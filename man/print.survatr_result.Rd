@@ -19,8 +19,8 @@ The result object, invisibly.
 }
 \description{
 Minimal banner + head of the result's \code{contrasts} (or \code{estimates} for
-curve-only \code{type}s). A polished print + \code{plot} / \code{tidy} / \code{forrest}
-surface ships with the S3 polish in a later chunk.
+curve-only \code{type}s). Use \code{plot()}, \code{tidy()} and \code{forrest()} for
+graphics and tidy output.
 }
 \examples{
 set.seed(2)
@@ -42,12 +42,12 @@ res <- contrast(
 print(res)
 }
 \seealso{
-Other survatr_result methods: 
-\code{\link{contrast}()},
-\code{\link{contrast.survatr_fit}()},
-\code{\link{forrest}()},
-\code{\link{forrest.survatr_result}()},
-\code{\link{plot.survatr_result}()},
-\code{\link{tidy.survatr_result}()}
+Other survatr_result methods:
+\code{\link[=contrast]{contrast()}},
+\code{\link[=contrast.survatr_fit]{contrast.survatr_fit()}},
+\code{\link[=forrest]{forrest()}},
+\code{\link[=forrest.survatr_result]{forrest.survatr_result()}},
+\code{\link[=plot.survatr_result]{plot.survatr_result()}},
+\code{\link[=tidy.survatr_result]{tidy.survatr_result()}}
 }
 \concept{survatr_result methods}

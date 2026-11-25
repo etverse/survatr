@@ -102,7 +102,7 @@ build_event_by_step <- function(data, time_points, id_col, time_col, outcome) {
 #' `event_by_step`. Everything else -- the bread, the score (`r_score` read off
 #' each fitted GLM), the block-triangular back-substitution -- is causatr's,
 #' reused through `correct_model()`. Stochastic interventions are rejected for
-#' longitudinal ICE-hazard v1, so the Monte-Carlo branches of causatr's chain are omitted here.
+#' longitudinal ICE-hazard, so the Monte-Carlo branches of causatr's chain are omitted here.
 #'
 #' @param ctx Context list from `causatr:::ice_if_setup()`.
 #' @param models_by_step Per-step fitted GLMs (from the `ice_result`).
@@ -262,7 +262,7 @@ survatr_ice_surv_if_one <- function(
 #' @param min_fit Minimal `causatr_fit` from `build_min_causatr_fit_b()`.
 #' @param ice_results Per-horizon list of `ice_result`s.
 #' @param times User horizon grid (column count / order).
-#' @param target Logical vector over first-period individuals (longitudinal ICE-hazard v1: all
+#' @param target Logical vector over first-period individuals (longitudinal ICE-hazard: all
 #'   `TRUE`).
 #' @param event_by_step Per-step id-keyed `D_k` from `build_event_by_step()`.
 #'

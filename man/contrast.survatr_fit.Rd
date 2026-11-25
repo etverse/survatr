@@ -103,23 +103,22 @@ whole clusters. \code{cluster = "<id-column>"} reproduces the per-individual
 sandwich exactly (singleton clusters). Supported for gcomp, IPW, IPCW,
 longitudinal ICE-hazard, and competing-risks fits.}
 
-\item{...}{Unused; reserved for future chunks.}
+\item{...}{Unused.}
 }
 \value{
 A \code{survatr_result} list with \code{estimates}, \code{contrasts},
 \code{time_grid}, \code{type}, \code{reference}, \code{ci_method}, and \code{call} components.
 }
 \description{
-Given a \code{survatr_fit} (chunk 1) and a named list of interventions, build
+Given a \code{survatr_fit} and a named list of interventions, build
 the counterfactual person-period data under each intervention, predict
 the per-row hazard, cumulate within individual to get \code{S^a_i(t)}, and
 average across individuals to get the population survival curve
 \verb{S^a(t) = (1/n) sum_i S^a_i(t)}. Derive risk / risk-difference /
 risk-ratio / RMST / RMST-difference contrasts from there.
 
-\strong{No variance in this chunk.} All \code{se} / \verb{ci_*} columns come back as
-\code{NA_real_}; sandwich variance ships with chunk 3 (delta-method cross-time
-IF aggregation) and bootstrap with chunk 4.
+With the default \code{ci_method = "none"} the \code{se} / \verb{ci_*} columns are
+\code{NA_real_}; \code{"sandwich"} and \code{"bootstrap"} fill them.
 }
 \examples{
 # Small rectangular person-period dataset: 40 ids over 5 periods.
@@ -150,12 +149,12 @@ contrast(
 )
 }
 \seealso{
-Other survatr_result methods: 
-\code{\link{contrast}()},
-\code{\link{forrest}()},
-\code{\link{forrest.survatr_result}()},
-\code{\link{plot.survatr_result}()},
-\code{\link{print.survatr_result}()},
-\code{\link{tidy.survatr_result}()}
+Other survatr_result methods:
+\code{\link[=contrast]{contrast()}},
+\code{\link[=forrest]{forrest()}},
+\code{\link[=forrest.survatr_result]{forrest.survatr_result()}},
+\code{\link[=plot.survatr_result]{plot.survatr_result()}},
+\code{\link[=print.survatr_result]{print.survatr_result()}},
+\code{\link[=tidy.survatr_result]{tidy.survatr_result()}}
 }
 \concept{survatr_result methods}

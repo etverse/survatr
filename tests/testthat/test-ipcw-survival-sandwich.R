@@ -2,8 +2,8 @@
 ##
 ## The full sandwich has three blocks:
 ##   Block 1: hazard MSM score (beta)
-##   Block 2: treatment model (alpha) -- from chunk 5
-##   Block 3: censoring model (gamma) -- added in chunk 11
+##   Block 2: treatment model (alpha)
+##   Block 3: censoring model (gamma)
 ##
 ## Hard invariants to assert:
 ##   SE_two_block < SE_hazard_only          (treatment correction is variance-reducing)
@@ -92,7 +92,7 @@ test_that("censoring block is non-trivially wired; treatment block is variance-r
   expect_equal(three_block$s_hat, hazard_only$s_hat)
 
   ## Treatment block narrows SE vs hazard-only (stabilized weight variance
-  ## reduction; Robins 1999 invariant, already pinned in chunk 5).
+  ## reduction; Robins 1999 invariant, already pinned in test-ipw-survival-sandwich.R).
   expect_true(all(se_two < se_hazard))
   ## Treatment correction is non-trivial: > 1% relative change at peak.
   expect_true(max(abs(se_two - se_hazard) / se_hazard) > 0.01)

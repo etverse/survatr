@@ -1,5 +1,5 @@
 ## Per-cause years of life lost is the integral of the cause-j CIF:
-## YLL^(j)(t*) = int_0^{t*} F^(j)(u) du. It reuses the chunk-7 CIF influence
+## YLL^(j)(t*) = int_0^{t*} F^(j)(u) du. It reuses the CIF influence
 ## function mapped through the trapezoidal weights, and satisfies the identity
 ## sum_j YLL^(j)(t*) = RMTL(t*) (since sum_j F^(j) = 1 - S, partition of unity).
 ## No `adjustedCurves` oracle is available here; the analytic two-cause CIF

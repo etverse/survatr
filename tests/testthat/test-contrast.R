@@ -81,7 +81,7 @@ test_that("rmst and rmst_difference are curve-shaped", {
   expect_equal(rmst_diff$contrasts$estimate, rep(0, 10L), tolerance = 0.1)
 })
 
-test_that("all se / ci columns at chunk 2 are NA_real_", {
+test_that("ci_method = 'none' leaves every se / ci column NA_real_", {
   dt <- sim_constant_hazard(n = 1000L, K = 5L, h = 0.1, seed = 29L)
   fit <- surv_fit(dt, "Y", "A", ~1, "id", "t", time_formula = ~1)
   res <- contrast(

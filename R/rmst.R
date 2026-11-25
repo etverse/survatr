@@ -19,7 +19,9 @@
 #'
 #' Source: Hernán & Robins (2025), *Causal Inference: What If*, Ch. 17
 #' (restricted mean survival as the area under the standardized survival
-#' curve); see also `CHUNK_2_CONTRAST_A.md`.
+#' curve). The integral runs over `times` only, so a sparse `times` gives a
+#' coarser integral than the period grid; this is a known bug in the package
+#' issues.
 #'
 #' @param times Numeric vector, sorted ascending, first value > 0.
 #' @param s_hat Numeric vector of survival estimates at each `times` entry.
@@ -49,7 +51,7 @@ trapezoidal_rmst <- function(times, s_hat) {
 #' Return the matrix `W` such that the cumulative RMST at `times` equals
 #' `W %*% s_hat + dt[1] / 2`, where the `dt[1] / 2` constant is the
 #' contribution from the prepended `(0, S(0) = 1)` point and does not
-#' depend on beta. Used by the variance engine in chunk 3 to propagate a
+#' depend on beta. Used by the sandwich variance to propagate a
 #' per-individual IF on `S^a_i(t)` to a per-individual IF on
 #' `RMST^a_i(t)`: since the constant drops out of the delta, the row
 #' `W[j, ]` is exactly `d RMST(t_j) / d s_hat`.
@@ -63,8 +65,9 @@ trapezoidal_rmst <- function(times, s_hat) {
 #' - `W[j, i] = 0` for `i > j` (future times do not enter RMST(t_j))
 #'
 #' Source: trapezoidal differentiation of the RMST integral in
-#' Hernán & Robins (2025), *Causal Inference: What If*, Ch. 17; the
-#' delta-method use of `W` is detailed in `CHUNK_3_SANDWICH_A.md`.
+#' Hernán & Robins (2025), *Causal Inference: What If*, Ch. 17. The IF of
+#' `RMST(t_j)` is `IF_S %*% W[j, ]`, so its variance is `w_j' V w_j` with
+#' `V = crossprod(IF_S) / n_ids^2`.
 #'
 #' @param times Numeric vector, sorted ascending, first value > 0.
 #'

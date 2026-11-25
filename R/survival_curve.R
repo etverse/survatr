@@ -5,7 +5,7 @@
 #' `S^a(t) = (1/n) sum_i S^a_i(t)` averaged across ids, at every user-
 #' supplied time in `times`.
 #'
-#' Two invariants (see `.claude/hard-rules.md`):
+#' Two invariants (see `.claude/rules/hazard-and-curves.md`):
 #'
 #' 1. **Cumulate within id before averaging.** The cumulative product is
 #'    nonlinear; averaging hazards across ids before multiplying biases
@@ -25,7 +25,7 @@
 #' @return A `data.table` with columns
 #'   `intervention | time | s_hat | risk_hat | se | ci_lower | ci_upper | n`,
 #'   one row per time in `times`. `se` / `ci_*` are `NA_real_` (filled in
-#'   by later chunks).
+#'   by the variance step of `contrast()`).
 #' @noRd
 compute_survival_curve <- function(
   pp_data,
@@ -63,7 +63,7 @@ compute_survival_curve <- function(
   ## At each requested time t, average S^a_i(t) across ids that have a
   ## row at time == t. Point-treatment data has a row for every (id, t) by
   ## construction of `prepare_pp_data()`, so this average is over all n
-  ## individuals; IPW weighting enters in chunk 5.
+  ## individuals; IPW weighting enters through the hazard model, not here.
   time_col <- time
   agg <- pp[
     get(time_col) %in% times,

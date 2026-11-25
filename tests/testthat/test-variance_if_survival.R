@@ -60,8 +60,7 @@ test_that("sandwich SE on S_bar matches analytical asymptotic SE", {
   ## at larger t). A companion simulation (100 replicates at n = 3000)
   ## confirms the sandwich SE matches the empirical SD to ~7% at t = 5.
   ## We use a conservative tolerance here so the test only trips on a
-  ## scaling bug (e.g. a factor-of-n_ids miscalibration like the one caught
-  ## during chunk 3 implementation) rather than the expected mismatch
+  ## scaling bug (e.g. a factor-of-n_ids miscalibration ) rather than the expected mismatch
   ## between the crude closed form and the pooled-logistic MLE.
   rel_err <- abs(se_emp - se_target) / se_target
   expect_true(all(rel_err < 0.75))

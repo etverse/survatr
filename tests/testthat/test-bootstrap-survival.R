@@ -143,7 +143,7 @@ test_that("bootstrap vs sandwich SEs agree within 15% on a moderate DGP", {
   ## this DGP at n = 1500, h = 0.06, K = 6 (truth from 300-replicate
   ## Monte Carlo). With B = 500 the bootstrap SE has a small additional
   ## MC error; 15% comfortably covers it and still trips on the
-  ## factor-of-n_ids class of scaling bugs caught during chunk-3 review.
+  ## factor-of-n_ids class of scaling bugs.
   dt <- sim_constant_hazard(n = 1500L, K = 6L, h = 0.08, seed = 239L)
   fit <- surv_fit(dt, "Y", "A", ~1, "id", "t", time_formula = ~1)
   sw <- contrast(

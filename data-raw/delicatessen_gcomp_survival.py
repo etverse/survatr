@@ -1,9 +1,10 @@
 """
-Reference values for the Track A g-computation (gcomp) survival sandwich via
-delicatessen stacked M-estimation (Zivich 2022). Independent analytic-sandwich
-oracle for survatr's `estimator = "gcomp"` + `ci_method = "sandwich"` path --
-the foundational variance chunk that previously had only a closed-form analytic
-SE + empirical-SD + bootstrap check (no independent M-estimator).
+Reference values for the point-treatment g-computation (gcomp) survival
+sandwich via delicatessen stacked M-estimation (Zivich 2022). Independent
+analytic-sandwich oracle for survatr's `estimator = "gcomp"` +
+`ci_method = "sandwich"` path, complementing the closed-form analytic SE,
+empirical-SD and bootstrap checks (none of which is an independent
+M-estimator).
 
 Binary point treatment, discrete-time survival on a rectangular person-period
 grid. g-computation (standardization over the empirical L distribution):

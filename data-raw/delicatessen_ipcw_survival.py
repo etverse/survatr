@@ -1,7 +1,7 @@
 """
 Reference values for the IPCW IPW weighted-hazard MSM via delicatessen stacked
 M-estimation (Zivich 2022). Independent analytic-sandwich oracle for survatr's
-`estimator = "ipw"` + `ipcw = ~L` + `ci_method = "sandwich"` path (chunk 11).
+`estimator = "ipw"` + `ipcw = ~L` + `ci_method = "sandwich"` path.
 
 The censoring is informative: C_k ~ Bernoulli(expit(cens0 + delta_cens * L)),
 where delta_cens = 0.8. Ignoring censoring over-estimates survival; IPCW

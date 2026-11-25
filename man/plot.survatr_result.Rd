@@ -74,12 +74,12 @@ res <- contrast(
 plot(res)
 }
 \seealso{
-Other survatr_result methods: 
-\code{\link{contrast}()},
-\code{\link{contrast.survatr_fit}()},
-\code{\link{forrest}()},
-\code{\link{forrest.survatr_result}()},
-\code{\link{print.survatr_result}()},
-\code{\link{tidy.survatr_result}()}
+Other survatr_result methods:
+\code{\link[=contrast]{contrast()}},
+\code{\link[=contrast.survatr_fit]{contrast.survatr_fit()}},
+\code{\link[=forrest]{forrest()}},
+\code{\link[=forrest.survatr_result]{forrest.survatr_result()}},
+\code{\link[=print.survatr_result]{print.survatr_result()}},
+\code{\link[=tidy.survatr_result]{tidy.survatr_result()}}
 }
 \concept{survatr_result methods}
